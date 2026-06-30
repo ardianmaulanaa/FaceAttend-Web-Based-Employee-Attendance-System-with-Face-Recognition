@@ -4,16 +4,6 @@ import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import MobileShell from "@/components/MobileShell";
-import { supabase } from "@/lib/supabase/client";
-
-type UserProfile = {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "employee";
-  status: "active" | "inactive";
-  must_change_password: boolean;
-};
 
 const ADMIN_DEMO_EMAIL = "admin@creativemu.com";
 const ADMIN_DEMO_PASSWORD = "admin123456";
@@ -34,46 +24,25 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
 
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           email: loginEmail,
           password: loginPassword,
-        });
+        }),
+      });
 
-      if (authError || !authData.user) {
-        alert(authError?.message || "Login gagal.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(result.message || "Login gagal.");
         return;
       }
 
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id, name, email, role, status, must_change_password")
-        .eq("id", authData.user.id)
-        .single<UserProfile>();
-
-      if (userError || !userData) {
-        alert("Data user tidak ditemukan di tabel users.");
-        await supabase.auth.signOut();
-        return;
-      }
-
-      if (userData.status === "inactive") {
-        alert("Akun kamu sedang tidak aktif.");
-        await supabase.auth.signOut();
-        return;
-      }
-
-      if (userData.must_change_password) {
-        router.push("/change-password");
-        return;
-      }
-
-      if (userData.role === "admin") {
-        router.push("/admin/dashboard");
-        return;
-      }
-
-      router.push("/home");
+      router.push(result.redirectTo);
     } catch {
       alert("Terjadi kesalahan saat login.");
     } finally {

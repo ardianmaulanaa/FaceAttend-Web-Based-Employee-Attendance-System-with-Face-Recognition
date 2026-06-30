@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import MobileShell from "@/components/MobileShell";
-import { supabase } from "@/lib/supabase/client";
 
 type UserProfile = {
   id: string;
@@ -16,7 +15,6 @@ type UserProfile = {
 export default function ChangePasswordPage() {
   const router = useRouter();
 
-  const [userId, setUserId] = useState("");
   const [role, setRole] = useState<"admin" | "employee">("employee");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,48 +23,43 @@ export default function ChangePasswordPage() {
 
   useEffect(() => {
     async function checkUser() {
-      const { data: sessionData } = await supabase.auth.getSession();
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+        });
 
-      if (!sessionData.session?.user) {
-        router.push("/login");
-        return;
-      }
+        const result = await response.json();
 
-      const currentUserId = sessionData.session.user.id;
-      setUserId(currentUserId);
-
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("id, role, status, must_change_password")
-        .eq("id", currentUserId)
-        .single<UserProfile>();
-
-      if (error || !profile) {
-        alert("Data user tidak ditemukan.");
-        await supabase.auth.signOut();
-        router.push("/login");
-        return;
-      }
-
-      if (profile.status === "inactive") {
-        alert("Akun kamu sedang tidak aktif.");
-        await supabase.auth.signOut();
-        router.push("/login");
-        return;
-      }
-
-      setRole(profile.role);
-
-      if (!profile.must_change_password) {
-        if (profile.role === "admin") {
-          router.push("/admin/dashboard");
-        } else {
-          router.push("/home");
+        if (!response.ok) {
+          router.push("/login");
+          return;
         }
-        return;
-      }
 
-      setIsLoading(false);
+        const profile = result.user as UserProfile;
+
+        if (profile.status === "inactive") {
+          alert("Akun kamu sedang tidak aktif.");
+          router.push("/login");
+          return;
+        }
+
+        setRole(profile.role);
+
+        if (!profile.must_change_password) {
+          if (profile.role === "admin") {
+            router.push("/admin/dashboard");
+          } else {
+            router.push("/home");
+          }
+          return;
+        }
+
+        setIsLoading(false);
+      } catch {
+        alert("Terjadi kesalahan saat mengecek session.");
+        router.push("/login");
+      }
     }
 
     checkUser();
@@ -93,28 +86,29 @@ export default function ChangePasswordPage() {
     try {
       setIsSaving(true);
 
-      const { error: updatePasswordError } = await supabase.auth.updateUser({
-        password: newPassword,
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          newPassword,
+        }),
       });
 
-      if (updatePasswordError) {
-        alert(updatePasswordError.message || "Gagal mengganti password.");
-        return;
-      }
+      const result = await response.json();
 
-      const { error: updateUserError } = await supabase
-        .from("users")
-        .update({
-          must_change_password: false,
-        })
-        .eq("id", userId);
-
-      if (updateUserError) {
-        alert(updateUserError.message || "Gagal memperbarui status user.");
+      if (!response.ok) {
+        alert(result.message || "Gagal mengganti password.");
         return;
       }
 
       alert("Password berhasil diganti.");
+
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+        return;
+      }
 
       if (role === "admin") {
         router.push("/admin/dashboard");

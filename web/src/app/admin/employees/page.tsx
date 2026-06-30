@@ -52,6 +52,7 @@ const initialForm: EmployeeForm = {
 function getInitialName(name: string) {
   return name
     .split(" ")
+    .filter(Boolean)
     .map((word) => word[0])
     .join("")
     .slice(0, 2)
@@ -92,10 +93,11 @@ export default function AdminEmployeesPage() {
     }
   }
 
-  async function refreshEmployees() {
-    try {
-      setIsLoading(true);
+  useEffect(() => {
+  let isMounted = true;
 
+  async function fetchEmployees() {
+    try {
       const response = await fetch("/api/employees", {
         method: "GET",
         cache: "no-store",
@@ -108,16 +110,25 @@ export default function AdminEmployeesPage() {
         return;
       }
 
-      setEmployees(result.data || []);
+      if (isMounted) {
+        setEmployees(result.data || []);
+      }
     } catch {
-      alert("Terjadi kesalahan saat mengambil data karyawan.");
+      if (isMounted) {
+        alert("Terjadi kesalahan saat mengambil data karyawan.");
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     }
   }
 
-  useEffect(() => {
-  void loadEmployees();
+  void fetchEmployees();
+
+  return () => {
+    isMounted = false;
+  };
 }, []);
 
   const filteredEmployees = useMemo(() => {
@@ -166,6 +177,11 @@ export default function AdminEmployeesPage() {
       return;
     }
 
+    if (form.temporaryPassword.length < 8) {
+      alert("Temporary password minimal 8 karakter.");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -195,7 +211,7 @@ export default function AdminEmployeesPage() {
 
       setForm(initialForm);
       setIsModalOpen(false);
-      await refreshEmployees();
+      await loadEmployees();
     } catch {
       alert("Terjadi kesalahan saat menyimpan karyawan.");
     } finally {
@@ -548,6 +564,7 @@ export default function AdminEmployeesPage() {
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                     />
                     <input
+                      type="password"
                       value={form.temporaryPassword}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -555,7 +572,7 @@ export default function AdminEmployeesPage() {
                           temporaryPassword: event.target.value,
                         }))
                       }
-                      placeholder="CMU-EMP-123"
+                      placeholder="Minimal 8 karakter"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
                     />
                   </div>
@@ -586,12 +603,12 @@ export default function AdminEmployeesPage() {
                   Catatan sementara
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Temporary password hanya digunakan untuk membuat akun login di
-                  Supabase Auth. Password tidak disimpan di tabel{" "}
+                  Temporary password digunakan untuk login pertama karyawan.
+                  Password akan disimpan ke MySQL dalam bentuk{" "}
                   <span className="font-black text-slate-700">
-                    public.users
+                    password_hash
                   </span>
-                  .
+                  , bukan password asli.
                 </p>
               </div>
 

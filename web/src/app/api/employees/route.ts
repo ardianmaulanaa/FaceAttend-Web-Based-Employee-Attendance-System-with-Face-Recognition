@@ -1,32 +1,47 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin
-    .from("users")
-    .select("*")
-    .eq("role", "employee")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
+  try {
+    const employees = await prisma.user.findMany({
+      where: {
+        role: "employee",
       },
+      orderBy: {
+        created_at: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        position: true,
+        phone: true,
+        status: true,
+        must_change_password: true,
+        created_at: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: employees,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { success: false, message: "Gagal mengambil data karyawan" },
       { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    success: true,
-    data,
-  });
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
+    const body = await req.json();
 
     const {
       name,
@@ -42,77 +57,64 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Nama, email, dan temporary password wajib diisi.",
+          message: "Nama, email, dan temporary password wajib diisi",
         },
         { status: 400 }
       );
     }
 
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: temporaryPassword,
-        email_confirm: true,
-        user_metadata: {
-          name,
-          role: "employee",
-        },
-      });
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
 
-    if (authError || !authData.user) {
+    if (existingUser) {
       return NextResponse.json(
-        {
-          success: false,
-          message: authError?.message || "Gagal membuat akun auth.",
-        },
-        { status: 400 }
+        { success: false, message: "Email sudah terdaftar" },
+        { status: 409 }
       );
     }
 
-    const userId = authData.user.id;
+    const password_hash = await hashPassword(temporaryPassword);
 
-    const { data: userData, error: insertError } = await supabaseAdmin
-      .from("users")
-      .insert({
-        id: userId,
+    const employee = await prisma.user.create({
+      data: {
         name,
         email,
+        password_hash,
         role: "employee",
-        department,
-        position,
-        phone,
+        department: department || null,
+        position: position || null,
+        phone: phone || null,
         status: status || "active",
         must_change_password: true,
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-
-      return NextResponse.json(
-        {
-          success: false,
-          message: insertError.message,
-        },
-        { status: 400 }
-      );
-    }
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        position: true,
+        phone: true,
+        status: true,
+        must_change_password: true,
+        created_at: true,
+      },
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Employee berhasil dibuat.",
-        data: userData,
+        message: "Karyawan berhasil ditambahkan",
+        data: employee,
       },
       { status: 201 }
     );
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      {
-        success: false,
-        message: "Terjadi kesalahan pada server.",
-      },
+      { success: false, message: "Gagal menambahkan karyawan" },
       { status: 500 }
     );
   }
