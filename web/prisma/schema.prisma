@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -22,8 +20,15 @@ model User {
   position             String?  @db.VarChar(100)
   phone                String?  @db.VarChar(20)
   status               String   @default("active") @db.VarChar(20)
+
+  // Foto profil karyawan
+  profile_photo        String?  @db.VarChar(255)
+
   must_change_password Boolean  @default(true)
   created_at           DateTime @default(now())
+
+  // Dibuat default supaya data user lama tidak error saat migrate
+  updated_at           DateTime @default(now()) @updatedAt
 
   attendances Attendance[]
 
@@ -31,26 +36,35 @@ model User {
 }
 
 model Attendance {
-  id            String   @id @default(cuid())
+  id String @id @default(uuid()) @db.Char(36)
 
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Char(36)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  checkInTime   DateTime?
-  checkOutTime  DateTime?
+  // Waktu absen
+  checkInTime  DateTime?
+  checkOutTime DateTime?
 
-  checkInPhoto  String?
-  checkOutPhoto String?
+  // Foto bukti absen disimpan langsung ke database sebagai BLOB
+  checkInPhoto  Bytes?
+  checkOutPhoto Bytes?
 
-  status        AttendanceStatus @default(CHECKED_IN)
+  // Tipe file foto, contoh: image/jpeg atau image/png
+  checkInPhotoMime  String? @db.VarChar(50)
+  checkOutPhotoMime String? @db.VarChar(50)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
+  // Lokasi GPS saat check-in
+  checkInLatitude  Float?
+  checkInLongitude Float?
 
-enum Role {
-  ADMIN
-  EMPLOYEE
+  // Lokasi GPS saat check-out
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+
+  status AttendanceStatus @default(CHECKED_IN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AttendanceStatus {
