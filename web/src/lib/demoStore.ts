@@ -51,7 +51,19 @@ export type DemoAttendance = {
   check_in_longitude: number | null;
   check_out_latitude: number | null;
   check_out_longitude: number | null;
+  work_mode: "onsite" | "wfh" | "cuti";
+  leave_type: "cuti" | "sakit" | null;
+  leave_letter_url: string | null;
+  work_location_name: string | null;
   notes: string | null;
+};
+
+export type DemoAttendanceNotification = {
+  id: string;
+  type: "check-in" | "check-out" | "absent";
+  employeeName: string;
+  happenedAt: string;
+  message: string;
 };
 
 const demoUsers: DemoUser[] = [
@@ -315,6 +327,41 @@ export function removeDemoEmployee(userId: string) {
   return true;
 }
 
+export function updateDemoUserProfile(
+  userId: string,
+  payload: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    profilePhotoUrl?: string;
+  },
+) {
+  const user = demoUsers.find((item) => item.id === userId);
+  if (!user) {
+    return { ok: false as const, reason: "not-found" as const };
+  }
+
+  const nextEmail = String(payload.email || user.email)
+    .trim()
+    .toLowerCase();
+  const conflict = demoUsers.find(
+    (item) => item.id !== userId && item.email.toLowerCase() === nextEmail,
+  );
+
+  if (conflict) {
+    return { ok: false as const, reason: "email-exists" as const };
+  }
+
+  user.name = String(payload.name || user.name).trim() || user.name;
+  user.email = nextEmail || user.email;
+  user.phone = String(payload.phone || "").trim() || null;
+  user.profile_photo_url = String(payload.profilePhotoUrl || "").trim() || null;
+  user.payout_contact_email = user.email;
+  user.payout_phone_number = user.phone;
+
+  return { ok: true as const, user };
+}
+
 export function getDemoAttendanceForToday(employeeId: string) {
   const key = `${employeeId}-${getDateKey(new Date())}`;
   return attendanceStore.get(key);
@@ -322,17 +369,28 @@ export function getDemoAttendanceForToday(employeeId: string) {
 
 export function saveDemoCheckIn(payload: {
   employeeId: string;
-  imageDataUrl: string;
-  latitude: number;
-  longitude: number;
+  imageDataUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  workMode?: "onsite" | "wfh" | "cuti";
+  leaveType?: "cuti" | "sakit";
+  leaveLetterDataUrl?: string;
+  workLocationName?: string;
   notes?: string;
 }) {
   const dateKey = getDateKey(new Date());
   const key = `${payload.employeeId}-${dateKey}`;
   const existing = attendanceStore.get(key);
+  const workMode = payload.workMode || "onsite";
 
-  if (existing?.check_in_time) {
+  if (workMode !== "cuti" && existing?.check_in_time) {
     return { ok: false as const, reason: "already-checkin" };
+  }
+
+  if (workMode === "cuti") {
+    if (!payload.leaveType || !payload.leaveLetterDataUrl) {
+      return { ok: false as const, reason: "missing-leave-document" };
+    }
   }
 
   const now = new Date();
@@ -340,14 +398,22 @@ export function saveDemoCheckIn(payload: {
     id: existing?.id || `ATT-DEMO-${Date.now()}`,
     employee_id: payload.employeeId,
     attendance_date: dateKey,
-    check_in_time: now,
-    check_out_time: existing?.check_out_time || null,
-    check_in_photo_url: payload.imageDataUrl,
+    check_in_time: workMode === "cuti" ? null : now,
+    check_out_time:
+      workMode === "cuti" ? null : existing?.check_out_time || null,
+    check_in_photo_url:
+      workMode === "cuti" ? null : payload.imageDataUrl || null,
     check_out_photo_url: existing?.check_out_photo_url || null,
-    check_in_latitude: payload.latitude,
-    check_in_longitude: payload.longitude,
+    check_in_latitude: workMode === "onsite" ? payload.latitude || null : null,
+    check_in_longitude:
+      workMode === "onsite" ? payload.longitude || null : null,
     check_out_latitude: existing?.check_out_latitude || null,
     check_out_longitude: existing?.check_out_longitude || null,
+    work_mode: workMode,
+    leave_type: workMode === "cuti" ? payload.leaveType || null : null,
+    leave_letter_url:
+      workMode === "cuti" ? payload.leaveLetterDataUrl || null : null,
+    work_location_name: payload.workLocationName || null,
     notes: payload.notes?.trim() ? payload.notes.trim().slice(0, 255) : null,
   };
 
@@ -358,16 +424,23 @@ export function saveDemoCheckIn(payload: {
 export function saveDemoCheckOut(payload: {
   employeeId: string;
   imageDataUrl: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  workMode?: "onsite" | "wfh";
+  workLocationName?: string;
   notes?: string;
 }) {
   const dateKey = getDateKey(new Date());
   const key = `${payload.employeeId}-${dateKey}`;
   const existing = attendanceStore.get(key);
+  const workMode = payload.workMode || existing?.work_mode || "onsite";
 
   if (!existing?.check_in_time) {
     return { ok: false as const, reason: "missing-checkin" };
+  }
+
+  if (existing.work_mode === "cuti") {
+    return { ok: false as const, reason: "leave-day" };
   }
 
   if (existing.check_out_time) {
@@ -378,8 +451,11 @@ export function saveDemoCheckOut(payload: {
     ...existing,
     check_out_time: new Date(),
     check_out_photo_url: payload.imageDataUrl,
-    check_out_latitude: payload.latitude,
-    check_out_longitude: payload.longitude,
+    check_out_latitude: workMode === "onsite" ? payload.latitude || null : null,
+    check_out_longitude:
+      workMode === "onsite" ? payload.longitude || null : null,
+    work_mode: workMode,
+    work_location_name: payload.workLocationName || existing.work_location_name,
     notes: payload.notes?.trim()
       ? payload.notes.trim().slice(0, 255)
       : existing.notes,
@@ -387,4 +463,35 @@ export function saveDemoCheckOut(payload: {
 
   attendanceStore.set(key, nextRecord);
   return { ok: true as const, record: nextRecord };
+}
+
+export function listDemoAttendanceNotifications() {
+  const notifications: DemoAttendanceNotification[] = [];
+
+  for (const record of attendanceStore.values()) {
+    const employee = demoUsers.find((item) => item.id === record.employee_id);
+    const employeeName = employee?.name || "Karyawan";
+
+    if (record.check_in_time) {
+      notifications.push({
+        id: `${record.id}-check-in`,
+        type: "check-in",
+        employeeName,
+        happenedAt: record.check_in_time.toISOString(),
+        message: `${employeeName} melakukan check-in`,
+      });
+    }
+
+    if (record.check_out_time) {
+      notifications.push({
+        id: `${record.id}-check-out`,
+        type: "check-out",
+        employeeName,
+        happenedAt: record.check_out_time.toISOString(),
+        message: `${employeeName} melakukan check-out`,
+      });
+    }
+  }
+
+  return notifications.sort((a, b) => b.happenedAt.localeCompare(a.happenedAt));
 }

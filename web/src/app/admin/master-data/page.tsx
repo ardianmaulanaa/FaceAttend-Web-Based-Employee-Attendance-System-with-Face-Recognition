@@ -25,14 +25,30 @@ type DaySchedule = {
 
 type WeeklySchedule = Record<DayKey, DaySchedule>;
 
+type InstructorSession = {
+  id: string;
+  checkIn: string;
+  checkOut: string;
+  className: string;
+};
+
+type InstructorDaySchedule = {
+  isWorkDay: boolean;
+  sessions: InstructorSession[];
+};
+
+type InstructorWeeklySchedule = Record<DayKey, InstructorDaySchedule>;
+
 type ShiftItem = {
   id: string;
   name: string;
+  kind: "umum" | "instruktur";
   tolerance: number;
   active: boolean;
   schedules: {
     magang: WeeklySchedule;
     karyawan: WeeklySchedule;
+    instruktur: InstructorWeeklySchedule;
   };
 };
 
@@ -94,25 +110,68 @@ function createDefaultWeeklySchedule(
   };
 }
 
+function createDefaultInstructorSchedule(): InstructorWeeklySchedule {
+  const weekdaySessions = [
+    {
+      id: `session-${Date.now()}-1`,
+      checkIn: "08:00",
+      checkOut: "10:00",
+      className: "Kelas Pagi",
+    },
+    {
+      id: `session-${Date.now()}-2`,
+      checkIn: "13:00",
+      checkOut: "15:00",
+      className: "Kelas Siang",
+    },
+  ];
+
+  return {
+    monday: { isWorkDay: true, sessions: [...weekdaySessions] },
+    tuesday: { isWorkDay: true, sessions: [...weekdaySessions] },
+    wednesday: { isWorkDay: true, sessions: [...weekdaySessions] },
+    thursday: { isWorkDay: true, sessions: [...weekdaySessions] },
+    friday: { isWorkDay: true, sessions: [...weekdaySessions] },
+    saturday: { isWorkDay: false, sessions: [] },
+    sunday: { isWorkDay: false, sessions: [] },
+  };
+}
+
 const initialShifts: ShiftItem[] = [
   {
     id: "shift-utama",
     name: "Utama",
+    kind: "umum",
     tolerance: 10,
     active: true,
     schedules: {
       magang: createDefaultWeeklySchedule("08:30", "16:30"),
       karyawan: createDefaultWeeklySchedule("08:00", "17:00"),
+      instruktur: createDefaultInstructorSchedule(),
     },
   },
   {
     id: "shift-magang",
     name: "Magang",
+    kind: "umum",
     tolerance: 15,
     active: true,
     schedules: {
       magang: createDefaultWeeklySchedule("09:00", "16:00"),
       karyawan: createDefaultWeeklySchedule("08:00", "17:00"),
+      instruktur: createDefaultInstructorSchedule(),
+    },
+  },
+  {
+    id: "shift-instruktur",
+    name: "Instruktur",
+    kind: "instruktur",
+    tolerance: 5,
+    active: true,
+    schedules: {
+      magang: createDefaultWeeklySchedule("08:30", "16:30"),
+      karyawan: createDefaultWeeklySchedule("08:00", "17:00"),
+      instruktur: createDefaultInstructorSchedule(),
     },
   },
 ];
@@ -192,6 +251,13 @@ export default function AdminMasterDataPage() {
     return "Master Jabatan";
   }, [tab]);
 
+  const isInstructorShiftSelected = selectedShift?.kind === "instruktur";
+  const selectedGeneralCategory: CategoryType = selectedShift?.name
+    .toLowerCase()
+    .includes("magang")
+    ? "magang"
+    : "karyawan";
+
   function handleAddShift() {
     const name = newShiftName.trim();
     const tolerance = Number(newShiftTolerance || 0);
@@ -215,11 +281,13 @@ export default function AdminMasterDataPage() {
       {
         id,
         name,
+        kind: name.toLowerCase().includes("instruktur") ? "instruktur" : "umum",
         tolerance,
         active: true,
         schedules: {
           magang: createDefaultWeeklySchedule("09:00", "16:00"),
           karyawan: createDefaultWeeklySchedule("08:00", "17:00"),
+          instruktur: createDefaultInstructorSchedule(),
         },
       },
     ]);
@@ -335,6 +403,130 @@ export default function AdminMasterDataPage() {
             [category]: {
               ...shift.schedules[category],
               [day]: updatedDay,
+            },
+          },
+        };
+      }),
+    );
+  }
+
+  function updateInstructorDay(
+    shiftId: string,
+    day: DayKey,
+    payload: Partial<InstructorDaySchedule>,
+  ) {
+    setShiftList((prev) =>
+      prev.map((shift) => {
+        if (shift.id !== shiftId) return shift;
+
+        const currentDay = shift.schedules.instruktur[day];
+        const nextDay: InstructorDaySchedule = {
+          ...currentDay,
+          ...payload,
+        };
+
+        return {
+          ...shift,
+          schedules: {
+            ...shift.schedules,
+            instruktur: {
+              ...shift.schedules.instruktur,
+              [day]: nextDay,
+            },
+          },
+        };
+      }),
+    );
+  }
+
+  function addInstructorSession(shiftId: string, day: DayKey) {
+    const nextSession: InstructorSession = {
+      id: `session-${Date.now()}`,
+      checkIn: "10:00",
+      checkOut: "12:00",
+      className: "Kelas Tambahan",
+    };
+
+    setShiftList((prev) =>
+      prev.map((shift) => {
+        if (shift.id !== shiftId) return shift;
+
+        const currentDay = shift.schedules.instruktur[day];
+        return {
+          ...shift,
+          schedules: {
+            ...shift.schedules,
+            instruktur: {
+              ...shift.schedules.instruktur,
+              [day]: {
+                ...currentDay,
+                isWorkDay: true,
+                sessions: [...currentDay.sessions, nextSession],
+              },
+            },
+          },
+        };
+      }),
+    );
+  }
+
+  function removeInstructorSession(
+    shiftId: string,
+    day: DayKey,
+    sessionId: string,
+  ) {
+    setShiftList((prev) =>
+      prev.map((shift) => {
+        if (shift.id !== shiftId) return shift;
+
+        const currentDay = shift.schedules.instruktur[day];
+        const nextSessions = currentDay.sessions.filter(
+          (session) => session.id !== sessionId,
+        );
+
+        return {
+          ...shift,
+          schedules: {
+            ...shift.schedules,
+            instruktur: {
+              ...shift.schedules.instruktur,
+              [day]: {
+                ...currentDay,
+                sessions: nextSessions,
+              },
+            },
+          },
+        };
+      }),
+    );
+  }
+
+  function updateInstructorSession(
+    shiftId: string,
+    day: DayKey,
+    sessionId: string,
+    key: keyof InstructorSession,
+    value: string,
+  ) {
+    setShiftList((prev) =>
+      prev.map((shift) => {
+        if (shift.id !== shiftId) return shift;
+
+        const currentDay = shift.schedules.instruktur[day];
+        return {
+          ...shift,
+          schedules: {
+            ...shift.schedules,
+            instruktur: {
+              ...shift.schedules.instruktur,
+              [day]: {
+                ...currentDay,
+                sessions: currentDay.sessions.map((session) =>
+                  session.id === sessionId
+                    ? { ...session, [key]: value }
+                    : session,
+                ),
+              },
             },
           },
         };
@@ -665,18 +857,20 @@ export default function AdminMasterDataPage() {
                             <button
                               type="button"
                               onClick={() => startEditShift(item)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-[#f6f8ff] px-2.5 py-1 text-xs font-black text-[#123c8c]"
+                              aria-label={`Edit ${item.name}`}
+                              title="Edit"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-blue-100 bg-[#f6f8ff] text-[#123c8c]"
                             >
-                              <Pencil size={12} />
-                              Edit
+                              <Pencil size={13} />
                             </button>
                             <button
                               type="button"
                               onClick={() => removeShift(item.id)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700"
+                              aria-label={`Hapus ${item.name}`}
+                              title="Hapus"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-700"
                             >
-                              <Trash2 size={12} />
-                              Hapus
+                              <Trash2 size={13} />
                             </button>
                             <button
                               type="button"
@@ -703,33 +897,111 @@ export default function AdminMasterDataPage() {
                     Pengaturan Jadwal 1 Minggu - Shift {selectedShift.name}
                   </h4>
                   <p className="mt-1 text-xs font-semibold text-slate-500">
-                    Atur jam kerja mingguan terpisah untuk Magang dan Karyawan
-                    Tetap.
+                    {isInstructorShiftSelected
+                      ? "Shift instruktur menampilkan jadwal multi-kelas saja."
+                      : `Shift ini menampilkan ${selectedGeneralCategory === "magang" ? "jadwal magang" : "jadwal karyawan tetap"} saja.`}
                   </p>
 
-                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                    {(["magang", "karyawan"] as CategoryType[]).map(
-                      (category) => (
-                        <div
-                          key={`schedule-${category}`}
-                          className="rounded-xl border border-blue-100 bg-[#f8faff] p-3"
-                        >
-                          <p className="text-sm font-black text-[#123c8c]">
-                            {category === "magang"
-                              ? "Jadwal Magang"
-                              : "Jadwal Karyawan Tetap"}
-                          </p>
+                  <div className="mt-4 space-y-4">
+                    {!isInstructorShiftSelected && (
+                      <div className="rounded-xl border border-blue-100 bg-[#f8faff] p-3">
+                        <p className="text-sm font-black text-[#123c8c]">
+                          {selectedGeneralCategory === "magang"
+                            ? "Jadwal Magang"
+                            : "Jadwal Karyawan Tetap"}
+                        </p>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                          1 sesi per hari
+                        </p>
 
-                          <div className="mt-3 space-y-2">
-                            {dayOptions.map((day) => {
-                              const row =
-                                selectedShift.schedules[category][day.key];
+                        <div className="mt-3 space-y-2">
+                          {dayOptions.map((day) => {
+                            const row =
+                              selectedShift.schedules[selectedGeneralCategory][
+                                day.key
+                              ];
 
-                              return (
-                                <div
-                                  key={`${category}-${day.key}`}
-                                  className="grid grid-cols-[0.8fr_0.55fr_0.8fr_0.8fr] items-center gap-2"
-                                >
+                            return (
+                              <div
+                                key={`${selectedGeneralCategory}-${day.key}`}
+                                className="grid grid-cols-[70px_60px_1fr_1fr] items-center gap-2"
+                              >
+                                <p className="text-xs font-black text-slate-700">
+                                  {day.label}
+                                </p>
+                                <label className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600">
+                                  <input
+                                    type="checkbox"
+                                    checked={row.isWorkDay}
+                                    onChange={(event) =>
+                                      updateShiftSchedule(
+                                        selectedShift.id,
+                                        selectedGeneralCategory,
+                                        day.key,
+                                        "isWorkDay",
+                                        event.target.checked,
+                                      )
+                                    }
+                                  />
+                                  Kerja
+                                </label>
+                                <input
+                                  type="time"
+                                  value={row.checkIn}
+                                  disabled={!row.isWorkDay}
+                                  onChange={(event) =>
+                                    updateShiftSchedule(
+                                      selectedShift.id,
+                                      selectedGeneralCategory,
+                                      day.key,
+                                      "checkIn",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="w-full rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 disabled:bg-slate-100"
+                                />
+                                <input
+                                  type="time"
+                                  value={row.checkOut}
+                                  disabled={!row.isWorkDay}
+                                  onChange={(event) =>
+                                    updateShiftSchedule(
+                                      selectedShift.id,
+                                      selectedGeneralCategory,
+                                      day.key,
+                                      "checkOut",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="w-full rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 disabled:bg-slate-100"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {isInstructorShiftSelected && (
+                      <div className="rounded-xl border border-blue-100 bg-[#f8faff] p-3">
+                        <p className="text-sm font-black text-[#123c8c]">
+                          Jadwal Instruktur (Multi Kelas)
+                        </p>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                          Bisa tambah beberapa sesi pada hari yang sama.
+                        </p>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                          {dayOptions.map((day) => {
+                            const row =
+                              selectedShift.schedules.instruktur[day.key];
+
+                            return (
+                              <div
+                                key={`instruktur-${day.key}`}
+                                className="rounded-lg border border-blue-100 bg-white p-2"
+                              >
+                                <div className="mb-2 flex items-center justify-between gap-2">
                                   <p className="text-xs font-black text-slate-700">
                                     {day.label}
                                   </p>
@@ -738,53 +1010,119 @@ export default function AdminMasterDataPage() {
                                       type="checkbox"
                                       checked={row.isWorkDay}
                                       onChange={(event) =>
-                                        updateShiftSchedule(
+                                        updateInstructorDay(
                                           selectedShift.id,
-                                          category,
                                           day.key,
-                                          "isWorkDay",
-                                          event.target.checked,
+                                          {
+                                            isWorkDay: event.target.checked,
+                                            sessions: event.target.checked
+                                              ? row.sessions.length
+                                                ? row.sessions
+                                                : [
+                                                    {
+                                                      id: `session-${Date.now()}`,
+                                                      checkIn: "08:00",
+                                                      checkOut: "10:00",
+                                                      className: "Kelas Baru",
+                                                    },
+                                                  ]
+                                              : [],
+                                          },
                                         )
                                       }
                                     />
                                     Kerja
                                   </label>
-                                  <input
-                                    type="time"
-                                    value={row.checkIn}
-                                    disabled={!row.isWorkDay}
-                                    onChange={(event) =>
-                                      updateShiftSchedule(
-                                        selectedShift.id,
-                                        category,
-                                        day.key,
-                                        "checkIn",
-                                        event.target.value,
-                                      )
-                                    }
-                                    className="rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 disabled:bg-slate-100"
-                                  />
-                                  <input
-                                    type="time"
-                                    value={row.checkOut}
-                                    disabled={!row.isWorkDay}
-                                    onChange={(event) =>
-                                      updateShiftSchedule(
-                                        selectedShift.id,
-                                        category,
-                                        day.key,
-                                        "checkOut",
-                                        event.target.value,
-                                      )
-                                    }
-                                    className="rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 disabled:bg-slate-100"
-                                  />
                                 </div>
-                              );
-                            })}
-                          </div>
+
+                                {row.isWorkDay && (
+                                  <>
+                                    <div className="space-y-2">
+                                      {row.sessions.map((session) => (
+                                        <div
+                                          key={session.id}
+                                          className="grid grid-cols-[1fr_92px_92px_auto] gap-1"
+                                        >
+                                          <input
+                                            value={session.className}
+                                            onChange={(event) =>
+                                              updateInstructorSession(
+                                                selectedShift.id,
+                                                day.key,
+                                                session.id,
+                                                "className",
+                                                event.target.value,
+                                              )
+                                            }
+                                            placeholder="Nama kelas"
+                                            className="rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                                          />
+                                          <input
+                                            type="time"
+                                            value={session.checkIn}
+                                            onChange={(event) =>
+                                              updateInstructorSession(
+                                                selectedShift.id,
+                                                day.key,
+                                                session.id,
+                                                "checkIn",
+                                                event.target.value,
+                                              )
+                                            }
+                                            className="rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                                          />
+                                          <input
+                                            type="time"
+                                            value={session.checkOut}
+                                            onChange={(event) =>
+                                              updateInstructorSession(
+                                                selectedShift.id,
+                                                day.key,
+                                                session.id,
+                                                "checkOut",
+                                                event.target.value,
+                                              )
+                                            }
+                                            className="rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeInstructorSession(
+                                                selectedShift.id,
+                                                day.key,
+                                                session.id,
+                                              )
+                                            }
+                                            aria-label="Hapus sesi"
+                                            title="Hapus sesi"
+                                            className="inline-flex items-center justify-center rounded-lg border border-rose-100 bg-rose-50 px-2 py-1 text-xs font-black text-rose-700"
+                                          >
+                                            <Trash2 size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        addInstructorSession(
+                                          selectedShift.id,
+                                          day.key,
+                                        )
+                                      }
+                                      className="mt-2 rounded-lg border border-blue-100 bg-[#f6f8ff] px-2.5 py-1 text-xs font-black text-[#123c8c]"
+                                    >
+                                      + Tambah Jadwal Hari Ini
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ),
+                      </div>
                     )}
                   </div>
                 </div>

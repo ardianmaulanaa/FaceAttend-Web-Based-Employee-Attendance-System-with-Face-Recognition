@@ -10,6 +10,7 @@ import {
   Layers3,
   UsersRound,
   Wallet,
+  Megaphone,
   LogOut,
 } from "lucide-react";
 
@@ -22,7 +23,7 @@ const employeeMenus = [
   { href: "/attendance", label: "Attend", icon: ClipboardList },
   { href: "/salary", label: "Salary", icon: Wallet },
   { href: "/profile", label: "Profile", icon: UserRound },
-  { href: "/login", label: "Logout", icon: LogOut },
+  { href: "/announcements", label: "Info", icon: Megaphone },
 ];
 
 const adminMenus = [

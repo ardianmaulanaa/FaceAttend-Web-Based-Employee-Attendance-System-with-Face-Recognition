@@ -67,11 +67,26 @@ export default function HistoryPage() {
                   className={`rounded-full px-3 py-1 text-xs font-black ${
                     item.status === "Present"
                       ? "bg-[#eaf1ff] text-[#123c8c]"
-                      : "bg-slate-100 text-slate-600"
+                      : item.status === "WFH"
+                        ? "bg-amber-50 text-amber-700"
+                        : item.status === "Cuti"
+                          ? "bg-violet-50 text-violet-700"
+                          : "bg-slate-100 text-slate-600"
                   }`}
                 >
                   {item.status}
                 </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                  Mode: {item.workMode || "onsite"}
+                </span>
+                {item.leaveType && (
+                  <span className="rounded-full bg-[#eaf1ff] px-3 py-1 text-[11px] font-black text-[#123c8c]">
+                    Surat: {item.leaveType}
+                  </span>
+                )}
               </div>
 
               <div className="mt-5 grid gap-3">
@@ -150,6 +165,22 @@ export default function HistoryPage() {
                         </p>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {item.leaveLetterUrl && (
+                  <div className="rounded-2xl border border-blue-100 bg-white p-4">
+                    <p className="text-xs font-bold text-slate-500">
+                      Surat Cuti/Sakit
+                    </p>
+                    <a
+                      href={item.leaveLetterUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex rounded-xl bg-[#123c8c] px-3 py-1.5 text-xs font-black text-white"
+                    >
+                      Lihat Surat
+                    </a>
                   </div>
                 )}
               </div>

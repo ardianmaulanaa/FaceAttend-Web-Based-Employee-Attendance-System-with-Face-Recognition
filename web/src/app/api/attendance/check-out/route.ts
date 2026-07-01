@@ -4,6 +4,79 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import { isDatabaseUnavailable, saveDemoCheckOut } from "@/lib/demoStore";
 
+type WorkMode = "onsite" | "wfh";
+
+const MAIN_LOCATIONS = [
+  {
+    name: "Creativemu HQ",
+    latitude: -6.9004,
+    longitude: 107.6207,
+    allowedRadiusMeters: 350,
+  },
+  {
+    name: "Creativemu Branch",
+    latitude: -7.3095,
+    longitude: 112.7378,
+    allowedRadiusMeters: 350,
+  },
+];
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function distanceMeters(
+  pointA: { latitude: number; longitude: number },
+  pointB: { latitude: number; longitude: number },
+) {
+  const earthRadius = 6371000;
+  const dLat = toRadians(pointB.latitude - pointA.latitude);
+  const dLon = toRadians(pointB.longitude - pointA.longitude);
+  const lat1 = toRadians(pointA.latitude);
+  const lat2 = toRadians(pointB.latitude);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadius * c;
+}
+
+function resolveMainLocation(latitude: number, longitude: number) {
+  const nearest = MAIN_LOCATIONS.map((location) => ({
+    ...location,
+    distance: distanceMeters(
+      { latitude, longitude },
+      { latitude: location.latitude, longitude: location.longitude },
+    ),
+  })).sort((a, b) => a.distance - b.distance)[0];
+
+  if (!nearest || nearest.distance > nearest.allowedRadiusMeters) {
+    return null;
+  }
+
+  return nearest;
+}
+
+function buildAttendanceNote(payload: {
+  workMode: WorkMode;
+  locationName?: string;
+  notes?: string;
+}) {
+  const tags = [`mode=${payload.workMode}`];
+
+  if (payload.locationName) {
+    tags.push(`location=${payload.locationName}`);
+  }
+
+  if (payload.notes?.trim()) {
+    tags.push(`note=${payload.notes.trim().slice(0, 120)}`);
+  }
+
+  return tags.join(" | ").slice(0, 255);
+}
+
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
@@ -29,13 +102,17 @@ export async function POST(req: Request) {
       imageDataUrl,
       latitude,
       longitude,
+      workMode,
       notes,
     }: {
       imageDataUrl?: string;
       latitude?: number;
       longitude?: number;
+      workMode?: WorkMode;
       notes?: string;
     } = await req.json();
+    const effectiveMode: WorkMode = workMode === "wfh" ? "wfh" : "onsite";
+    let matchedLocationName: string | null = null;
 
     if (!imageDataUrl) {
       return NextResponse.json(
@@ -44,11 +121,34 @@ export async function POST(req: Request) {
       );
     }
 
-    if (typeof latitude !== "number" || typeof longitude !== "number") {
+    if (
+      effectiveMode === "onsite" &&
+      (typeof latitude !== "number" || typeof longitude !== "number")
+    ) {
       return NextResponse.json(
         { success: false, message: "Latitude dan longitude wajib diisi" },
         { status: 400 },
       );
+    }
+
+    if (effectiveMode === "onsite") {
+      const matched = resolveMainLocation(
+        latitude as number,
+        longitude as number,
+      );
+
+      if (!matched) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Anda berada di luar radius lokasi utama Creativemu (HQ/Branch)",
+          },
+          { status: 400 },
+        );
+      }
+
+      matchedLocationName = matched.name;
     }
 
     const todayDate = new Date(new Date().toISOString().slice(0, 10));
@@ -64,6 +164,19 @@ export async function POST(req: Request) {
     if (!existing?.check_in_time) {
       return NextResponse.json(
         { success: false, message: "Anda belum check-in hari ini" },
+        { status: 400 },
+      );
+    }
+
+    if (
+      ["leave", "permission", "sick"].includes(String(existing.status || ""))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Hari ini tercatat sebagai cuti/sakit sehingga tidak perlu check-out",
+        },
         { status: 400 },
       );
     }
@@ -85,9 +198,13 @@ export async function POST(req: Request) {
       data: {
         check_out_time: new Date(),
         check_out_photo_url: imageDataUrl,
-        check_out_latitude: latitude,
-        check_out_longitude: longitude,
-        notes: notes?.trim() ? notes.trim().slice(0, 255) : existing.notes,
+        check_out_latitude: effectiveMode === "onsite" ? latitude : null,
+        check_out_longitude: effectiveMode === "onsite" ? longitude : null,
+        notes: buildAttendanceNote({
+          workMode: effectiveMode,
+          locationName: matchedLocationName || undefined,
+          notes,
+        }),
       },
     });
 
@@ -119,20 +236,40 @@ export async function POST(req: Request) {
 
         const payload = await verifyToken(token);
         const body = await req.json();
+        const workMode: WorkMode = body.workMode === "wfh" ? "wfh" : "onsite";
         const imageDataUrl = String(body.imageDataUrl || "");
         const latitude = Number(body.latitude);
         const longitude = Number(body.longitude);
         const notes = String(body.notes || "");
+        let workLocationName: string | undefined;
 
-        if (
-          !imageDataUrl ||
-          Number.isNaN(latitude) ||
-          Number.isNaN(longitude)
-        ) {
+        if (!imageDataUrl) {
           return NextResponse.json(
-            { success: false, message: "Data check-out tidak lengkap" },
+            { success: false, message: "Foto check-out wajib diisi" },
             { status: 400 },
           );
+        }
+
+        if (workMode === "onsite") {
+          if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+            return NextResponse.json(
+              { success: false, message: "Latitude dan longitude wajib diisi" },
+              { status: 400 },
+            );
+          }
+
+          const matched = resolveMainLocation(latitude, longitude);
+          if (!matched) {
+            return NextResponse.json(
+              {
+                success: false,
+                message:
+                  "Anda berada di luar radius lokasi utama Creativemu (HQ/Branch)",
+              },
+              { status: 400 },
+            );
+          }
+          workLocationName = matched.name;
         }
 
         const result = saveDemoCheckOut({
@@ -140,7 +277,13 @@ export async function POST(req: Request) {
           imageDataUrl,
           latitude,
           longitude,
-          notes,
+          notes: buildAttendanceNote({
+            workMode,
+            locationName: workLocationName,
+            notes,
+          }),
+          workMode,
+          workLocationName,
         });
 
         if (!result.ok && result.reason === "missing-checkin") {
@@ -154,6 +297,17 @@ export async function POST(req: Request) {
           return NextResponse.json(
             { success: false, message: "Check-out hari ini sudah tercatat" },
             { status: 409 },
+          );
+        }
+
+        if (!result.ok && result.reason === "leave-day") {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "Hari ini tercatat sebagai cuti/sakit sehingga tidak perlu check-out",
+            },
+            { status: 400 },
           );
         }
 

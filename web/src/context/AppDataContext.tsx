@@ -13,7 +13,9 @@ export type UserRole = "admin" | "employee";
 
 export type EmployeeCategory = "tetap" | "freelance" | "pengajar";
 
-export type AttendanceStatus = "Present" | "Late" | "Absent";
+export type AttendanceStatus = "Present" | "Late" | "Absent" | "WFH" | "Cuti";
+
+export type WorkMode = "onsite" | "wfh" | "cuti";
 
 export interface City {
   id: string;
@@ -91,6 +93,10 @@ export interface AttendanceRecord {
   checkInLongitude?: number;
   checkOutLatitude?: number;
   checkOutLongitude?: number;
+  workMode?: WorkMode;
+  leaveType?: "cuti" | "sakit";
+  leaveLetterUrl?: string;
+  workLocationName?: string;
   status: AttendanceStatus;
   lateMinutes: number;
   notes: string;
@@ -186,6 +192,10 @@ interface AppDataContextValue {
       imageDataUrl?: string;
       location?: AttendanceLocation;
       geo?: GeoPosition;
+      workMode?: WorkMode;
+      leaveType?: "cuti" | "sakit";
+      leaveLetterDataUrl?: string;
+      workLocationName?: string;
     },
   ) => AttendanceActionResult;
   registerFace: (employeeId: string, imageDataUrl?: string) => void;
@@ -654,6 +664,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       imageDataUrl?: string;
       location?: AttendanceLocation;
       geo?: GeoPosition;
+      workMode?: WorkMode;
+      leaveType?: "cuti" | "sakit";
+      leaveLetterDataUrl?: string;
+      workLocationName?: string;
     },
   ): AttendanceActionResult => {
     if (!authUser) {
@@ -673,6 +687,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const imageDataUrl = options?.imageDataUrl;
     const location = options?.location;
     const geo = options?.geo;
+    const workMode: WorkMode = options?.workMode || "onsite";
+    const leaveType = options?.leaveType;
+    const leaveLetterDataUrl = options?.leaveLetterDataUrl;
+    const workLocationName = options?.workLocationName;
     const today = getTodayKey();
     const employeeRules = CATEGORY_RULES[authUser.employeeCategory ?? "tetap"];
 
@@ -684,7 +702,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         request.status === "approved",
     );
 
-    if (!location) {
+    if (workMode === "cuti" && type === "check-out") {
+      return {
+        success: false,
+        message: "Cuti/sakit tidak memerlukan check-out.",
+      };
+    }
+
+    if (workMode === "cuti" && (!leaveType || !leaveLetterDataUrl)) {
+      return {
+        success: false,
+        message: "Surat cuti/sakit wajib dilampirkan.",
+      };
+    }
+
+    if (workMode === "onsite" && !location) {
       return {
         success: false,
         message: "Pilih lokasi kerja saat ini sebelum absensi.",
@@ -692,8 +724,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     if (
-      location.cityId !== authUser.cityId ||
-      location.villageId !== authUser.villageId
+      workMode === "onsite" &&
+      location &&
+      (location.cityId !== authUser.cityId ||
+        location.villageId !== authUser.villageId)
     ) {
       return {
         success: false,
@@ -702,11 +736,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const assignedVillage = state.villages.find(
-      (village) => village.id === authUser.villageId,
-    );
+    const assignedVillage =
+      workMode === "onsite"
+        ? state.villages.find((village) => village.id === authUser.villageId)
+        : undefined;
 
-    if (!assignedVillage) {
+    if (workMode === "onsite" && !assignedVillage) {
       return {
         success: false,
         message: "Lokasi penempatan tidak ditemukan. Hubungi admin.",
@@ -714,8 +749,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     if (
-      typeof assignedVillage.latitude !== "number" ||
-      typeof assignedVillage.longitude !== "number"
+      workMode === "onsite" &&
+      assignedVillage &&
+      (typeof assignedVillage.latitude !== "number" ||
+        typeof assignedVillage.longitude !== "number")
     ) {
       return {
         success: false,
@@ -723,16 +760,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const distanceMeters = geo
-      ? getDistanceMeters(geo, {
-          latitude: assignedVillage.latitude,
-          longitude: assignedVillage.longitude,
-        })
-      : 0;
+    const distanceMeters =
+      workMode === "onsite" && geo && assignedVillage
+        ? getDistanceMeters(geo, {
+            latitude: assignedVillage.latitude,
+            longitude: assignedVillage.longitude,
+          })
+        : 0;
 
     if (
       !approvedOverride &&
+      workMode === "onsite" &&
       geo &&
+      assignedVillage &&
       distanceMeters > assignedVillage.allowedRadiusMeters
     ) {
       return {
@@ -772,18 +812,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         ? Math.max(0, getTimeValue(now) - employeeRules.lateThresholdMinutes)
         : 0;
     const status: AttendanceStatus =
-      type === "check-in" && lateMinutes > 0 ? "Late" : "Present";
+      workMode === "cuti"
+        ? "Cuti"
+        : workMode === "wfh"
+          ? "WFH"
+          : type === "check-in" && lateMinutes > 0
+            ? "Late"
+            : "Present";
 
     let nextRecord: AttendanceRecord | undefined;
 
     const attendanceNote = imageDataUrl
       ? "Attendance recorded • Bukti foto terkirim"
       : "Attendance recorded";
-    const attendanceNoteWithGps = approvedOverride
-      ? `${attendanceNote} • Override approved`
-      : geo
-        ? `${attendanceNote} • GPS ${Math.round(distanceMeters)}m`
-        : `${attendanceNote} • GPS unavailable`;
+    const attendanceNoteWithGps =
+      workMode === "cuti"
+        ? `Cuti/Sakit • ${leaveType || "cuti"} • Surat terlampir`
+        : workMode === "wfh"
+          ? `${attendanceNote} • Mode WFH`
+          : approvedOverride
+            ? `${attendanceNote} • Override approved`
+            : geo
+              ? `${attendanceNote} • GPS ${Math.round(distanceMeters)}m`
+              : `${attendanceNote} • GPS unavailable`;
 
     if (existing) {
       setState((prev) => ({
@@ -811,9 +862,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
           nextRecord = {
             ...record,
-            [type === "check-in" ? "checkIn" : "checkOut"]: now,
-            status: type === "check-out" ? record.status : status,
+            [type === "check-in" ? "checkIn" : "checkOut"]:
+              workMode === "cuti" ? null : now,
+            status:
+              workMode === "cuti"
+                ? "Cuti"
+                : type === "check-out"
+                  ? record.status
+                  : status,
             lateMinutes: type === "check-in" ? lateMinutes : record.lateMinutes,
+            workMode,
+            leaveType,
+            leaveLetterUrl: leaveLetterDataUrl || record.leaveLetterUrl,
+            workLocationName:
+              workLocationName ||
+              record.workLocationName ||
+              (workMode === "onsite" ? assignedVillage?.name : undefined),
             ...checkInUpdate,
             ...checkOutUpdate,
             notes: attendanceNoteWithGps,
@@ -842,15 +906,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         cityId: authUser.cityId,
         villageId: authUser.villageId,
         date: today,
-        checkIn: type === "check-in" ? now : null,
-        checkOut: type === "check-out" ? now : null,
+        checkIn: type === "check-in" && workMode !== "cuti" ? now : null,
+        checkOut: type === "check-out" && workMode !== "cuti" ? now : null,
         checkInPhotoUrl: type === "check-in" ? imageDataUrl : undefined,
         checkOutPhotoUrl: type === "check-out" ? imageDataUrl : undefined,
         checkInLatitude: type === "check-in" ? geo?.latitude : undefined,
         checkInLongitude: type === "check-in" ? geo?.longitude : undefined,
         checkOutLatitude: type === "check-out" ? geo?.latitude : undefined,
         checkOutLongitude: type === "check-out" ? geo?.longitude : undefined,
-        status: type === "check-in" && lateMinutes > 0 ? "Late" : "Present",
+        workMode,
+        leaveType,
+        leaveLetterUrl: leaveLetterDataUrl,
+        workLocationName:
+          workLocationName ||
+          (workMode === "onsite" ? assignedVillage?.name : undefined),
+        status,
         lateMinutes: type === "check-in" ? lateMinutes : 0,
         notes: attendanceNoteWithGps,
       };
@@ -874,7 +944,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    if (type === "check-in" && lateMinutes === 0) {
+    if (type === "check-in" && lateMinutes === 0 && workMode === "onsite") {
       const adjustedPoint = getDepartmentRewardPoint(
         authUser.department,
         employeeRules.onTimeRewardPoints,
@@ -888,7 +958,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    if (type === "check-in" && lateMinutes > 0) {
+    if (type === "check-in" && lateMinutes > 0 && workMode === "onsite") {
       const penalty = Math.max(
         employeeRules.minimumLatePenalty,
         Math.ceil(lateMinutes / 5) * employeeRules.latePenaltyPerFiveMinutes,
@@ -904,7 +974,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     return {
       success: true,
-      message: `Absensi ${type === "check-in" ? "masuk" : "pulang"} berhasil dicatat.`,
+      message:
+        workMode === "cuti"
+          ? "Pengajuan cuti/sakit berhasil dicatat."
+          : `Absensi ${type === "check-in" ? "masuk" : "pulang"} berhasil dicatat.`,
       record: nextRecord,
     };
   };

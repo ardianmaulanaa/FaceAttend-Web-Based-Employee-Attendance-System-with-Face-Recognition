@@ -35,6 +35,10 @@ type SessionUser = {
 
 type AttendanceDraft = {
   attendanceType: "check-in" | "check-out";
+  workMode: "onsite" | "wfh" | "cuti";
+  leaveType: "cuti" | "sakit";
+  leaveLetterName: string;
+  leaveLetterDataUrl?: string;
   evidenceName: string;
   evidenceDataUrl?: string;
   notes: string;
@@ -57,6 +61,12 @@ export default function AttendancePage() {
   const [attendanceType, setAttendanceType] = useState<
     "check-in" | "check-out"
   >("check-in");
+  const [workMode, setWorkMode] = useState<"onsite" | "wfh" | "cuti">("onsite");
+  const [leaveType, setLeaveType] = useState<"cuti" | "sakit">("cuti");
+  const [leaveLetterName, setLeaveLetterName] = useState("");
+  const [leaveLetterDataUrl, setLeaveLetterDataUrl] = useState<
+    string | undefined
+  >();
   const [evidenceName, setEvidenceName] = useState("");
   const [evidenceDataUrl, setEvidenceDataUrl] = useState<string | undefined>();
   const [gps, setGps] = useState<{
@@ -289,6 +299,10 @@ export default function AttendancePage() {
       const draft = JSON.parse(rawDraft) as AttendanceDraft;
 
       setAttendanceType(draft.attendanceType || "check-in");
+      setWorkMode(draft.workMode || "onsite");
+      setLeaveType(draft.leaveType || "cuti");
+      setLeaveLetterName(draft.leaveLetterName || "");
+      setLeaveLetterDataUrl(draft.leaveLetterDataUrl);
       setEvidenceName(draft.evidenceName || "");
       setEvidenceDataUrl(draft.evidenceDataUrl);
       setNotes(draft.notes || "");
@@ -315,6 +329,10 @@ export default function AttendancePage() {
 
     const draft: AttendanceDraft = {
       attendanceType,
+      workMode,
+      leaveType,
+      leaveLetterName,
+      leaveLetterDataUrl,
       evidenceName,
       evidenceDataUrl,
       notes,
@@ -329,6 +347,10 @@ export default function AttendancePage() {
     effectiveUser,
     hasLoadedDraft,
     attendanceType,
+    workMode,
+    leaveType,
+    leaveLetterName,
+    leaveLetterDataUrl,
     evidenceName,
     evidenceDataUrl,
     notes,
@@ -353,6 +375,31 @@ export default function AttendancePage() {
     };
     reader.readAsDataURL(file);
   };
+
+  const handleLeaveFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setLeaveLetterName(file?.name ?? "");
+
+    if (!file) {
+      setLeaveLetterDataUrl(undefined);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        setLeaveLetterDataUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  useEffect(() => {
+    if (workMode === "cuti" && attendanceType !== "check-in") {
+      setAttendanceType("check-in");
+    }
+  }, [workMode, attendanceType]);
 
   const handleGetGps = () => {
     if (!navigator.geolocation) {
@@ -386,13 +433,18 @@ export default function AttendancePage() {
       return;
     }
 
-    if (!evidenceDataUrl) {
+    if (workMode !== "cuti" && !evidenceDataUrl) {
       setMessage("Upload/ambil foto wajib sebelum submit absensi.");
       return;
     }
 
-    if (!gps) {
+    if (workMode === "onsite" && !gps) {
       setMessage("Ambil GPS lokasi terlebih dahulu.");
+      return;
+    }
+
+    if (workMode === "cuti" && !leaveLetterDataUrl) {
+      setMessage("Surat cuti/sakit wajib diunggah.");
       return;
     }
 
@@ -415,9 +467,13 @@ export default function AttendancePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          imageDataUrl: evidenceDataUrl,
-          latitude: gps.latitude,
-          longitude: gps.longitude,
+          imageDataUrl: workMode === "cuti" ? undefined : evidenceDataUrl,
+          leaveType: workMode === "cuti" ? leaveType : undefined,
+          leaveLetterDataUrl:
+            workMode === "cuti" ? leaveLetterDataUrl : undefined,
+          latitude: gps?.latitude,
+          longitude: gps?.longitude,
+          workMode,
           notes,
         }),
       });
@@ -437,12 +493,17 @@ export default function AttendancePage() {
           },
           geo: gps,
           imageDataUrl: evidenceDataUrl,
+          workMode,
+          leaveType,
+          leaveLetterDataUrl,
         });
       }
 
       window.localStorage.removeItem(getDraftStorageKey(effectiveUser.id));
       setEvidenceName("");
       setEvidenceDataUrl(undefined);
+      setLeaveLetterName("");
+      setLeaveLetterDataUrl(undefined);
       setNotes("");
       setGps(null);
       setGpsStatus("GPS belum diambil.");
@@ -551,6 +612,23 @@ export default function AttendancePage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                  Mode Kerja
+                </label>
+                <select
+                  value={workMode}
+                  onChange={(event) =>
+                    setWorkMode(event.target.value as "onsite" | "wfh" | "cuti")
+                  }
+                  className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c]"
+                >
+                  <option value="onsite">Onsite (Radius Lokasi Utama)</option>
+                  <option value="wfh">WFH</option>
+                  <option value="cuti">Cuti / Sakit</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
                   Jenis Absensi
                 </label>
                 <select
@@ -560,6 +638,7 @@ export default function AttendancePage() {
                       event.target.value as "check-in" | "check-out",
                     )
                   }
+                  disabled={workMode === "cuti"}
                   className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c]"
                 >
                   <option value="check-in">Check-in</option>
@@ -569,7 +648,7 @@ export default function AttendancePage() {
 
               <div>
                 <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
-                  Upload Bukti Foto
+                  Upload Bukti Foto {workMode === "cuti" ? "(Opsional)" : ""}
                 </label>
                 <input
                   type="file"
@@ -579,6 +658,41 @@ export default function AttendancePage() {
                   className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
                 />
               </div>
+
+              {workMode === "cuti" && (
+                <>
+                  <div>
+                    <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                      Jenis Surat
+                    </label>
+                    <select
+                      value={leaveType}
+                      onChange={(event) =>
+                        setLeaveType(event.target.value as "cuti" | "sakit")
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c]"
+                    >
+                      <option value="cuti">Surat Cuti</option>
+                      <option value="sakit">Surat Sakit</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                      Upload Surat (Wajib)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleLeaveFileChange}
+                      className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
+                    />
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      {leaveLetterName || "Belum ada surat dipilih"}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
@@ -673,11 +787,14 @@ export default function AttendancePage() {
             <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-slate-600">
-                  {gpsStatus}
+                  {workMode === "onsite"
+                    ? gpsStatus
+                    : "Mode ini tidak mewajibkan radius lokasi utama."}
                 </p>
                 <button
                   type="button"
                   onClick={handleGetGps}
+                  disabled={workMode !== "onsite"}
                   className="rounded-xl bg-[#123c8c] px-4 py-2 text-xs font-black text-white"
                 >
                   Ambil GPS Lokasi

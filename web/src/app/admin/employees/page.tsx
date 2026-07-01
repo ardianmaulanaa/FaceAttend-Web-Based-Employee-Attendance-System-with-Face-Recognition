@@ -807,22 +807,22 @@ export default function AdminEmployeesPage() {
                       <button
                         type="button"
                         onClick={() => openEditModal(employee)}
-                        className="mt-2 inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-[#f6f8ff] px-2.5 py-1 text-[11px] font-black text-[#123c8c]"
+                        aria-label={`Edit ${employee.name}`}
+                        title="Edit"
+                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-[#f6f8ff] text-[#123c8c]"
                       >
-                        <Pencil size={12} />
-                        Edit
+                        <Pencil size={14} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleDeleteEmployee(employee)}
                         disabled={deletingEmployeeId === employee.id}
-                        className="mt-2 inline-flex items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 disabled:opacity-50"
+                        aria-label={`Hapus ${employee.name}`}
+                        title="Hapus"
+                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-700 disabled:opacity-50"
                       >
-                        <Trash2 size={12} />
-                        {deletingEmployeeId === employee.id
-                          ? "Deleting..."
-                          : "Hapus"}
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
