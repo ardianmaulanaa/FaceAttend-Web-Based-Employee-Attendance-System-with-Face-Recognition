@@ -21,13 +21,14 @@ const employeeNav = [
 const adminNav = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/employees", label: "Employees" },
-  { href: "/admin/register-face", label: "Register Face" },
+  { href: "/admin/register", label: "Register" },
   { href: "/admin/reports", label: "Reports" },
 ];
 
 export default function AppHeader({
   title,
   subtitle,
+  rightLabel,
   variant = "employee",
 }: AppHeaderProps) {
   const pathname = usePathname();
@@ -40,7 +41,11 @@ export default function AppHeader({
         alt="Creativemu Background Logo"
         width={190}
         height={190}
-        className="pointer-events-none absolute right-10 top-1/2 hidden h-auto -translate-y-1/2 opacity-[0.04] md:block"
+        className="pointer-events-none absolute right-10 top-1/2 hidden -translate-y-1/2 opacity-[0.04] md:block"
+        style={{
+          width: "auto",
+          height: "auto",
+        }}
         priority
       />
 
@@ -76,7 +81,8 @@ export default function AppHeader({
 
         <nav className="hidden items-center justify-center gap-2 md:flex">
           {menus.map((menu) => {
-            const active = pathname === menu.href;
+            const active =
+              pathname === menu.href || pathname.startsWith(`${menu.href}/`);
 
             return (
               <Link
@@ -94,7 +100,13 @@ export default function AppHeader({
           })}
         </nav>
 
-        <div className="hidden items-center justify-end md:flex">
+        <div className="hidden items-center justify-end gap-3 md:flex">
+          {rightLabel && (
+            <span className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100">
+              {rightLabel}
+            </span>
+          )}
+
           <Link
             href="/login"
             className="rounded-2xl bg-[#eaf1ff] px-5 py-2.5 text-xs font-black text-[#123c8c] transition hover:bg-[#dceaff] active:scale-[0.98]"

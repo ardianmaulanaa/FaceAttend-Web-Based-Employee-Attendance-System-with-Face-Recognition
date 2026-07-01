@@ -1,7 +1,7 @@
 import {
   Camera,
   CheckCircle2,
-  ScanFace,
+  ImagePlus,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -9,12 +9,12 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 
-export default function RegisterFacePage() {
+export default function RegisterEmployeePhotoPage() {
   return (
     <MobileShell variant="admin">
       <AppHeader
-        title="Register Face"
-        subtitle="Daftarkan wajah karyawan Creativemu"
+        title="Employee Photo"
+        subtitle="Kelola foto profil karyawan Creativemu"
         variant="admin"
       />
 
@@ -25,23 +25,23 @@ export default function RegisterFacePage() {
             <div className="bg-[#123c8c] p-6 text-white md:p-8">
               <div className="flex items-center gap-4">
                 <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-white/15">
-                  <ScanFace size={28} strokeWidth={2.6} />
+                  <ImagePlus size={28} strokeWidth={2.6} />
                 </div>
 
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-100">
-                    Face Registration
+                    Employee Photo
                   </p>
 
                   <h2 className="mt-1 text-3xl font-black tracking-tight md:text-4xl">
-                    Employee Face Setup
+                    Profile Photo Setup
                   </h2>
                 </div>
               </div>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-blue-100">
-                Daftarkan wajah karyawan agar sistem dapat mengenali identitas
-                saat proses check-in dan check-out.
+                Tambahkan atau perbarui foto profil karyawan sebagai identitas
+                visual pada data karyawan dan sistem absensi.
               </p>
             </div>
 
@@ -54,7 +54,7 @@ export default function RegisterFacePage() {
                 </h3>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Tentukan karyawan yang akan didaftarkan wajahnya.
+                  Tentukan karyawan yang ingin diperbarui foto profilnya.
                 </p>
               </div>
 
@@ -66,7 +66,7 @@ export default function RegisterFacePage() {
                 </h3>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Pastikan wajah terlihat jelas di kamera.
+                  Gunakan kamera browser atau upload foto profil karyawan.
                 </p>
               </div>
 
@@ -74,11 +74,11 @@ export default function RegisterFacePage() {
                 <ShieldCheck className="text-[#123c8c]" size={24} />
 
                 <h3 className="mt-3 text-sm font-black text-slate-950">
-                  Simpan Data
+                  Simpan Foto
                 </h3>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Face embedding akan disimpan ke database.
+                  Foto profil akan disimpan sebagai path atau URL di database.
                 </p>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function RegisterFacePage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Pilih karyawan sebelum melakukan pendaftaran wajah.
+              Pilih karyawan sebelum menambahkan atau memperbarui foto profil.
             </p>
 
             <div className="mt-6 space-y-4">
@@ -141,12 +141,13 @@ export default function RegisterFacePage() {
 
                   <div>
                     <p className="text-sm font-black text-slate-950">
-                      Registration Status
+                      Photo Status
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-slate-500">
-                      Wajah karyawan belum didaftarkan. Silakan aktifkan kamera
-                      dan lakukan capture wajah.
+                      Foto profil karyawan dapat ditambahkan atau diperbarui
+                      melalui halaman ini. Sistem tidak lagi menggunakan face
+                      recognition.
                     </p>
                   </div>
                 </div>
@@ -158,28 +159,29 @@ export default function RegisterFacePage() {
                 </p>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Fitur ini hanya digunakan untuk pendaftaran wajah awal atau
-                  pembaruan data wajah karyawan.
+                  Halaman ini hanya digunakan untuk kebutuhan foto profil
+                  karyawan. Absensi tetap dilakukan melalui foto check-in,
+                  foto check-out, dan lokasi GPS.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* CAMERA PANEL */}
+          {/* PHOTO PANEL */}
           <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6">
             <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
-                  Camera Preview
+                  Photo Preview
                 </p>
 
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-                  Face Capture Area
+                  Employee Profile Photo
                 </h2>
               </div>
 
               <span className="w-fit rounded-full bg-[#eaf1ff] px-4 py-2 text-xs font-black text-[#123c8c]">
-                Waiting for camera
+                Waiting for photo
               </span>
             </div>
 
@@ -197,28 +199,29 @@ export default function RegisterFacePage() {
                 </div>
 
                 <p className="mt-5 text-sm font-black text-white">
-                  Camera is not active yet
+                  No photo selected
                 </p>
 
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                  Kamera akan aktif saat integrasi API dan browser permission.
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
+                  Foto profil akan tampil di area ini setelah dipilih atau
+                  diambil melalui kamera.
                 </p>
               </div>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <button className="rounded-2xl border border-blue-100 bg-[#f6f8ff] px-5 py-4 text-sm font-black text-[#123c8c] transition hover:bg-[#eaf1ff] active:scale-[0.98]">
-                Activate Camera
+                Upload Photo
               </button>
 
               <button className="rounded-2xl bg-[#123c8c] px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3478] active:scale-[0.98]">
-                Register Employee Face
+                Save Employee Photo
               </button>
             </div>
 
             <p className="mt-4 text-center text-xs font-semibold leading-5 text-slate-400">
-              Pastikan wajah menghadap lurus, pencahayaan cukup, dan tidak
-              tertutup masker atau aksesoris.
+              Gunakan foto yang jelas, rapi, dan sesuai sebagai identitas
+              karyawan di aplikasi.
             </p>
           </div>
         </div>

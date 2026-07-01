@@ -28,7 +28,7 @@ const employeeMenus = [
 const adminMenus = [
   { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
   { href: "/admin/employees", label: "Staff", icon: UsersRound },
-  { href: "/admin/register-face", label: "Face", icon: ScanFace },
+  { href: "/admin/register", label: "Register", icon: ScanFace },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/login", label: "Logout", icon: LogOut },
 ];

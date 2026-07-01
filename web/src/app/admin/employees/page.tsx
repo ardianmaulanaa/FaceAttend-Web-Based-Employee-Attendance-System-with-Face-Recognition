@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   BriefcaseBusiness,
@@ -27,7 +27,6 @@ type Employee = {
   position: string | null;
   phone: string | null;
   status: "active" | "inactive";
-  must_change_password: boolean;
   created_at: string;
 };
 
@@ -71,7 +70,7 @@ export default function AdminEmployeesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<EmployeeForm>(initialForm);
 
-  async function loadEmployees() {
+  const loadEmployees = useCallback(async () => {
     try {
       const response = await fetch("/api/employees", {
         method: "GET",
@@ -91,45 +90,11 @@ export default function AdminEmployeesPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-  let isMounted = true;
-
-  async function fetchEmployees() {
-    try {
-      const response = await fetch("/api/employees", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        alert(result.message || "Gagal mengambil data karyawan.");
-        return;
-      }
-
-      if (isMounted) {
-        setEmployees(result.data || []);
-      }
-    } catch {
-      if (isMounted) {
-        alert("Terjadi kesalahan saat mengambil data karyawan.");
-      }
-    } finally {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    }
-  }
-
-  void fetchEmployees();
-
-  return () => {
-    isMounted = false;
-  };
-}, []);
+    void loadEmployees();
+  }, [loadEmployees]);
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -381,9 +346,7 @@ export default function AdminEmployeesPage() {
                           {employee.name}
                         </p>
                         <p className="mt-1 text-xs font-bold text-slate-400">
-                          {employee.must_change_password
-                            ? "Must change password"
-                            : "Password changed"}
+                          Employee Account
                         </p>
                       </div>
                     </div>
@@ -603,8 +566,8 @@ export default function AdminEmployeesPage() {
                   Catatan sementara
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Temporary password digunakan untuk login pertama karyawan.
-                  Password akan disimpan ke MySQL dalam bentuk{" "}
+                  Temporary password digunakan untuk login karyawan. Password
+                  akan disimpan ke MySQL dalam bentuk{" "}
                   <span className="font-black text-slate-700">
                     password_hash
                   </span>

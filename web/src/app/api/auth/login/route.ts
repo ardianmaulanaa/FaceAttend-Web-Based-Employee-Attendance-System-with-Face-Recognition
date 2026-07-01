@@ -31,10 +31,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const isValidPassword = await verifyPassword(
-      password,
-      user.password_hash
-    );
+    const isValidPassword = await verifyPassword(password, user.password_hash);
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -49,13 +46,8 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    let redirectTo = "/home";
-
-    if (user.must_change_password) {
-      redirectTo = "/change-password";
-    } else if (user.role === "admin") {
-      redirectTo = "/admin/dashboard";
-    }
+    const redirectTo =
+      user.role === "admin" ? "/admin/dashboard" : "/home";
 
     const response = NextResponse.json({
       success: true,
@@ -67,7 +59,6 @@ export async function POST(req: Request) {
         email: user.email,
         role: user.role,
         status: user.status,
-        must_change_password: user.must_change_password,
       },
     });
 

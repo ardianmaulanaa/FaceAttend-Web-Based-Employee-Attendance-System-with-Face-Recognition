@@ -20,7 +20,6 @@ export async function GET() {
         position: true,
         phone: true,
         status: true,
-        must_change_password: true,
         created_at: true,
       },
     });
@@ -86,7 +85,6 @@ export async function POST(req: Request) {
         position: position || null,
         phone: phone || null,
         status: status || "active",
-        must_change_password: true,
       },
       select: {
         id: true,
@@ -97,7 +95,6 @@ export async function POST(req: Request) {
         position: true,
         phone: true,
         status: true,
-        must_change_password: true,
         created_at: true,
       },
     });

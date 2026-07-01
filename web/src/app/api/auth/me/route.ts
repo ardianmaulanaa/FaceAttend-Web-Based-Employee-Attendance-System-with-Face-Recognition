@@ -27,7 +27,6 @@ export async function GET() {
         email: true,
         role: true,
         status: true,
-        must_change_password: true,
       },
     });
 

@@ -27,7 +27,6 @@ async function main() {
       password_hash,
       role: "admin",
       status: "active",
-      must_change_password: false,
     },
     create: {
       name: "Admin Creativemu",
@@ -35,7 +34,6 @@ async function main() {
       password_hash,
       role: "admin",
       status: "active",
-      must_change_password: false,
     },
   });
 
