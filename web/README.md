@@ -14,7 +14,7 @@ Fitur utama yang sudah mulai dikembangkan:
 
 * Login admin dan karyawan
 * Custom authentication menggunakan JWT dan cookie
-* Database MySQL lokal
+* Database MySQL lokal untuk development
 * Prisma ORM dan Prisma Migration
 * Seed akun admin
 * Employee management
@@ -25,6 +25,7 @@ Fitur utama yang sudah mulai dikembangkan:
 * Filter riwayat berdasarkan bulan dan tahun
 * Perencanaan laporan keterlambatan, tepat waktu, dan tidak hadir
 * Perencanaan master data shift, jam kerja, divisi, dan jabatan
+* Perencanaan database cloud untuk production
 
 ## Tech Stack
 
@@ -38,13 +39,14 @@ Fitur utama yang sudah mulai dikembangkan:
 
 ### Database & ORM
 
-* MySQL
-* Prisma ORM
-* Prisma Migration
-* Prisma Client
-* Prisma MariaDB Adapter
-* Sequel Ace untuk GUI database lokal
-* Prisma Studio untuk melihat data database
+* MySQL untuk database lokal saat development
+* Prisma ORM untuk mengelola schema dan query database
+* Prisma Migration untuk versioning perubahan struktur database
+* Prisma Client untuk akses database dari aplikasi Next.js
+* Sequel Ace untuk melihat dan mengelola database MySQL lokal
+* Prisma Studio untuk melihat data database melalui browser
+
+> Catatan: Prisma MariaDB Adapter hanya perlu dicantumkan jika project benar-benar menggunakannya di konfigurasi Prisma. Jika project hanya memakai provider `mysql` biasa dari Prisma, adapter tersebut tidak wajib dicantumkan.
 
 ### Authentication
 
@@ -205,24 +207,119 @@ EMPLOYEE
 
 ## Database
 
-FaceAttend menggunakan database MySQL lokal pada tahap development.
+FaceAttend menggunakan database MySQL.
+
+Pada tahap development, database dijalankan secara lokal di laptop developer. Untuk tahap production, database sebaiknya dipindahkan ke database cloud agar aplikasi dapat diakses oleh karyawan dari perangkat masing-masing.
+
+Database digunakan untuk menyimpan:
+
+* Data akun admin dan karyawan
+* Data profil karyawan
+* Data absensi harian
+* Jam check-in dan check-out
+* Lokasi GPS check-in dan check-out
+* Path atau URL foto absensi
+* Status kehadiran
+* Data laporan kehadiran
+* Data master seperti shift, divisi, jabatan, dan jam kerja jika fitur tersebut sudah dikembangkan
 
 Database dikelola menggunakan:
 
 * Prisma ORM
 * Prisma Migration
 * Prisma Client
-* Sequel Ace
-* Prisma Studio
+* MySQL lokal untuk development
+* Database cloud untuk production
+* Sequel Ace untuk GUI database lokal
+* Prisma Studio untuk melihat data database
 
-Contoh konfigurasi environment:
+Contoh konfigurasi environment untuk development lokal:
 
 ```env
 DATABASE_URL="mysql://root:password@localhost:3306/face_attend"
 JWT_SECRET="your-secret-key"
 ```
 
-> Sesuaikan username, password, host, port, dan nama database dengan konfigurasi lokal masing-masing.
+Contoh konfigurasi environment untuk production:
+
+```env
+DATABASE_URL="mysql://username:password@host-database:3306/face_attend"
+JWT_SECRET="production-secret-key"
+```
+
+> Sesuaikan `username`, `password`, `host`, `port`, dan `database name` dengan konfigurasi database yang digunakan.
+
+> Jangan commit file `.env` ke GitHub karena berisi credential database dan secret aplikasi.
+
+## Database Development Flow
+
+Alur kerja database saat development:
+
+```txt
+Ubah schema di prisma/schema.prisma
+→ Jalankan migration
+→ Prisma membuat file migration
+→ Prisma Client di-generate
+→ Aplikasi menggunakan Prisma Client untuk query database
+```
+
+Perintah yang digunakan:
+
+```bash
+npx prisma migrate dev
+```
+
+```bash
+npx prisma generate
+```
+
+Untuk melihat isi database melalui browser:
+
+```bash
+npx prisma studio
+```
+
+Untuk menjalankan seed akun admin:
+
+```bash
+npx prisma db seed
+```
+
+Jika database lokal ingin di-reset saat development:
+
+```bash
+npx prisma migrate reset
+```
+
+> Perintah `migrate reset` akan menghapus data di database lokal, lalu menjalankan migration dan seed ulang. Gunakan hanya untuk development.
+
+## Catatan Penyimpanan Foto Absensi
+
+Pada tahap awal development, foto absensi dapat disimpan sebagai data sementara atau path file.
+
+Untuk production, foto absensi sebaiknya tidak disimpan langsung sebagai base64 besar di database karena dapat membuat database cepat membesar dan query menjadi berat.
+
+Rekomendasi production:
+
+```txt
+Foto absensi disimpan di cloud storage
+Database hanya menyimpan URL atau path foto
+```
+
+Contoh data yang disimpan di database:
+
+```txt
+checkInPhotoUrl
+checkOutPhotoUrl
+```
+
+Contoh storage yang bisa digunakan pada tahap production:
+
+* UploadThing
+* Cloudinary
+* Supabase Storage
+* AWS S3
+* Google Cloud Storage
 
 ## Setup Project
 
@@ -244,11 +341,19 @@ Buat file `.env`:
 touch .env
 ```
 
-Isi file `.env`:
+Isi file `.env` untuk development lokal:
 
 ```env
 DATABASE_URL="mysql://root:password@localhost:3306/face_attend"
 JWT_SECRET="your-secret-key"
+```
+
+Pastikan database MySQL sudah dibuat terlebih dahulu.
+
+Contoh membuat database melalui MySQL:
+
+```sql
+CREATE DATABASE face_attend;
 ```
 
 Jalankan Prisma Migration:
@@ -326,8 +431,8 @@ Role     : ADMIN
 * Dashboard admin
 * Employee management
 * Tambah data karyawan
-* Edit data karyawan
-* Hapus data karyawan
+* Edit karyawan
+* Hapus karyawan
 * Melihat daftar karyawan
 * Navigasi admin
 * Tampilan mobile responsive
@@ -368,7 +473,7 @@ Fitur yang akan dikembangkan berikutnya:
 * Validasi radius lokasi kantor
 * Validasi jam masuk dan jam pulang
 * Status otomatis hadir, terlambat, izin, sakit, atau tidak hadir
-* Upload atau penyimpanan foto absensi ke storage
+* Upload atau penyimpanan foto absensi ke cloud storage
 * Deployment frontend
 * Deployment database cloud
 * Penyesuaian environment production
@@ -393,6 +498,7 @@ Beberapa catatan teknis pengembangan:
 * Aplikasi menggunakan Next.js App Router.
 * API dibuat menggunakan route handler bawaan Next.js.
 * Database menggunakan MySQL lokal untuk tahap development.
+* Database cloud akan digunakan ketika aplikasi masuk tahap production.
 * Prisma digunakan untuk schema, migration, dan query database.
 * Authentication dibuat secara custom tanpa NextAuth.
 * Token login disimpan menggunakan cookie.
@@ -407,12 +513,16 @@ Beberapa hal yang perlu diperhatikan sebelum production:
 * Ganti `JWT_SECRET` dengan secret yang kuat.
 * Jangan commit file `.env`.
 * Gunakan HTTPS agar kamera dan GPS browser dapat berjalan optimal.
+* Gunakan database cloud yang aman untuk production.
+* Batasi akses database hanya dari aplikasi atau environment yang dipercaya.
+* Jangan menampilkan credential database di frontend.
 * Validasi role user pada setiap API.
 * Validasi input dari client.
 * Batasi ukuran foto yang dikirim ke server.
 * Gunakan cloud storage jika foto absensi semakin banyak.
-* Gunakan database cloud untuk deployment production.
+* Simpan URL foto di database, bukan file besar langsung di database.
 * Terapkan validasi lokasi kantor jika absensi hanya boleh dilakukan di area tertentu.
+* Siapkan backup database secara berkala untuk mencegah kehilangan data.
 
 ## Roadmap
 
@@ -428,13 +538,14 @@ Beberapa hal yang perlu diperhatikan sebelum production:
 
 ### Phase 2 — Database & Authentication
 
-* Setup MySQL
+* Setup MySQL lokal
 * Setup Prisma ORM
 * Setup migration
 * Setup seed admin
 * Setup custom login
 * Setup JWT dan cookie session
 * Setup role admin dan employee
+* Setup database cloud saat production
 
 ### Phase 3 — Employee Management
 
@@ -469,13 +580,15 @@ Beberapa hal yang perlu diperhatikan sebelum production:
 * Deployment aplikasi
 * Setup database cloud
 * Setup environment production
+* Setup penyimpanan foto ke cloud storage
 * Validasi keamanan
 * Optimasi performa
 * Pengujian aplikasi
+* Backup database production
 
 ## Author
 
-Developed by Muhammad Ardian Maulana for Creativemu.
+Developed by Muhammad Ardian Maulana And Dylan for Creativemu.
 
 ## License
 
