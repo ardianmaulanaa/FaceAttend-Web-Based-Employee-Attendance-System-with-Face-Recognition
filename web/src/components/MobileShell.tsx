@@ -10,9 +10,9 @@ export default function MobileShell({
   variant = "employee",
 }: MobileShellProps) {
   const shellClass = {
-    auth: "min-h-screen w-full bg-[#f6f8ff]",
-    employee: "min-h-screen w-full bg-[#f6f8ff]",
-    admin: "min-h-screen w-full bg-[#f6f8ff]",
+    auth: "min-h-screen w-full max-w-full bg-[#f6f8ff]",
+    employee: "min-h-screen w-full max-w-full bg-[#f6f8ff]",
+    admin: "min-h-screen w-full max-w-full bg-[#f6f8ff]",
   };
 
   return (
@@ -20,6 +20,7 @@ export default function MobileShell({
       <div
         className={[
           withBottomPadding ? "pb-28 md:pb-8" : "",
+          "w-full max-w-full",
           variant === "admin" ? "md:pl-64" : "",
         ].join(" ")}
       >

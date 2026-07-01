@@ -360,7 +360,7 @@ export default function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 overflow-hidden border-b border-white/60 bg-white/85 px-5 py-4 shadow-sm shadow-slate-200/40 backdrop-blur-2xl md:px-10 lg:px-16">
+    <header className="sticky top-0 z-30 border-b border-white/60 bg-white/85 px-5 py-4 shadow-sm shadow-slate-200/40 backdrop-blur-2xl md:px-10 lg:px-16">
       <Image
         src="/images/creativemu-logo/creativemu.png"
         alt="Creativemu Background Logo"

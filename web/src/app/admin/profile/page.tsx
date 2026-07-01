@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import Image from "next/image";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Camera, Loader2, Phone, User } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
@@ -55,6 +54,20 @@ export default function AdminProfilePage() {
 
     void loadProfile();
   }, []);
+
+  function handleProfilePhotoUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((prev) => ({
+        ...prev,
+        profilePhotoUrl: String(reader.result || ""),
+      }));
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -127,12 +140,10 @@ export default function AdminProfilePage() {
                 <div className="flex flex-col items-center gap-4 rounded-2xl bg-[#f7f9ff] p-4 md:flex-row md:items-end md:justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative h-20 w-20 overflow-hidden rounded-2xl border-2 border-white bg-slate-100 shadow-lg shadow-slate-300/30">
-                      <Image
+                      <img
                         src={avatarSrc}
                         alt="Foto profil admin"
-                        fill
-                        sizes="80px"
-                        className="object-cover"
+                        className="h-full w-full object-cover"
                       />
                     </div>
 
@@ -141,28 +152,42 @@ export default function AdminProfilePage() {
                         Update Foto
                       </p>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        Isi URL foto profil untuk mengganti avatar.
+                        Gunakan kamera device atau upload file foto.
                       </p>
                     </div>
                   </div>
 
-                  <label className="w-full md:w-[360px]">
+                  <div className="w-full space-y-2 md:w-[360px]">
                     <span className="mb-1.5 inline-flex items-center gap-1 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
                       <Camera className="h-3.5 w-3.5" />
-                      URL Foto Profil
+                      Sumber Foto Profil
                     </span>
-                    <input
-                      value={form.profilePhotoUrl}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          profilePhotoUrl: event.target.value,
-                        }))
-                      }
-                      placeholder="https://..."
-                      className="w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none ring-[#123c8c]/20 transition focus:ring"
-                    />
-                  </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Kamera Device
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        onChange={handleProfilePhotoUpload}
+                        className="w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Upload File
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePhotoUpload}
+                        className="w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
