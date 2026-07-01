@@ -1,15 +1,37 @@
 type DemoRole = "admin" | "employee";
 type DemoStatus = "active" | "inactive";
 
+export type DemoPayrollMethod = {
+  id: string;
+  bankName: string;
+  cardType: string;
+  accountNumber: string;
+  accountHolderName: string;
+  expiryMonth: string;
+  expiryYear: string;
+};
+
 export type DemoUser = {
   id: string;
   name: string;
   email: string;
   password: string;
   role: DemoRole;
+  employee_category: "magang" | "tetap";
   department: string | null;
   position: string | null;
   phone: string | null;
+  profile_photo_url: string | null;
+  payout_label: string | null;
+  account_holder_name: string | null;
+  payout_contact_email: string | null;
+  payout_phone_number: string | null;
+  account_number: string | null;
+  expiry_month: string | null;
+  expiry_year: string | null;
+  cvc: string | null;
+  payroll_methods: DemoPayrollMethod[];
+  payroll_status: "paid" | "unpaid";
   city_id: string | null;
   village_id: string | null;
   status: DemoStatus;
@@ -39,9 +61,31 @@ const demoUsers: DemoUser[] = [
     email: "admin@creativemu.com",
     password: "admin123456",
     role: "admin",
+    employee_category: "tetap",
     department: "Operations",
     position: "HR Admin",
     phone: "081234000001",
+    profile_photo_url: null,
+    payout_label: "Payroll BCA",
+    account_holder_name: "Admin Creativemu",
+    payout_contact_email: "admin@creativemu.com",
+    payout_phone_number: "081234000001",
+    account_number: "1234567890",
+    expiry_month: "12",
+    expiry_year: "29",
+    cvc: "***",
+    payroll_methods: [
+      {
+        id: "PM-ADM-001",
+        bankName: "BCA",
+        cardType: "GPN",
+        accountNumber: "1234567890",
+        accountHolderName: "Admin Creativemu",
+        expiryMonth: "12",
+        expiryYear: "29",
+      },
+    ],
+    payroll_status: "paid",
     city_id: "city-1",
     village_id: "village-1",
     status: "active",
@@ -54,9 +98,31 @@ const demoUsers: DemoUser[] = [
     email: "employee@company.com",
     password: "123456",
     role: "employee",
+    employee_category: "magang",
     department: "IT",
     position: "Frontend Developer",
     phone: "081234000002",
+    profile_photo_url: null,
+    payout_label: "Payroll Mandiri",
+    account_holder_name: "Employee Demo",
+    payout_contact_email: "employee@company.com",
+    payout_phone_number: "081234000002",
+    account_number: "9876543210",
+    expiry_month: "10",
+    expiry_year: "30",
+    cvc: "***",
+    payroll_methods: [
+      {
+        id: "PM-EMP-001",
+        bankName: "Mandiri",
+        cardType: "Visa",
+        accountNumber: "9876543210",
+        accountHolderName: "Employee Demo",
+        expiryMonth: "10",
+        expiryYear: "30",
+      },
+    ],
+    payroll_status: "unpaid",
     city_id: "city-1",
     village_id: "village-1",
     status: "active",
@@ -99,25 +165,63 @@ export function listDemoUsers() {
 export function addDemoEmployee(payload: {
   name: string;
   email: string;
-  temporaryPassword: string;
+  temporaryPassword?: string;
   department?: string;
   position?: string;
   phone?: string;
   role?: string;
+  employeeCategory?: string;
+  profilePhotoUrl?: string;
+  payrollMethods?: Array<{
+    bankName: string;
+    cardType: string;
+    accountNumber: string;
+    accountHolderName: string;
+    expiryMonth?: string;
+    expiryYear?: string;
+  }>;
+  payrollStatus?: string;
   status?: string;
 }) {
   const exists = findDemoUserByEmail(payload.email);
   if (exists) return null;
 
+  const methods = (payload.payrollMethods || [])
+    .filter((method) => method.bankName && method.accountNumber)
+    .map((method, index) => ({
+      id: `PM-${Date.now()}-${index}`,
+      bankName: method.bankName,
+      cardType: method.cardType || "Debit",
+      accountNumber: method.accountNumber,
+      accountHolderName: method.accountHolderName || payload.name,
+      expiryMonth: method.expiryMonth || "",
+      expiryYear: method.expiryYear || "",
+    }));
+
+  const primaryMethod = methods[0] || null;
+
   const nextUser: DemoUser = {
     id: `USR-DEMO-${Date.now()}`,
     name: payload.name,
     email: payload.email,
-    password: payload.temporaryPassword,
+    password: payload.temporaryPassword || "Welcome123!",
     role: payload.role === "admin" ? "admin" : "employee",
+    employee_category:
+      payload.employeeCategory === "magang" ? "magang" : "tetap",
     department: payload.department || null,
     position: payload.position || null,
     phone: payload.phone || null,
+    profile_photo_url: payload.profilePhotoUrl || null,
+    payout_label: primaryMethod ? `Payroll ${primaryMethod.bankName}` : null,
+    account_holder_name: primaryMethod?.accountHolderName || null,
+    payout_contact_email: payload.email,
+    payout_phone_number: payload.phone || null,
+    account_number: primaryMethod?.accountNumber || null,
+    expiry_month: primaryMethod?.expiryMonth || null,
+    expiry_year: primaryMethod?.expiryYear || null,
+    cvc: null,
+    payroll_methods: methods,
+    payroll_status: payload.payrollStatus === "paid" ? "paid" : "unpaid",
     city_id: "city-1",
     village_id: "village-1",
     status: payload.status === "inactive" ? "inactive" : "active",
@@ -127,6 +231,69 @@ export function addDemoEmployee(payload: {
 
   demoUsers.unshift(nextUser);
   return nextUser;
+}
+
+export function updateDemoEmployee(
+  userId: string,
+  payload: {
+    name?: string;
+    email?: string;
+    department?: string;
+    position?: string;
+    phone?: string;
+    employeeCategory?: string;
+    profilePhotoUrl?: string;
+    payrollMethods?: Array<{
+      bankName: string;
+      cardType: string;
+      accountNumber: string;
+      accountHolderName: string;
+      expiryMonth?: string;
+      expiryYear?: string;
+    }>;
+    payrollStatus?: string;
+    status?: string;
+  },
+) {
+  const user = demoUsers.find((item) => item.id === userId);
+  if (!user) return null;
+
+  const methods = (payload.payrollMethods || [])
+    .filter((method) => method.bankName && method.accountNumber)
+    .map((method, index) => ({
+      id: `PM-${Date.now()}-${index}`,
+      bankName: method.bankName,
+      cardType: method.cardType || "Debit",
+      accountNumber: method.accountNumber,
+      accountHolderName: method.accountHolderName || payload.name || user.name,
+      expiryMonth: method.expiryMonth || "",
+      expiryYear: method.expiryYear || "",
+    }));
+
+  const primaryMethod = methods[0] || null;
+
+  user.name = payload.name || user.name;
+  user.email = payload.email || user.email;
+  user.department = payload.department || null;
+  user.position = payload.position || null;
+  user.phone = payload.phone || null;
+  user.employee_category =
+    payload.employeeCategory === "magang" ? "magang" : "tetap";
+  user.profile_photo_url = payload.profilePhotoUrl || null;
+  user.status = payload.status === "inactive" ? "inactive" : "active";
+  user.payroll_methods = methods;
+  user.payroll_status = payload.payrollStatus === "paid" ? "paid" : "unpaid";
+  user.payout_label = primaryMethod
+    ? `Payroll ${primaryMethod.bankName}`
+    : null;
+  user.account_holder_name = primaryMethod?.accountHolderName || null;
+  user.payout_contact_email = user.email;
+  user.payout_phone_number = user.phone || null;
+  user.account_number = primaryMethod?.accountNumber || null;
+  user.expiry_month = primaryMethod?.expiryMonth || null;
+  user.expiry_year = primaryMethod?.expiryYear || null;
+
+  return user;
 }
 
 export function getDemoAttendanceForToday(employeeId: string) {

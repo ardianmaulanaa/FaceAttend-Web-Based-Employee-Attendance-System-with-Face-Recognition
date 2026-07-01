@@ -7,6 +7,7 @@ import {
   ClipboardList,
   UserRound,
   LayoutDashboard,
+  Layers3,
   UsersRound,
   Wallet,
   LogOut,
@@ -27,7 +28,7 @@ const employeeMenus = [
 const adminMenus = [
   { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
   { href: "/admin/employees", label: "Staff", icon: UsersRound },
-  { href: "/admin/salary", label: "Salary", icon: Wallet },
+  { href: "/admin/master-data", label: "Master", icon: Layers3 },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/login", label: "Logout", icon: LogOut },
 ];
