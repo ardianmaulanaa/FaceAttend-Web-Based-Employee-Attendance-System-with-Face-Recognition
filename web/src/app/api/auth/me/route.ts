@@ -54,7 +54,6 @@ export async function GET() {
         city_id: true,
         village_id: true,
         status: true,
-        must_change_password: true,
       },
     });
 
