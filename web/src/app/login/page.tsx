@@ -5,8 +5,20 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import MobileShell from "@/components/MobileShell";
 
-const ADMIN_DEMO_EMAIL = "admin@creativemu.com";
-const ADMIN_DEMO_PASSWORD = "admin123456";
+const OWNER_DEMO = {
+  email: "owner@creativemu.com",
+  password: "owner123456",
+};
+
+const ADMIN_DEMO = {
+  email: "admin@creativemu.com",
+  password: "admin123456",
+};
+
+const CS_DEMO = {
+  email: "cs@creativemu.com",
+  password: "cs123456",
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,8 +67,11 @@ export default function LoginPage() {
     await loginUser(email, password);
   }
 
-  async function handleAdminDemoLogin() {
-    await loginUser(ADMIN_DEMO_EMAIL, ADMIN_DEMO_PASSWORD);
+  async function handleQuickLogin(payload: {
+    email: string;
+    password: string;
+  }) {
+    await loginUser(payload.email, payload.password);
   }
 
   return (
@@ -141,7 +156,8 @@ export default function LoginPage() {
                   Sign In
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Gunakan akun karyawan atau admin untuk masuk ke sistem.
+                  Gunakan akun karyawan, owner, admin, atau CS untuk masuk ke
+                  sistem.
                 </p>
               </div>
 
@@ -173,14 +189,34 @@ export default function LoginPage() {
                 {isLoading ? "Signing In..." : "Sign In"}
               </button>
 
-              <button
-                type="button"
-                onClick={handleAdminDemoLogin}
-                disabled={isLoading}
-                className="mt-3 block w-full rounded-2xl bg-[#fff4e6] px-5 py-4 text-center text-sm font-black text-[#ff8a00] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Masuk sebagai Admin Demo
-              </button>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin(OWNER_DEMO)}
+                  disabled={isLoading}
+                  className="rounded-2xl bg-[#fff4e6] px-4 py-3 text-center text-xs font-black text-[#ff8a00] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Demo Owner
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin(ADMIN_DEMO)}
+                  disabled={isLoading}
+                  className="rounded-2xl bg-[#eaf1ff] px-4 py-3 text-center text-xs font-black text-[#123c8c] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Demo Admin
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin(CS_DEMO)}
+                  disabled={isLoading}
+                  className="rounded-2xl bg-[#eafaf5] px-4 py-3 text-center text-xs font-black text-emerald-700 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Demo CS
+                </button>
+              </div>
             </form>
           </div>
 

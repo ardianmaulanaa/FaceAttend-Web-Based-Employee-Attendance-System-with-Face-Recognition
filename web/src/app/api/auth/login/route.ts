@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createToken, verifyPassword } from "@/lib/auth";
 import { findDemoUserByEmail, isDatabaseUnavailable } from "@/lib/demoStore";
+import { canViewAdminPanel } from "@/lib/adminAccess";
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
@@ -22,8 +23,9 @@ export async function POST(req: Request) {
         role: demoUser.role,
       });
 
-      const redirectTo =
-        demoUser.role === "admin" ? "/admin/dashboard" : "/home";
+      const redirectTo = canViewAdminPanel(demoUser.role)
+        ? "/admin/dashboard"
+        : "/home";
 
       const response = NextResponse.json({
         success: true,
@@ -83,8 +85,9 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    const redirectTo =
-      user.role === "admin" ? "/admin/dashboard" : "/home";
+    const redirectTo = canViewAdminPanel(user.role)
+      ? "/admin/dashboard"
+      : "/home";
 
     const response = NextResponse.json({
       success: true,
@@ -133,7 +136,9 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    const redirectTo = user.role === "admin" ? "/admin/dashboard" : "/home";
+    const redirectTo = canViewAdminPanel(user.role)
+      ? "/admin/dashboard"
+      : "/home";
 
     const response = NextResponse.json({
       success: true,

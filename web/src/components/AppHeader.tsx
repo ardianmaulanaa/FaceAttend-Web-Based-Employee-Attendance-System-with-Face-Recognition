@@ -20,6 +20,13 @@ import {
   UserCircle2,
   UserCog,
 } from "lucide-react";
+import { useAppData } from "@/context/AppDataContext";
+import {
+  canViewAdminPanel,
+  getAdminRoleLabel,
+  isAdminPanelRole,
+  type AdminRole,
+} from "@/lib/adminAccess";
 
 type AppHeaderProps = {
   title: string;
@@ -37,36 +44,47 @@ const employeeNav = [
   { href: "/profile", label: "Profile" },
 ];
 
-const adminMainNav = [
+const adminMainNav: Array<{
+  href: string;
+  label: string;
+  icon: typeof Monitor;
+  roles: AdminRole[];
+}> = [
   {
     href: "/admin/dashboard",
     label: "Dashboard",
     icon: Monitor,
+    roles: ["owner", "admin", "cs"],
   },
   {
     href: "/admin/company-monitor",
     label: "Monitor Perusahaan",
     icon: ClipboardList,
+    roles: ["owner", "admin", "cs"],
   },
   {
     href: "/admin/announcements",
     label: "Pengumuman",
     icon: Megaphone,
+    roles: ["owner", "admin", "cs"],
   },
   {
     href: "/admin/master-data",
     label: "Master Data",
     icon: Layers3,
+    roles: ["owner", "admin"],
   },
   {
     href: "/admin/inventory",
     label: "Inventaris",
     icon: Boxes,
+    roles: ["owner", "admin"],
   },
   {
     href: "/admin/employee-requests",
     label: "Pengajuan Karyawan",
     icon: Briefcase,
+    roles: ["owner", "admin", "cs"],
   },
 ];
 
@@ -104,7 +122,7 @@ type AdminSessionUser = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "employee";
+  role: "owner" | "admin" | "cs" | "employee";
   phone?: string | null;
   profile_photo_url?: string | null;
 };
@@ -134,9 +152,35 @@ export default function AppHeader({
     AttendanceNotification[]
   >([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [employeeNotifCountFromApi, setEmployeeNotifCountFromApi] =
+    useState(0);
   const [sessionUser, setSessionUser] = useState<AdminSessionUser | null>(null);
+  const { authUser, state } = useAppData();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const bellMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const unreadEmployeeNotifications = useMemo(() => {
+    if (!authUser || authUser.role !== "employee") return 0;
+
+    return state.notifications.filter(
+      (item) => item.employeeId === authUser.id && !item.read,
+    ).length;
+  }, [authUser, state.notifications]);
+
+  const employeeUnreadCount = Math.max(
+    unreadEmployeeNotifications,
+    employeeNotifCountFromApi,
+  );
+
+  const adminMenus = useMemo(() => {
+    const currentRole = sessionUser?.role || "";
+
+    if (!isAdminPanelRole(currentRole)) {
+      return adminMainNav;
+    }
+
+    return adminMainNav.filter((menu) => menu.roles.includes(currentRole));
+  }, [sessionUser?.role]);
 
   const activeAdminMenu = useMemo(() => {
     const masterDataActive = pathname.startsWith("/admin/master-data");
@@ -161,6 +205,10 @@ export default function AppHeader({
         if (!response.ok || !result.user) return;
 
         const user = result.user as AdminSessionUser;
+        if (!canViewAdminPanel(user.role)) {
+          router.replace("/home");
+          return;
+        }
         setSessionUser(user);
       } catch {
         // Ignore session read errors in header.
@@ -196,6 +244,31 @@ export default function AppHeader({
     }
 
     void loadNotifications();
+  }, [pathname, variant]);
+
+  useEffect(() => {
+    if (variant !== "employee") return;
+
+    async function loadEmployeeNotifications() {
+      try {
+        const response = await fetch("/api/attendance/notifications", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+        if (!response.ok || !Array.isArray(result.data)) {
+          setEmployeeNotifCountFromApi(0);
+          return;
+        }
+
+        setEmployeeNotifCountFromApi(result.data.length);
+      } catch {
+        setEmployeeNotifCountFromApi(0);
+      }
+    }
+
+    void loadEmployeeNotifications();
   }, [pathname, variant]);
 
   useEffect(() => {
@@ -257,7 +330,7 @@ export default function AppHeader({
             </div>
 
             <nav className="mt-6 space-y-2">
-              {adminMainNav.map((menu) => {
+              {adminMenus.map((menu) => {
                 const Icon = menu.icon;
                 const isMasterData = menu.href === "/admin/master-data";
                 const active = isMasterData
@@ -343,7 +416,9 @@ export default function AppHeader({
                 >
                   <Bell size={17} />
                   {attendanceNotifications.length > 0 && (
-                    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
+                    <span className="absolute -right-2 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white ring-2 ring-white">
+                      {attendanceNotifications.length}
+                    </span>
                   )}
                 </button>
 
@@ -417,6 +492,7 @@ export default function AppHeader({
                       {sessionUser?.name || "Admin Creativemu"}
                     </p>
                     <p className="text-[10px] font-semibold text-slate-500">
+                      {getAdminRoleLabel(sessionUser?.role || "admin")} •{" "}
                       {activeAdminMenu?.label || "Dashboard"}
                     </p>
                   </div>
@@ -510,12 +586,27 @@ export default function AppHeader({
         </nav>
 
         <div className="hidden items-center justify-end md:flex">
-          <Link
-            href="/login"
-            className="rounded-2xl bg-[#eaf1ff] px-5 py-2.5 text-xs font-black text-[#123c8c] transition hover:bg-[#dceaff] active:scale-[0.98]"
-          >
-            Logout
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/rewards"
+              aria-label="Lihat notifikasi reward"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-100 bg-[#f6f8ff] text-[#123c8c] transition hover:bg-[#eaf1ff]"
+            >
+              <Bell size={17} />
+              {employeeUnreadCount > 0 && (
+                <span className="absolute -right-2 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white ring-2 ring-white">
+                  {employeeUnreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              href="/login"
+              className="rounded-2xl bg-[#eaf1ff] px-5 py-2.5 text-xs font-black text-[#123c8c] transition hover:bg-[#dceaff] active:scale-[0.98]"
+            >
+              Logout
+            </Link>
+          </div>
         </div>
       </div>
     </header>

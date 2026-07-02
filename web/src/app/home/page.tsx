@@ -88,11 +88,18 @@ const workModeLabel: Record<string, string> = {
   cuti: "Cuti / Sakit",
 };
 
+function getLateReasonStorageKey(userId: string, dateKey: string) {
+  return `late-reason-${userId}-${dateKey}`;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { authUser, state } = useAppData();
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [showLateReasonPopup, setShowLateReasonPopup] = useState(false);
+  const [lateReason, setLateReason] = useState("");
+  const [isSubmittingLateReason, setIsSubmittingLateReason] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -155,6 +162,36 @@ export default function HomePage() {
     }
   }, [effectiveUser, isLoadingSession, router]);
 
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayAttendance = state.attendance.find(
+    (record) =>
+      record.employeeId === effectiveUser?.id &&
+      record.date === new Date().toISOString().slice(0, 10),
+  );
+
+  const isLateToday =
+    (todayAttendance?.status || "").toLowerCase() === "late" ||
+    Number(todayAttendance?.lateMinutes || 0) > 0;
+
+  useEffect(() => {
+    if (!effectiveUser || !isLateToday) {
+      setShowLateReasonPopup(false);
+      return;
+    }
+
+    const savedReason = window.localStorage.getItem(
+      getLateReasonStorageKey(effectiveUser.id, todayKey),
+    );
+
+    if (savedReason) {
+      setLateReason(savedReason);
+      setShowLateReasonPopup(false);
+      return;
+    }
+
+    setShowLateReasonPopup(true);
+  }, [effectiveUser, isLateToday, todayKey]);
+
   if (isLoadingSession) {
     return (
       <MobileShell variant="employee">
@@ -175,13 +212,46 @@ export default function HomePage() {
 
   if (!effectiveUser) return null;
 
-  const todayAttendance = state.attendance.find(
-    (record) =>
-      record.employeeId === effectiveUser.id &&
-      record.date === new Date().toISOString().slice(0, 10),
-  );
-
   const payoutProfile = effectiveUser.paymentProfile;
+
+  async function submitLateReason() {
+    if (!effectiveUser) return;
+
+    const reason = lateReason.trim();
+    if (!reason) {
+      alert("Alasan keterlambatan wajib diisi.");
+      return;
+    }
+
+    try {
+      setIsSubmittingLateReason(true);
+
+      const response = await fetch("/api/attendance/late-reason", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.message || "Gagal mengirim alasan telat.");
+        return;
+      }
+
+      window.localStorage.setItem(
+        getLateReasonStorageKey(effectiveUser.id, todayKey),
+        reason,
+      );
+      setShowLateReasonPopup(false);
+      alert(result.message || "Alasan telat berhasil dikirim.");
+    } catch {
+      alert("Terjadi kesalahan saat mengirim alasan telat.");
+    } finally {
+      setIsSubmittingLateReason(false);
+    }
+  }
   const assignedCity = state.cities.find(
     (city) => city.id === effectiveUser.cityId,
   );
@@ -245,6 +315,40 @@ export default function HomePage() {
 
   return (
     <MobileShell variant="employee">
+      {showLateReasonPopup && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl shadow-slate-950/30 md:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+              Wajib Isi Alasan Telat
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              Anda terdeteksi terlambat hari ini
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Isi alasan bebas langsung dari halaman home. Aturan operasional:
+              kantor dulu baru kunjungan, dan jika ada kunjungan jam kerja tetap
+              mengikuti jam karyawan tetap.
+            </p>
+
+            <textarea
+              value={lateReason}
+              onChange={(event) => setLateReason(event.target.value)}
+              placeholder="Contoh: Terlambat karena antrean transportasi, sudah izin ke atasan."
+              className="mt-4 min-h-32 w-full rounded-2xl border border-amber-100 bg-amber-50/30 px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-amber-400 focus:bg-white"
+            />
+
+            <button
+              type="button"
+              onClick={submitLateReason}
+              disabled={isSubmittingLateReason}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-amber-200 transition disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmittingLateReason ? "Mengirim..." : "Kirim Alasan Telat"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <AppHeader
         title="Good Morning"
         subtitle={effectiveUser.name}

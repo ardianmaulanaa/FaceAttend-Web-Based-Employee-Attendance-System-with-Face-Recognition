@@ -1,4 +1,4 @@
-type DemoRole = "admin" | "employee";
+type DemoRole = "owner" | "admin" | "cs" | "employee";
 type DemoStatus = "active" | "inactive";
 
 export type DemoPayrollMethod = {
@@ -68,6 +68,43 @@ export type DemoAttendanceNotification = {
 
 const demoUsers: DemoUser[] = [
   {
+    id: "OWN-DEMO-001",
+    name: "Owner Creativemu",
+    email: "owner@creativemu.com",
+    password: "owner123456",
+    role: "owner",
+    employee_category: "tetap",
+    department: "Management",
+    position: "Owner",
+    phone: "081234000010",
+    profile_photo_url: null,
+    payout_label: "Payroll BCA",
+    account_holder_name: "Owner Creativemu",
+    payout_contact_email: "owner@creativemu.com",
+    payout_phone_number: "081234000010",
+    account_number: "1234500010",
+    expiry_month: "12",
+    expiry_year: "30",
+    cvc: "***",
+    payroll_methods: [
+      {
+        id: "PM-OWN-001",
+        bankName: "BCA",
+        cardType: "GPN",
+        accountNumber: "1234500010",
+        accountHolderName: "Owner Creativemu",
+        expiryMonth: "12",
+        expiryYear: "30",
+      },
+    ],
+    payroll_status: "paid",
+    city_id: "city-1",
+    village_id: "village-1",
+    status: "active",
+    must_change_password: false,
+    created_at: new Date("2026-06-01T07:00:00.000Z"),
+  },
+  {
     id: "ADM-DEMO-001",
     name: "Admin Creativemu",
     email: "admin@creativemu.com",
@@ -103,6 +140,43 @@ const demoUsers: DemoUser[] = [
     status: "active",
     must_change_password: false,
     created_at: new Date("2026-06-01T08:00:00.000Z"),
+  },
+  {
+    id: "CS-DEMO-001",
+    name: "CS Creativemu",
+    email: "cs@creativemu.com",
+    password: "cs123456",
+    role: "cs",
+    employee_category: "tetap",
+    department: "Customer Service",
+    position: "Customer Service",
+    phone: "081234000011",
+    profile_photo_url: null,
+    payout_label: "Payroll BNI",
+    account_holder_name: "CS Creativemu",
+    payout_contact_email: "cs@creativemu.com",
+    payout_phone_number: "081234000011",
+    account_number: "1234500011",
+    expiry_month: "10",
+    expiry_year: "29",
+    cvc: "***",
+    payroll_methods: [
+      {
+        id: "PM-CS-001",
+        bankName: "BNI",
+        cardType: "Debit",
+        accountNumber: "1234500011",
+        accountHolderName: "CS Creativemu",
+        expiryMonth: "10",
+        expiryYear: "29",
+      },
+    ],
+    payroll_status: "paid",
+    city_id: "city-1",
+    village_id: "village-1",
+    status: "active",
+    must_change_password: false,
+    created_at: new Date("2026-06-01T08:30:00.000Z"),
   },
   {
     id: "EMP-DEMO-001",
@@ -212,12 +286,21 @@ export function addDemoEmployee(payload: {
 
   const primaryMethod = methods[0] || null;
 
+  const normalizedRole: DemoRole =
+    payload.role === "owner"
+      ? "owner"
+      : payload.role === "admin"
+        ? "admin"
+        : payload.role === "cs"
+          ? "cs"
+          : "employee";
+
   const nextUser: DemoUser = {
     id: `USR-DEMO-${Date.now()}`,
     name: payload.name,
     email: payload.email,
     password: payload.temporaryPassword || "Welcome123!",
-    role: payload.role === "admin" ? "admin" : "employee",
+    role: normalizedRole,
     employee_category:
       payload.employeeCategory === "magang" ? "magang" : "tetap",
     department: payload.department || null,
@@ -253,6 +336,7 @@ export function updateDemoEmployee(
     department?: string;
     position?: string;
     phone?: string;
+    role?: string;
     employeeCategory?: string;
     profilePhotoUrl?: string;
     payrollMethods?: Array<{
@@ -289,6 +373,14 @@ export function updateDemoEmployee(
   user.department = payload.department || null;
   user.position = payload.position || null;
   user.phone = payload.phone || null;
+  user.role =
+    payload.role === "owner"
+      ? "owner"
+      : payload.role === "admin"
+        ? "admin"
+        : payload.role === "cs"
+          ? "cs"
+          : "employee";
   user.employee_category =
     payload.employeeCategory === "magang" ? "magang" : "tetap";
   user.profile_photo_url = payload.profilePhotoUrl || null;
@@ -312,7 +404,7 @@ export function removeDemoEmployee(userId: string) {
   const targetIndex = demoUsers.findIndex((item) => item.id === userId);
   if (targetIndex < 0) return false;
 
-  if (demoUsers[targetIndex].role === "admin") {
+  if (demoUsers[targetIndex].role !== "employee") {
     return false;
   }
 
@@ -494,4 +586,25 @@ export function listDemoAttendanceNotifications() {
   }
 
   return notifications.sort((a, b) => b.happenedAt.localeCompare(a.happenedAt));
+}
+
+export function setDemoAttendanceLateReason(payload: {
+  employeeId: string;
+  reason: string;
+}) {
+  const key = `${payload.employeeId}-${getDateKey(new Date())}`;
+  const existing = attendanceStore.get(key);
+
+  if (!existing?.check_in_time) {
+    return { ok: false as const, reason: "missing-checkin" as const };
+  }
+
+  const reason = payload.reason.trim();
+  if (!reason) {
+    return { ok: false as const, reason: "missing-reason" as const };
+  }
+
+  existing.notes = `Late reason: ${reason}`.slice(0, 255);
+  attendanceStore.set(key, existing);
+  return { ok: true as const, record: existing };
 }

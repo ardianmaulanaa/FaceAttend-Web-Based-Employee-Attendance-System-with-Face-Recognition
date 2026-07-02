@@ -30,12 +30,17 @@ import {
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
+import {
+  canDeleteAdminData,
+  canEditAdminData,
+  getAdminRoleLabel,
+} from "@/lib/adminAccess";
 
 type Employee = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "employee";
+  role: "owner" | "admin" | "cs" | "employee";
   employee_category?: "magang" | "tetap";
   department: string | null;
   position: string | null;
@@ -62,6 +67,7 @@ type EmployeeForm = {
   department: string;
   position: string;
   phone: string;
+  role: "owner" | "admin" | "cs" | "employee";
   employeeCategory: "magang" | "tetap";
   payrollStatus: "paid" | "unpaid";
   status: "active" | "inactive";
@@ -86,6 +92,7 @@ const initialForm: EmployeeForm = {
   department: "",
   position: "",
   phone: "",
+  role: "employee",
   employeeCategory: "tetap",
   payrollStatus: "unpaid",
   status: "active",
@@ -116,6 +123,7 @@ function formatPayrollStatus(value?: "paid" | "unpaid") {
 }
 
 export default function AdminEmployeesPage() {
+  const [sessionRole, setSessionRole] = useState<string>("admin");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,6 +153,9 @@ export default function AdminEmployeesPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const canEditData = canEditAdminData(sessionRole);
+  const canDeleteData = canDeleteAdminData(sessionRole);
+
   async function loadEmployees() {
     try {
       const response = await fetch("/api/employees", {
@@ -169,6 +180,32 @@ export default function AdminEmployeesPage() {
 
   useEffect(() => {
     void loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const result = await response.json();
+        if (!active || !response.ok || !result.user?.role) return;
+        setSessionRole(String(result.user.role));
+      } catch {
+        if (active) {
+          setSessionRole("admin");
+        }
+      }
+    }
+
+    void loadSession();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -343,6 +380,11 @@ export default function AdminEmployeesPage() {
   }
 
   function openRegisterModal() {
+    if (!canEditData) {
+      alert("Role Anda hanya dapat melihat data.");
+      return;
+    }
+
     stopCamera();
     setForm(initialForm);
     setEditingEmployeeId(null);
@@ -351,6 +393,11 @@ export default function AdminEmployeesPage() {
   }
 
   function openEditModal(employee: Employee) {
+    if (!canEditData) {
+      alert("Role Anda hanya dapat melihat data.");
+      return;
+    }
+
     stopCamera();
     const methods =
       employee.payroll_methods && employee.payroll_methods.length > 0
@@ -370,6 +417,7 @@ export default function AdminEmployeesPage() {
       department: employee.department || "",
       position: employee.position || "",
       phone: employee.phone || "",
+      role: employee.role || "employee",
       employeeCategory: employee.employee_category || "tetap",
       payrollStatus: employee.payroll_status || "unpaid",
       status: employee.status,
@@ -422,6 +470,11 @@ export default function AdminEmployeesPage() {
   }
 
   async function handleDeleteEmployee(employee: Employee) {
+    if (!canDeleteData) {
+      alert("Hanya owner yang dapat menghapus akun.");
+      return;
+    }
+
     const shouldDelete = window.confirm(
       `Hapus karyawan ${employee.name}? Aksi ini tidak bisa dibatalkan.`,
     );
@@ -457,6 +510,11 @@ export default function AdminEmployeesPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEditData) {
+      alert("Role Anda hanya dapat melihat data.");
+      return;
+    }
 
     if (!form.name || !form.email || !form.department || !form.position) {
       alert("Nama, email, jabatan, dan divisi wajib diisi.");
@@ -508,7 +566,7 @@ export default function AdminEmployeesPage() {
           department: form.department,
           position: form.position,
           phone: form.phone,
-          role: "employee",
+          role: form.role,
           employeeCategory: form.employeeCategory,
           profilePhotoUrl: form.profilePhotoUrl,
           payrollStatus: form.payrollStatus,
@@ -567,10 +625,19 @@ export default function AdminEmployeesPage() {
                 Foto wajah ditampilkan supaya list tidak kosong, payroll hanya
                 menampilkan status digaji tanpa detail rekening.
               </p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-blue-200">
+                Role aktif: {getAdminRoleLabel(sessionRole)} • Hak akses:{" "}
+                {canDeleteData
+                  ? "Full (view/edit/delete)"
+                  : canEditData
+                    ? "View + Edit"
+                    : "View Only"}
+              </p>
             </div>
 
             <button
               onClick={openRegisterModal}
+              disabled={!canEditData}
               className="group inline-flex w-full items-center justify-center gap-4 rounded-[1.8rem] bg-white px-6 py-5 text-[#123c8c] shadow-2xl shadow-blue-950/20 ring-1 ring-white/70 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-50 hover:shadow-blue-950/30 active:scale-[0.97] md:w-auto"
             >
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.4rem] bg-[#eaf1ff] transition-all duration-300 group-hover:rotate-90 group-hover:bg-[#123c8c] group-hover:text-white">
@@ -771,7 +838,8 @@ export default function AdminEmployeesPage() {
                         {employee.position || "-"}
                       </p>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        {employee.department || "-"}
+                        {employee.department || "-"} •{" "}
+                        {getAdminRoleLabel(employee.role)}
                       </p>
                     </div>
 
@@ -807,9 +875,10 @@ export default function AdminEmployeesPage() {
                       <button
                         type="button"
                         onClick={() => openEditModal(employee)}
+                        disabled={!canEditData}
                         aria-label={`Edit ${employee.name}`}
                         title="Edit"
-                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-[#f6f8ff] text-[#123c8c]"
+                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-[#f6f8ff] text-[#123c8c] disabled:opacity-50"
                       >
                         <Pencil size={14} />
                       </button>
@@ -817,7 +886,9 @@ export default function AdminEmployeesPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteEmployee(employee)}
-                        disabled={deletingEmployeeId === employee.id}
+                        disabled={
+                          deletingEmployeeId === employee.id || !canDeleteData
+                        }
                         aria-label={`Hapus ${employee.name}`}
                         title="Hapus"
                         className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-700 disabled:opacity-50"
@@ -1092,6 +1163,27 @@ export default function AdminEmployeesPage() {
                     >
                       <option value="magang">Magang</option>
                       <option value="tetap">Karyawan Tetap</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Role Akun
+                    </label>
+                    <select
+                      value={form.role}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          role: event.target.value as EmployeeForm["role"],
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                    >
+                      <option value="employee">Employee</option>
+                      <option value="cs">Customer Service (CS)</option>
+                      <option value="admin">Admin</option>
+                      <option value="owner">Owner</option>
                     </select>
                   </div>
 

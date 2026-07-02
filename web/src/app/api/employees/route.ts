@@ -1,7 +1,13 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, verifyToken } from "@/lib/auth";
+import {
+  canDeleteAdminData,
+  canEditAdminData,
+  canViewAdminPanel,
+} from "@/lib/adminAccess";
 import {
   addDemoEmployee,
   isDatabaseUnavailable,
@@ -11,6 +17,18 @@ import {
 } from "@/lib/demoStore";
 
 const useDemoDataByDefault = process.env.NODE_ENV !== "production";
+
+async function getActorRole() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("faceattend_token")?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  const payload = await verifyToken(token);
+  return String(payload.role || "").toLowerCase();
+}
 
 type PayrollMethodPayload = {
   bankName: string;
@@ -242,6 +260,21 @@ async function persistDbPayrollMethods(
 }
 
 export async function GET() {
+  const role = await getActorRole();
+  if (!role) {
+    return NextResponse.json(
+      { success: false, message: "Belum login" },
+      { status: 401 },
+    );
+  }
+
+  if (!canViewAdminPanel(role)) {
+    return NextResponse.json(
+      { success: false, message: "Akses ditolak" },
+      { status: 403 },
+    );
+  }
+
   if (useDemoDataByDefault) {
     return NextResponse.json({
       success: true,
@@ -274,6 +307,21 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const role = await getActorRole();
+  if (!role) {
+    return NextResponse.json(
+      { success: false, message: "Belum login" },
+      { status: 401 },
+    );
+  }
+
+  if (!canEditAdminData(role)) {
+    return NextResponse.json(
+      { success: false, message: "Role Anda hanya dapat melihat data." },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json();
 
   const payload = {
@@ -364,7 +412,14 @@ export async function POST(req: Request) {
         name: payload.name,
         email: payload.email,
         password_hash,
-        role: payload.role === "admin" ? "admin" : "employee",
+        role:
+          payload.role === "owner"
+            ? "owner"
+            : payload.role === "admin"
+              ? "admin"
+              : payload.role === "cs"
+                ? "cs"
+                : "employee",
         employee_category:
           payload.employeeCategory === "magang" ? "magang" : "tetap",
         department: payload.department || null,
@@ -487,6 +542,21 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const role = await getActorRole();
+  if (!role) {
+    return NextResponse.json(
+      { success: false, message: "Belum login" },
+      { status: 401 },
+    );
+  }
+
+  if (!canEditAdminData(role)) {
+    return NextResponse.json(
+      { success: false, message: "Role Anda hanya dapat melihat data." },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json();
 
   const id = String(body.id || "").trim();
@@ -504,6 +574,7 @@ export async function PUT(req: Request) {
       department: String(body.department || "").trim(),
       position: String(body.position || "").trim(),
       phone: String(body.phone || "").trim(),
+      role: String(body.role || "employee"),
       employeeCategory: String(body.employeeCategory || "tetap"),
       profilePhotoUrl: String(body.profilePhotoUrl || "").trim(),
       payrollMethods: normalizePayrollMethods(body.payrollMethods),
@@ -560,6 +631,14 @@ export async function PUT(req: Request) {
       data: {
         name: payload.name || undefined,
         email: payload.email || undefined,
+        role:
+          payload.role === "owner"
+            ? "owner"
+            : payload.role === "admin"
+              ? "admin"
+              : payload.role === "cs"
+                ? "cs"
+                : "employee",
         employee_category:
           payload.employeeCategory === "magang" ? "magang" : "tetap",
         department: payload.department || null,
@@ -628,6 +707,24 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const role = await getActorRole();
+  if (!role) {
+    return NextResponse.json(
+      { success: false, message: "Belum login" },
+      { status: 401 },
+    );
+  }
+
+  if (!canDeleteAdminData(role)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Hanya owner yang dapat menghapus akun.",
+      },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const id = String(body.id || "").trim();
 
@@ -670,9 +767,12 @@ export async function DELETE(req: Request) {
       );
     }
 
-    if (user.role === "admin") {
+    if (user.role !== "employee") {
       return NextResponse.json(
-        { success: false, message: "Akun admin tidak dapat dihapus" },
+        {
+          success: false,
+          message: "Akun owner/admin/cs tidak dapat dihapus",
+        },
         { status: 400 },
       );
     }

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
+import { canViewAdminPanel } from "@/lib/adminAccess";
 import {
   isDatabaseUnavailable,
   listDemoAttendanceNotifications,
@@ -78,29 +79,33 @@ export async function GET() {
 
     const payload = await verifyToken(token);
 
-    if (payload.role !== "admin") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Hanya admin yang dapat melihat notifikasi",
-        },
-        { status: 403 },
-      );
-    }
-
-    const rows = await prisma.$queryRaw<DbNotificationRow[]>`
-      SELECT
-        a.id,
-        u.name AS employee_name,
-        a.check_in_time,
-        a.check_out_time,
-        a.status
-      FROM attendances a
-      INNER JOIN users u ON u.id = a.employee_id
-      WHERE u.role = 'employee'
-      ORDER BY COALESCE(a.check_out_time, a.check_in_time, a.created_at) DESC
-      LIMIT 30
-    `;
+    const rows = canViewAdminPanel(payload.role)
+      ? await prisma.$queryRaw<DbNotificationRow[]>`
+          SELECT
+            a.id,
+            u.name AS employee_name,
+            a.check_in_time,
+            a.check_out_time,
+            a.status
+          FROM attendances a
+          INNER JOIN users u ON u.id = a.employee_id
+          WHERE u.role = 'employee'
+          ORDER BY COALESCE(a.check_out_time, a.check_in_time, a.created_at) DESC
+          LIMIT 30
+        `
+      : await prisma.$queryRaw<DbNotificationRow[]>`
+          SELECT
+            a.id,
+            u.name AS employee_name,
+            a.check_in_time,
+            a.check_out_time,
+            a.status
+          FROM attendances a
+          INNER JOIN users u ON u.id = a.employee_id
+          WHERE a.employee_id = ${payload.id}
+          ORDER BY COALESCE(a.check_out_time, a.check_in_time, a.created_at) DESC
+          LIMIT 30
+        `;
 
     return NextResponse.json({
       success: true,
@@ -110,9 +115,21 @@ export async function GET() {
     console.error(error);
 
     if (isDatabaseUnavailable(error)) {
+      const cookieStore = await cookies();
+      const token = cookieStore.get("faceattend_token")?.value;
+
+      if (!token) {
+        return NextResponse.json({ success: true, data: [] });
+      }
+
+      const payload = await verifyToken(token);
+      const demoItems = listDemoAttendanceNotifications();
+
       return NextResponse.json({
         success: true,
-        data: listDemoAttendanceNotifications().slice(0, 20),
+        data: canViewAdminPanel(payload.role)
+          ? demoItems.slice(0, 20)
+          : demoItems.slice(0, 20),
       });
     }
 
