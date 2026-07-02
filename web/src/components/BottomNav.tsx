@@ -12,7 +12,6 @@ import {
   Wallet,
   Megaphone,
   LogOut,
-  Megaphone,
 } from "lucide-react";
 
 type BottomNavProps = {
@@ -24,23 +23,15 @@ const employeeMenus = [
   { href: "/attendance", label: "Attend", icon: ClipboardList },
   { href: "/salary", label: "Salary", icon: Wallet },
   { href: "/profile", label: "Profile", icon: UserRound },
-<<<<<<< HEAD
   { href: "/announcements", label: "Info", icon: Megaphone },
-=======
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
 ];
 
 const adminMenus = [
   { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
   { href: "/admin/employees", label: "Staff", icon: UsersRound },
-<<<<<<< HEAD
   { href: "/admin/master-data", label: "Master", icon: Layers3 },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/login", label: "Logout", icon: LogOut },
-=======
-  { href: "/admin/monitor_perusahaan", label: "Reports", icon: ClipboardList },
-  { href: "/admin/pengumuman", label: "Info", icon: Megaphone },
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
 ];
 
 export default function BottomNav({ variant = "employee" }: BottomNavProps) {

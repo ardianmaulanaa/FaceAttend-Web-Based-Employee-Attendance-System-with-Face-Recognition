@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
-<<<<<<< HEAD
 import { verifyToken } from "@/lib/auth";
 import {
   findDemoUserById,
   isDatabaseUnavailable,
   updateDemoUserProfile,
 } from "@/lib/demoStore";
+
+export const runtime = "nodejs";
 
 function isSchemaMigrationMissing(error: unknown) {
   const message = String(error || "").toLowerCase();
@@ -16,126 +16,85 @@ function isSchemaMigrationMissing(error: unknown) {
   );
 }
 
-async function resolveSessionUserId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("faceattend_token")?.value;
-
-  if (!token) {
-    return { ok: false as const, status: 401, message: "Belum login" };
-  }
-
-  const payload = await verifyToken(token);
-  return { ok: true as const, userId: payload.id };
-}
-=======
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
-
-export const runtime = "nodejs";
-
 async function getUserIdFromRequest(req: NextRequest) {
   const token = req.cookies.get("faceattend_token")?.value;
 
   if (!token) {
-    throw new Error("Token login tidak ditemukan.");
+    return null;
   }
 
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET belum ada di file .env");
-  }
+  const payload = await verifyToken(token);
+  return payload.id;
+}
 
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-  const { payload } = await jwtVerify(token, secret);
-
-  const userId =
-    (payload.id as string | undefined) ||
-    (payload.userId as string | undefined) ||
-    (payload.sub as string | undefined);
-
-  if (!userId) {
-    throw new Error("User ID tidak ditemukan di token.");
-  }
-
-  return userId;
+function buildDemoUserPayload(
+  user: NonNullable<ReturnType<typeof findDemoUserById>>,
+) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    status: user.status,
+    department: user.department,
+    city_id: user.city_id,
+    village_id: user.village_id,
+    profile_photo_url: user.profile_photo_url,
+    must_change_password: user.must_change_password,
+  };
 }
 
 export async function GET(req: NextRequest) {
   try {
-<<<<<<< HEAD
-    const session = await resolveSessionUserId();
-    if (!session.ok) {
+    const userId = await getUserIdFromRequest(req);
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, message: session.message },
-        { status: session.status },
+        { success: false, message: "Belum login" },
+        { status: 401 },
       );
     }
 
-    if (
-      session.userId.startsWith("ADM-DEMO-") ||
-      session.userId.startsWith("EMP-DEMO-")
-    ) {
-      const demoUser = findDemoUserById(session.userId);
-      if (demoUser) {
-        return NextResponse.json({
-          success: true,
-          user: {
-            id: demoUser.id,
-            name: demoUser.name,
-            email: demoUser.email,
-            role: demoUser.role,
-            department: demoUser.department,
-            phone: demoUser.phone,
-            profile_photo_url: demoUser.profile_photo_url,
-            city_id: demoUser.city_id,
-            village_id: demoUser.village_id,
-            status: demoUser.status,
-            must_change_password: demoUser.must_change_password,
-          },
-        });
+    if (userId.startsWith("ADM-DEMO-") || userId.startsWith("EMP-DEMO-")) {
+      const demoUser = findDemoUserById(userId);
+
+      if (!demoUser) {
+        return NextResponse.json(
+          { success: false, message: "User tidak ditemukan" },
+          { status: 404 },
+        );
       }
+
+      return NextResponse.json({
+        success: true,
+        user: buildDemoUserPayload(demoUser),
+      });
     }
 
     const user = await prisma.user.findUnique({
-      where: {
-        id: session.userId,
-=======
-    const userId = await getUserIdFromRequest(req);
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
-      },
+      where: { id: userId },
       select: {
         id: true,
         employee_code: true,
         name: true,
         email: true,
         role: true,
-<<<<<<< HEAD
-        department: true,
         phone: true,
-        city_id: true,
-        village_id: true,
-=======
-        phone: true,
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
         status: true,
         profile_photo: true,
-
         department: {
           select: {
             id: true,
             name: true,
           },
         },
-
         position: {
           select: {
             id: true,
             name: true,
           },
         },
-
         shift: {
           select: {
             id: true,
@@ -154,35 +113,17 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-
-        registered_office: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-            radius_meters: true,
-          },
-        },
       },
     });
 
     if (!user) {
       return NextResponse.json(
-<<<<<<< HEAD
         { success: false, message: "User tidak ditemukan" },
         { status: 404 },
-=======
-        {
-          error: "User tidak ditemukan.",
-        },
-        { status: 404 }
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
       );
     }
 
-    let profile_photo_url: string | null = null;
+    let profile_photo_url = user.profile_photo;
 
     try {
       const profileRows = await prisma.$queryRaw<
@@ -190,11 +131,12 @@ export async function GET(req: NextRequest) {
       >`
         SELECT profile_photo_url
         FROM users
-        WHERE id = ${session.userId}
+        WHERE id = ${userId}
         LIMIT 1
       `;
 
-      profile_photo_url = profileRows[0]?.profile_photo_url || null;
+      profile_photo_url =
+        profileRows[0]?.profile_photo_url ?? user.profile_photo;
     } catch (error) {
       if (!isSchemaMigrationMissing(error)) {
         throw error;
@@ -209,68 +151,28 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-<<<<<<< HEAD
     if (isDatabaseUnavailable(error)) {
-      try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get("faceattend_token")?.value;
-
-        if (!token) {
-          return NextResponse.json(
-            { success: false, message: "Belum login" },
-            { status: 401 },
-          );
-        }
-
-        const payload = await verifyToken(token);
-        const user = findDemoUserById(payload.id);
-
-        if (user) {
-          return NextResponse.json({
-            success: true,
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              department: user.department,
-              phone: user.phone,
-              profile_photo_url: user.profile_photo_url,
-              city_id: user.city_id,
-              village_id: user.village_id,
-              status: user.status,
-              must_change_password: user.must_change_password,
-            },
-          });
-        }
-      } catch {
-        // Fallback below.
-      }
+      return NextResponse.json(
+        { success: false, message: "Database tidak tersedia" },
+        { status: 503 },
+      );
     }
 
     return NextResponse.json(
       { success: false, message: "Session tidak valid" },
       { status: 401 },
-=======
-    console.error("ME_ERROR:", error);
-
-    return NextResponse.json(
-      {
-        error: "Gagal mengambil data user.",
-      },
-      { status: 401 }
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
     );
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
-    const session = await resolveSessionUserId();
-    if (!session.ok) {
+    const userId = await getUserIdFromRequest(req);
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, message: session.message },
-        { status: session.status },
+        { success: false, message: "Belum login" },
+        { status: 401 },
       );
     }
 
@@ -291,11 +193,8 @@ export async function PUT(req: Request) {
       );
     }
 
-    if (
-      session.userId.startsWith("ADM-DEMO-") ||
-      session.userId.startsWith("EMP-DEMO-")
-    ) {
-      const result = updateDemoUserProfile(session.userId, payload);
+    if (userId.startsWith("ADM-DEMO-") || userId.startsWith("EMP-DEMO-")) {
+      const result = updateDemoUserProfile(userId, payload);
 
       if (!result.ok) {
         return NextResponse.json(
@@ -313,27 +212,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({
         success: true,
         message: "Profil berhasil diperbarui (demo mode)",
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role,
-          department: result.user.department,
-          phone: result.user.phone,
-          profile_photo_url: result.user.profile_photo_url,
-          city_id: result.user.city_id,
-          village_id: result.user.village_id,
-          status: result.user.status,
-        },
+        user: buildDemoUserPayload(result.user),
       });
     }
 
     const existing = await prisma.user.findFirst({
       where: {
         email: payload.email,
-        NOT: {
-          id: session.userId,
-        },
+        NOT: { id: userId },
       },
       select: { id: true },
     });
@@ -346,32 +232,32 @@ export async function PUT(req: Request) {
     }
 
     const user = await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: userId },
       data: {
         name: payload.name,
         email: payload.email,
         phone: payload.phone || null,
+        profile_photo: payload.profilePhotoUrl || null,
       },
       select: {
         id: true,
+        employee_code: true,
         name: true,
         email: true,
         role: true,
-        department: true,
         phone: true,
-        city_id: true,
-        village_id: true,
         status: true,
+        profile_photo: true,
       },
     });
 
-    let profile_photo_url: string | null = null;
+    let profile_photo_url = user.profile_photo;
 
     try {
       await prisma.$executeRaw`
         UPDATE users
         SET profile_photo_url = ${payload.profilePhotoUrl || null}
-        WHERE id = ${session.userId}
+        WHERE id = ${userId}
       `;
       profile_photo_url = payload.profilePhotoUrl || null;
     } catch (error) {
@@ -389,7 +275,12 @@ export async function PUT(req: Request) {
       },
     });
   } catch (error) {
-    console.error(error);
+    if (isDatabaseUnavailable(error)) {
+      return NextResponse.json(
+        { success: false, message: "Database tidak tersedia" },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json(
       { success: false, message: "Gagal memperbarui profil" },

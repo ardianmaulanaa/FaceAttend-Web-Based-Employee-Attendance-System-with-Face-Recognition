@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
-=======
-import { useEffect, useMemo, useState } from "react";
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
 import {
   BadgeCheck,
   Building2,
@@ -89,7 +85,6 @@ function formatStatus(status: string) {
 }
 
 export default function ProfilePage() {
-<<<<<<< HEAD
   const router = useRouter();
   const { authUser, updatePaymentProfile, claimEmployeeReward } = useAppData();
   const [saveMessage, setSaveMessage] = useState("");
@@ -222,127 +217,18 @@ export default function ProfilePage() {
     const result = claimEmployeeReward(reward);
     setClaimMessage(result.message);
   };
-=======
-  const [user, setUser] = useState<ProfileUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        setLoading(true);
-        setErrorMessage("");
-
-        const response = await fetch("/api/auth/me", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || data.message || "Gagal mengambil profil.");
-        }
-
-        setUser(data.user);
-      } catch (error) {
-        console.error("PROFILE_ERROR:", error);
-        setErrorMessage(
-          error instanceof Error ? error.message : "Gagal mengambil profil."
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadProfile();
-  }, []);
-
-  const initials = useMemo(() => {
-    if (!user?.name) return "U";
-    return getInitials(user.name);
-  }, [user?.name]);
-
-  const workSchedule = useMemo(() => {
-    const schedules = user?.shift?.work_schedules;
-
-    if (!schedules || schedules.length === 0) {
-      return "Belum diatur";
-    }
-
-    const activeSchedule = schedules.find(
-      (schedule) => schedule.is_work_day && schedule.check_in_time && schedule.check_out_time
-    );
-
-    if (!activeSchedule) {
-      return "Belum diatur";
-    }
-
-    return `${activeSchedule.check_in_time} - ${activeSchedule.check_out_time}`;
-  }, [user?.shift?.work_schedules]);
-
-  if (loading) {
-    return (
-      <MobileShell variant="employee">
-        <AppHeader
-          title="Profile"
-          subtitle="Informasi akun karyawan"
-          rightLabel="Loading"
-        />
-
-        <section className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-5 py-6 md:px-10 lg:px-16">
-          <div className="flex items-center gap-3 rounded-3xl border border-blue-100 bg-white px-6 py-5 shadow-xl shadow-slate-300/30">
-            <Loader2 className="h-5 w-5 animate-spin text-[#123c8c]" />
-            <p className="text-sm font-black text-slate-700">
-              Mengambil data profil...
-            </p>
-          </div>
-        </section>
-
-        <BottomNav />
-      </MobileShell>
-    );
-  }
-
-  if (errorMessage || !user) {
-    return (
-      <MobileShell variant="employee">
-        <AppHeader
-          title="Profile"
-          subtitle="Informasi akun karyawan"
-          rightLabel="-"
-        />
-
-        <section className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-5 py-6 md:px-10 lg:px-16">
-          <div className="rounded-3xl border border-red-100 bg-red-50 px-6 py-5 text-center shadow-xl shadow-slate-300/30">
-            <p className="text-sm font-black text-red-700">
-              {errorMessage || "Profil tidak ditemukan."}
-            </p>
-          </div>
-        </section>
-
-        <BottomNav />
-      </MobileShell>
-    );
-  }
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
 
   return (
     <MobileShell variant="employee">
       <AppHeader
         title="Profile"
         subtitle="Informasi akun karyawan"
-<<<<<<< HEAD
         rightLabel={authUser.id}
-=======
-        rightLabel={user.employee_code || "EMP"}
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
       />
 
       <section className="mx-auto grid max-w-7xl gap-6 px-5 py-6 md:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:px-16">
         <div className="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
           <div className="rounded-3xl bg-[#123c8c] p-6 text-center text-white shadow-xl shadow-blue-900/20">
-<<<<<<< HEAD
             <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-white text-4xl font-black text-[#123c8c]">
               {authUser.name
                 .split(" ")
@@ -355,25 +241,6 @@ export default function ProfilePage() {
 
             <p className="mt-1 text-sm font-semibold text-blue-100">
               {authUser.id} • {authUser.department}
-=======
-            <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-3xl bg-white text-4xl font-black text-[#123c8c]">
-              {user.profile_photo ? (
-                <img
-                  src={user.profile_photo}
-                  alt={user.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
-
-            <h2 className="mt-5 text-2xl font-black">{user.name}</h2>
-
-            <p className="mt-1 text-sm font-semibold text-blue-100">
-              {user.employee_code || "No Employee Code"} •{" "}
-              {user.department?.name || "No Department"}
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </p>
 
             <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-black text-white">
@@ -388,11 +255,7 @@ export default function ProfilePage() {
                 Employee ID
               </p>
               <p className="mt-2 text-lg font-black text-slate-950">
-<<<<<<< HEAD
                 {authUser.id}
-=======
-                {user.employee_code || "-"}
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
               </p>
             </div>
 
@@ -401,7 +264,6 @@ export default function ProfilePage() {
                 Account Status
               </p>
               <p className="mt-2 text-lg font-black text-slate-950">
-<<<<<<< HEAD
                 {authUser.status}
               </p>
             </div>
@@ -413,24 +275,6 @@ export default function ProfilePage() {
               <p className="mt-2 text-lg font-black text-slate-950">
                 {authUser.rewardPoints}
               </p>
-=======
-                {formatStatus(user.status)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
-                Registered Office
-              </p>
-              <p className="mt-2 text-lg font-black text-slate-950">
-                {user.registered_office?.name || "-"}
-              </p>
-              {user.registered_office?.address ? (
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  {user.registered_office.address}
-                </p>
-              ) : null}
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </div>
           </div>
         </div>
@@ -454,11 +298,7 @@ export default function ProfilePage() {
 
             <p className="mt-5 text-sm leading-7 text-blue-100">
               Data akun digunakan untuk login, identifikasi karyawan, dan
-<<<<<<< HEAD
               pencatatan absensi berbasis formulir dan lampiran bukti.
-=======
-              pencatatan absensi berbasis verifikasi wajah serta validasi GPS.
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </p>
           </div>
 
@@ -466,13 +306,7 @@ export default function ProfilePage() {
             <div className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-slate-200/60">
               <Mail size={23} className="text-[#123c8c]" />
               <p className="mt-4 text-sm font-bold text-slate-500">Email</p>
-<<<<<<< HEAD
               <p className="mt-1 font-black text-slate-950">{authUser.email}</p>
-=======
-              <p className="mt-1 break-all font-black text-slate-950">
-                {user.email}
-              </p>
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </div>
 
             <div className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-slate-200/60">
@@ -481,32 +315,14 @@ export default function ProfilePage() {
                 Department
               </p>
               <p className="mt-1 font-black text-slate-950">
-<<<<<<< HEAD
                 {authUser.department}
-=======
-                {user.department?.name || "-"}
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-slate-200/60">
-              <BriefcaseBusiness size={23} className="text-[#123c8c]" />
-              <p className="mt-4 text-sm font-bold text-slate-500">Position</p>
-              <p className="mt-1 font-black text-slate-950">
-                {user.position?.name || "-"}
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
               </p>
             </div>
 
             <div className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-slate-200/60">
               <ShieldCheck size={23} className="text-[#123c8c]" />
               <p className="mt-4 text-sm font-bold text-slate-500">Role</p>
-<<<<<<< HEAD
               <p className="mt-1 font-black text-slate-950">{authUser.role}</p>
-=======
-              <p className="mt-1 font-black text-slate-950">
-                {formatRole(user.role)}
-              </p>
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </div>
 
             <div className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-slate-200/60">
@@ -538,7 +354,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-<<<<<<< HEAD
           <div className="rounded-3xl border border-amber-100 bg-white/90 p-5 shadow-xl shadow-slate-200/60 md:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
@@ -910,16 +725,6 @@ export default function ProfilePage() {
             <p className="mt-4 text-xs font-semibold text-slate-500">
               {claimMessage ||
                 "Setiap claim berhasil akan langsung menambah poin reward karyawan."}
-=======
-          <div className="rounded-3xl border border-blue-100 bg-[#f6f8ff] p-5">
-            <p className="text-sm font-black text-[#123c8c]">
-              Face & GPS Verification
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Wajah karyawan digunakan sebagai bukti foto absensi. Lokasi GPS
-              akan divalidasi berdasarkan kantor terdaftar dan radius kantor
-              aktif.
->>>>>>> 8cad75293f1c832e003d778cff628420e55012a6
             </p>
           </div>
         </div>
