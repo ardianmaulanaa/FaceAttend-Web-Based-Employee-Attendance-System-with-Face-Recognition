@@ -18,12 +18,18 @@ import MobileShell from "@/components/MobileShell";
 
 type AttendanceAction = "check-in" | "check-out";
 
+function isCameraAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 export default function AttendancePage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const startingRef = useRef(false);
 
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastPhotoUrl, setLastPhotoUrl] = useState<string | null>(null);
 
@@ -37,9 +43,12 @@ export default function AttendancePage() {
   );
 
   useEffect(() => {
-    startCamera();
+    const timer = window.setTimeout(() => {
+      startCamera();
+    }, 500);
 
     return () => {
+      window.clearTimeout(timer);
       releaseCamera(false, false);
 
       if (lastPhotoUrl) {
@@ -50,6 +59,8 @@ export default function AttendancePage() {
   }, []);
 
   function releaseCamera(updateStatus = true, updateState = true) {
+    startingRef.current = false;
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
         track.stop();
@@ -65,6 +76,7 @@ export default function AttendancePage() {
 
     if (updateState) {
       setCameraReady(false);
+      setCameraStarting(false);
     }
 
     if (updateStatus) {
@@ -75,10 +87,72 @@ export default function AttendancePage() {
     }
   }
 
+  function waitForCameraFrame(video: HTMLVideoElement): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const isReady = () => {
+        return (
+          video.readyState >= 2 &&
+          video.videoWidth > 0 &&
+          video.videoHeight > 0
+        );
+      };
+
+      if (isReady()) {
+        resolve();
+        return;
+      }
+
+      let intervalId: ReturnType<typeof setInterval> | null = null;
+
+      const cleanup = () => {
+        video.removeEventListener("loadedmetadata", checkReady);
+        video.removeEventListener("canplay", checkReady);
+        video.removeEventListener("playing", checkReady);
+
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+
+        clearTimeout(timeoutId);
+      };
+
+      const checkReady = () => {
+        if (isReady()) {
+          cleanup();
+          resolve();
+        }
+      };
+
+      const timeoutId = setTimeout(() => {
+        cleanup();
+        reject(
+          new Error(
+            "Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi."
+          )
+        );
+      }, 7000);
+
+      video.addEventListener("loadedmetadata", checkReady);
+      video.addEventListener("canplay", checkReady);
+      video.addEventListener("playing", checkReady);
+
+      intervalId = setInterval(checkReady, 150);
+    });
+  }
+
   async function startCamera() {
+    if (startingRef.current) return;
+
     try {
+      startingRef.current = true;
+      setCameraReady(false);
+      setCameraStarting(true);
       setStatusTitle("Starting Camera");
       setStatusText("Mengaktifkan kamera...");
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Browser tidak mendukung kamera.");
+      }
 
       if (streamRef.current) {
         releaseCamera(false, true);
@@ -96,21 +170,43 @@ export default function AttendancePage() {
 
       streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      const video = videoRef.current;
+
+      if (!video) {
+        throw new Error("Element video tidak ditemukan.");
       }
 
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+
+      await video.play();
+      await waitForCameraFrame(video);
+
       setCameraReady(true);
+      setCameraStarting(false);
       setStatusTitle("Camera Ready");
       setStatusText(
         "Kamera sudah aktif. Kamu bisa melakukan check-in atau check-out."
       );
     } catch (error) {
+      if (isCameraAbortError(error)) {
+        setCameraStarting(false);
+        startingRef.current = false;
+        return;
+      }
+
       console.error("CAMERA_ERROR", error);
 
       releaseCamera(false, true);
       setStatusTitle("Camera Permission Needed");
-      setStatusText("Aktifkan izin kamera di browser terlebih dahulu.");
+      setStatusText(
+        error instanceof Error
+          ? error.message
+          : "Aktifkan izin kamera di browser terlebih dahulu."
+      );
+    } finally {
+      startingRef.current = false;
     }
   }
 
@@ -138,33 +234,28 @@ export default function AttendancePage() {
     });
   }
 
-  function capturePhoto(): Promise<File> {
+  async function capturePhoto(): Promise<File> {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!video || !canvas || !streamRef.current) {
+      throw new Error("Kamera belum siap.");
+    }
+
+    await waitForCameraFrame(video);
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Canvas tidak tersedia.");
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
     return new Promise((resolve, reject) => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-
-      if (!video || !canvas || !streamRef.current) {
-        reject(new Error("Kamera belum siap."));
-        return;
-      }
-
-      if (!video.videoWidth || !video.videoHeight) {
-        reject(new Error("Kamera belum memuat gambar."));
-        return;
-      }
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      const context = canvas.getContext("2d");
-
-      if (!context) {
-        reject(new Error("Canvas tidak tersedia."));
-        return;
-      }
-
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -195,11 +286,19 @@ export default function AttendancePage() {
     try {
       setLoading(true);
       setStatusTitle("Processing");
-      setStatusText("Mengambil foto dan lokasi GPS...");
+      setStatusText("Menyiapkan kamera, mengambil foto, dan lokasi GPS...");
 
-      if (!streamRef.current) {
+      if (!streamRef.current || !cameraReady) {
         await startCamera();
       }
+
+      const video = videoRef.current;
+
+      if (!video) {
+        throw new Error("Kamera belum siap.");
+      }
+
+      await waitForCameraFrame(video);
 
       const photo = await capturePhoto();
       const position = await getCurrentLocation();
@@ -263,13 +362,14 @@ export default function AttendancePage() {
     } catch (error) {
       console.error("ATTENDANCE_ERROR", error);
 
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Gagal melakukan absensi. Pastikan kamera dan lokasi GPS diizinkan.";
+
       setStatusTitle("Attendance Failed");
-      setStatusText(
-        "Gagal melakukan absensi. Pastikan kamera dan lokasi GPS diizinkan."
-      );
-      alert(
-        "Gagal melakukan absensi. Pastikan kamera dan lokasi GPS diizinkan."
-      );
+      setStatusText(message);
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -302,10 +402,16 @@ export default function AttendancePage() {
               className={`rounded-full px-4 py-2 text-xs font-black ${
                 cameraReady
                   ? "bg-emerald-50 text-emerald-700"
-                  : "bg-slate-100 text-slate-500"
+                  : cameraStarting
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-slate-100 text-slate-500"
               }`}
             >
-              {cameraReady ? "Camera Active" : "Camera Off"}
+              {cameraReady
+                ? "Camera Active"
+                : cameraStarting
+                  ? "Starting..."
+                  : "Camera Off"}
             </span>
           </div>
 
@@ -316,6 +422,32 @@ export default function AttendancePage() {
                 autoPlay
                 playsInline
                 muted
+                onLoadedMetadata={() => {
+                  const video = videoRef.current;
+
+                  if (
+                    video &&
+                    video.readyState >= 2 &&
+                    video.videoWidth > 0 &&
+                    video.videoHeight > 0
+                  ) {
+                    setCameraReady(true);
+                    setCameraStarting(false);
+                  }
+                }}
+                onCanPlay={() => {
+                  const video = videoRef.current;
+
+                  if (
+                    video &&
+                    video.readyState >= 2 &&
+                    video.videoWidth > 0 &&
+                    video.videoHeight > 0
+                  ) {
+                    setCameraReady(true);
+                    setCameraStarting(false);
+                  }
+                }}
                 className={`h-full w-full object-cover transition ${
                   cameraReady ? "opacity-100" : "opacity-0"
                 }`}
@@ -332,15 +464,21 @@ export default function AttendancePage() {
                 <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-white">
                   <div>
                     <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl">
-                      <Camera size={42} />
+                      {cameraStarting ? (
+                        <Loader2 size={42} className="animate-spin" />
+                      ) : (
+                        <Camera size={42} />
+                      )}
                     </div>
 
                     <p className="mt-5 text-sm font-black text-white">
-                      Camera Preview
+                      {cameraStarting ? "Starting Camera" : "Camera Preview"}
                     </p>
 
                     <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
-                      Kamera sedang mati. Klik tombol aktifkan kamera.
+                      {cameraStarting
+                        ? "Mohon tunggu sampai kamera memuat gambar."
+                        : "Kamera sedang mati. Klik tombol aktifkan kamera."}
                     </p>
                   </div>
                 </div>
@@ -354,7 +492,8 @@ export default function AttendancePage() {
             <button
               onClick={toggleCamera}
               type="button"
-              className="rounded-2xl border border-blue-200 bg-[#f8fbff] px-5 py-4 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition hover:bg-[#eef5ff] active:scale-[0.98]"
+              disabled={loading || cameraStarting}
+              className="rounded-2xl border border-blue-200 bg-[#f8fbff] px-5 py-4 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition hover:bg-[#eef5ff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex items-center justify-center gap-2">
                 <Power size={18} />
@@ -365,7 +504,8 @@ export default function AttendancePage() {
             <button
               onClick={startCamera}
               type="button"
-              className="rounded-2xl bg-[#123c8c] px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#0f3274] active:scale-[0.98]"
+              disabled={loading || cameraStarting}
+              className="rounded-2xl bg-[#123c8c] px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex items-center justify-center gap-2">
                 <RotateCcw size={18} />
@@ -423,7 +563,7 @@ export default function AttendancePage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <button
-              disabled={loading}
+              disabled={loading || cameraStarting}
               onClick={() => handleAttendance("check-in")}
               className="rounded-2xl bg-[#123c8c] px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -436,7 +576,7 @@ export default function AttendancePage() {
             </button>
 
             <button
-              disabled={loading}
+              disabled={loading || cameraStarting}
               onClick={() => handleAttendance("check-out")}
               className="rounded-2xl border border-blue-200 bg-[#f8fbff] px-5 py-4 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition hover:bg-[#eef5ff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >

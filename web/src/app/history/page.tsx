@@ -1,54 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CalendarDays,
-  Clock3,
-  ImageIcon,
-  Loader2,
-  MapPin,
-  Search,
-  Timer,
-} from "lucide-react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
+import { CalendarDays, Clock3, Search } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 
-const AttendanceMap = dynamic(() => import("@/components/AttendanceMap"), {
-  ssr: false,
-});
-
-type Attendance = {
+type AttendanceRecord = {
   id: string;
-
-  attendanceDate: string;
-
-  scheduledCheckIn: string | null;
-  scheduledCheckOut: string | null;
-
-  checkInTime: string | null;
-  checkOutTime: string | null;
-
-  checkInPhoto: string | null;
-  checkOutPhoto: string | null;
-
-  checkInLatitude: number | null;
-  checkInLongitude: number | null;
-
-  checkOutLatitude: number | null;
-  checkOutLongitude: number | null;
-
+  date: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
   lateMinutes: number;
   earlyLeaveMinutes: number;
   workMinutes: number;
-
-  status: "PENDING" | "CHECKED_IN" | "CHECKED_OUT";
-  rawStatus: string;
-  checkInStatus: string | null;
-  checkOutStatus: string | null;
-
-  note: string | null;
 };
 
 const months = [
@@ -66,243 +33,86 @@ const months = [
   { value: 12, label: "Desember" },
 ];
 
-function formatDate(date: string | null) {
-  if (!date) return "-";
+function formatDateLabel(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
 
-  return new Intl.DateTimeFormat("id-ID", {
-    weekday: "long",
-    day: "2-digit",
+  const month = new Intl.DateTimeFormat("id-ID", {
     month: "long",
-    year: "numeric",
-  }).format(new Date(date));
+  }).format(parsedDate);
+
+  const day = new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+  }).format(parsedDate);
+
+  const weekday = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+  }).format(parsedDate);
+
+  return `${month} ${day} ${weekday}`;
 }
 
-function formatTime(date: string | null) {
-  if (!date) return "-";
+function getStatusStyle(status: string) {
+  const normalizedStatus = status.toLowerCase();
 
-  return new Intl.DateTimeFormat("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
-
-function formatWorkMinutes(minutes: number) {
-  if (!minutes) return "-";
-
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-
-  if (hours <= 0) return `${restMinutes} menit`;
-
-  return `${hours} jam ${restMinutes} menit`;
-}
-
-function hasLocation(latitude: number | null, longitude: number | null) {
-  return typeof latitude === "number" && typeof longitude === "number";
-}
-
-function getStatusLabel(status: Attendance["status"]) {
-  if (status === "CHECKED_OUT") return "Completed";
-  if (status === "CHECKED_IN") return "Checked-in";
-  return "Pending";
-}
-
-function getStatusClass(status: Attendance["status"]) {
-  if (status === "CHECKED_OUT") {
-    return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  if (normalizedStatus.includes("terlambat")) {
+    return "bg-orange-50 text-orange-700 ring-orange-100";
   }
 
-  if (status === "CHECKED_IN") {
-    return "bg-blue-50 text-[#123c8c] ring-blue-100";
+  if (normalizedStatus.includes("cuti")) {
+    return "bg-purple-50 text-purple-700 ring-purple-100";
   }
 
-  return "bg-amber-50 text-amber-700 ring-amber-100";
-}
-
-function PhotoPreview({
-  photo,
-  label,
-}: {
-  photo: string | null;
-  label: string;
-}) {
-  if (!photo) {
-    return (
-      <div className="flex h-28 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/70 text-xs font-bold text-slate-400">
-        Foto belum ada
-      </div>
-    );
+  if (normalizedStatus.includes("sakit")) {
+    return "bg-rose-50 text-rose-700 ring-rose-100";
   }
 
-  return (
-    <a
-      href={photo}
-      target="_blank"
-      rel="noreferrer"
-      className="group block overflow-hidden rounded-2xl border border-blue-100 bg-white"
-    >
-      <div className="relative h-28 w-full overflow-hidden">
-        <img
-          src={photo}
-          alt={label}
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-        />
-      </div>
-
-      <div className="flex items-center gap-2 px-3 py-2 text-xs font-black text-[#123c8c]">
-        <ImageIcon size={15} />
-        {label}
-      </div>
-    </a>
-  );
-}
-
-function LocationPreview({
-  latitude,
-  longitude,
-  label,
-}: {
-  latitude: number | null;
-  longitude: number | null;
-  label: string;
-}) {
-  if (!hasLocation(latitude, longitude)) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4 text-xs font-bold text-slate-400">
-        Lokasi belum tersedia
-      </div>
-    );
+  if (normalizedStatus.includes("tidak")) {
+    return "bg-red-50 text-red-700 ring-red-100";
   }
 
-  const lat = latitude as number;
-  const lng = longitude as number;
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white">
-      <div className="flex items-center justify-between gap-3 px-3 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <MapPin size={17} className="shrink-0 text-[#123c8c]" />
-          <div className="min-w-0">
-            <p className="truncate text-xs font-black text-slate-900">
-              {label}
-            </p>
-            <p className="truncate text-[11px] font-semibold text-slate-400">
-              {lat.toFixed(6)}, {lng.toFixed(6)}
-            </p>
-          </div>
-        </div>
-
-        <a
-          href={`https://www.google.com/maps?q=${lat},${lng}`}
-          target="_blank"
-          rel="noreferrer"
-          className="shrink-0 rounded-full bg-[#eaf1ff] px-3 py-2 text-[11px] font-black text-[#123c8c]"
-        >
-          Buka
-        </a>
-      </div>
-
-      <div className="h-40 overflow-hidden border-t border-blue-50">
-        <AttendanceMap latitude={lat} longitude={lng} label={label} />
-      </div>
-    </div>
-  );
-}
-
-function AttendanceSection({
-  title,
-  time,
-  photo,
-  latitude,
-  longitude,
-  locationLabel,
-}: {
-  title: string;
-  time: string | null;
-  photo: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  locationLabel: string;
-}) {
-  return (
-    <div className="rounded-[1.5rem] border border-blue-50 bg-[#f7faff] p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#123c8c] shadow-sm">
-          <Clock3 size={21} />
-        </div>
-
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-            {title}
-          </p>
-          <p className="text-xl font-black text-slate-950">
-            {formatTime(time)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3">
-        <PhotoPreview photo={photo} label={`Lihat foto ${title}`} />
-
-        <LocationPreview
-          latitude={latitude}
-          longitude={longitude}
-          label={locationLabel}
-        />
-      </div>
-    </div>
-  );
+  return "bg-emerald-50 text-emerald-700 ring-emerald-100";
 }
 
 export default function HistoryPage() {
-  const now = new Date();
+  const today = new Date();
 
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
-  const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [month, setMonth] = useState(today.getMonth() + 1);
+  const [year, setYear] = useState(today.getFullYear());
+  const [sort, setSort] = useState<"desc" | "asc">("desc");
 
-  const years = Array.from(
-    { length: 6 },
-    (_, index) => now.getFullYear() - index
-  );
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  async function fetchHistory(selectedMonth = month, selectedYear = year) {
+  async function getHistory() {
     try {
-      setLoading(true);
+      setIsLoading(true);
 
       const response = await fetch(
-        `/api/history?month=${selectedMonth}&year=${selectedYear}`
+        `/api/attendance/history?month=${month}&year=${year}&sort=${sort}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
-      const contentType = response.headers.get("content-type");
-
-      if (!contentType?.includes("application/json")) {
-        throw new Error(
-          "Response dari API bukan JSON. Pastikan src/app/api/history/route.ts sudah benar."
-        );
-      }
-
-      const data = await response.json();
-
       if (!response.ok) {
-        alert(data.error || data.message || "Gagal mengambil riwayat.");
+        setRecords([]);
         return;
       }
 
-      setAttendances(data.attendances || []);
+      const data = await response.json();
+      setRecords(data.records || []);
     } catch (error) {
-      console.error("FETCH_HISTORY_ERROR:", error);
-      alert("Gagal mengambil riwayat absensi.");
+      console.error("Gagal mengambil history:", error);
+      setRecords([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    getHistory();
+  }, [month, year, sort]);
 
   return (
     <MobileShell variant="employee">
@@ -314,28 +124,29 @@ export default function HistoryPage() {
         } ${year}`}
       />
 
-      <section className="mx-auto max-w-7xl px-5 pb-28 pt-6 md:px-10 lg:px-16">
-        <div className="rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-              <CalendarDays size={23} />
+      <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
+        <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+              <CalendarDays size={24} strokeWidth={2.6} />
             </div>
 
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-[#123c8c]">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
                 Filter Riwayat
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                Pilih bulan dan tahun absensi.
-              </p>
+
+              <h2 className="mt-1 text-lg font-black text-slate-950">
+                Pilih bulan, tahun, dan urutan absensi.
+              </h2>
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
             <select
               value={month}
               onChange={(event) => setMonth(Number(event.target.value))}
-              className="h-14 rounded-2xl border border-blue-100 bg-[#f8fbff] px-5 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+              className="h-14 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
             >
               {months.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -347,141 +158,80 @@ export default function HistoryPage() {
             <select
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
-              className="h-14 rounded-2xl border border-blue-100 bg-[#f8fbff] px-5 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+              className="h-14 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
             >
-              {years.map((item) => (
+              {[2024, 2025, 2026, 2027].map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
               ))}
             </select>
 
-            <button
-              onClick={() => fetchHistory(month, year)}
-              disabled={loading}
-              className="h-14 rounded-2xl bg-[#123c8c] px-7 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:opacity-60"
+            <select
+              value={sort}
+              onChange={(event) =>
+                setSort(event.target.value as "desc" | "asc")
+              }
+              className="h-14 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
             >
-              <span className="flex items-center justify-center gap-2">
-                {loading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Search size={18} />
-                )}
-                {loading ? "Loading..." : "Terapkan"}
-              </span>
+              <option value="desc">Terbaru - Terlama</option>
+              <option value="asc">Terlama - Terbaru</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={getHistory}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-6 text-sm font-black text-white shadow-lg shadow-blue-900/20 active:scale-[0.98]"
+            >
+              <Search size={18} />
+              Terapkan
             </button>
           </div>
         </div>
 
-        {loading ? (
-          <div className="mt-8 flex justify-center">
-            <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-slate-600 shadow-lg">
-              <Loader2 size={20} className="animate-spin text-[#123c8c]" />
-              Mengambil riwayat absensi...
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="rounded-3xl bg-white p-6 text-sm font-bold text-slate-500 shadow-lg">
+              Memuat riwayat absensi...
             </div>
-          </div>
-        ) : attendances.length === 0 ? (
-          <div className="mt-8 rounded-[2rem] border border-blue-100 bg-white p-8 text-center shadow-xl shadow-slate-300/30">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eaf1ff] text-[#123c8c]">
-              <CalendarDays size={30} />
+          ) : records.length === 0 ? (
+            <div className="rounded-3xl bg-white p-6 text-sm font-bold text-slate-500 shadow-lg">
+              Belum ada data absensi pada periode ini.
             </div>
-
-            <p className="mt-5 text-lg font-black text-slate-950">
-              Belum ada riwayat absensi
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Tidak ada data absensi pada bulan dan tahun yang dipilih.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-7 grid gap-6 lg:grid-cols-2">
-            {attendances.map((attendance) => (
-              <article
-                key={attendance.id}
-                className="overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-xl shadow-slate-300/30"
+          ) : (
+            records.map((item) => (
+              <Link
+                key={item.id}
+                href={`/history/${item.id}`}
+                className="block rounded-3xl border border-blue-100 bg-white p-5 shadow-lg shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-xl active:scale-[0.99]"
               >
-                <div className="border-b border-blue-50 bg-gradient-to-br from-white to-[#f4f7ff] p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-xs font-black uppercase tracking-[0.24em] text-[#123c8c]">
-                        Attendance Record
-                      </p>
-                      <h2 className="mt-2 text-xl font-black leading-tight text-slate-950">
-                        {formatDate(attendance.attendanceDate)}
-                      </h2>
-                    </div>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black capitalize text-slate-950">
+                      {formatDateLabel(item.date)}
+                    </h2>
 
-                    <span
-                      className={`shrink-0 rounded-full px-4 py-2 text-xs font-black ring-1 ${getStatusClass(
-                        attendance.status
+                    <div
+                      className={`mt-3 inline-flex rounded-full px-4 py-2 text-xs font-black ring-1 ${getStatusStyle(
+                        item.status
                       )}`}
                     >
-                      {getStatusLabel(attendance.status)}
-                    </span>
+                      {item.status}
+                    </div>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
-                      <p className="text-[11px] font-black uppercase text-slate-400">
-                        Work Time
-                      </p>
-                      <div className="mt-2 flex items-center gap-2 text-sm font-black text-slate-900">
-                        <Timer size={16} className="text-[#123c8c]" />
-                        {formatWorkMinutes(attendance.workMinutes)}
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-3 rounded-2xl bg-[#f6f8ff] px-4 py-3 text-[#123c8c]">
+                    <Clock3 size={20} strokeWidth={2.6} />
 
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
-                      <p className="text-[11px] font-black uppercase text-slate-400">
-                        Late
-                      </p>
-                      <p className="mt-2 text-sm font-black text-slate-900">
-                        {attendance.lateMinutes || 0} menit
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
-                      <p className="text-[11px] font-black uppercase text-slate-400">
-                        Early
-                      </p>
-                      <p className="mt-2 text-sm font-black text-slate-900">
-                        {attendance.earlyLeaveMinutes || 0} menit
-                      </p>
-                    </div>
+                    <p className="text-lg font-black">
+                      {item.checkIn} - {item.checkOut}
+                    </p>
                   </div>
                 </div>
-
-                <div className="grid gap-4 p-5 md:grid-cols-2">
-                  <AttendanceSection
-                    title="Check-in"
-                    time={attendance.checkInTime}
-                    photo={attendance.checkInPhoto}
-                    latitude={attendance.checkInLatitude}
-                    longitude={attendance.checkInLongitude}
-                    locationLabel="Lokasi check-in"
-                  />
-
-                  <AttendanceSection
-                    title="Check-out"
-                    time={attendance.checkOutTime}
-                    photo={attendance.checkOutPhoto}
-                    latitude={attendance.checkOutLatitude}
-                    longitude={attendance.checkOutLongitude}
-                    locationLabel="Lokasi check-out"
-                  />
-                </div>
-
-                {attendance.note && (
-                  <div className="px-5 pb-5">
-                    <div className="rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                      {attendance.note}
-                    </div>
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
+              </Link>
+            ))
+          )}
+        </div>
       </section>
 
       <BottomNav />

@@ -1,7 +1,12 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
   Clock3,
   LayoutDashboard,
+  Loader2,
+  RefreshCcw,
   UserCheck,
   UsersRound,
 } from "lucide-react";
@@ -9,58 +14,121 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 
-const stats = [
-  {
-    label: "Total Employees",
-    value: "24",
-    description: "Karyawan terdaftar",
-    icon: UsersRound,
-  },
-  {
-    label: "Present Today",
-    value: "18",
-    description: "Sudah melakukan absensi",
-    icon: UserCheck,
-  },
-  {
-    label: "Late Today",
-    value: "3",
-    description: "Terlambat masuk",
-    icon: Clock3,
-  },
-  {
-    label: "Absent Today",
-    value: "3",
-    description: "Belum hadir",
-    icon: CalendarCheck,
-  },
-];
+type DashboardStats = {
+  totalEmployees: number;
+  presentToday: number;
+  lateToday: number;
+  absentToday: number;
+};
 
-const recentAttendance = [
-  {
-    id: "EMP001",
-    name: "Muhammad Ardian Maulana",
-    checkIn: "08:02",
-    checkOut: "17:04",
-    status: "Present",
-  },
-  {
-    id: "EMP002",
-    name: "Budi Santoso",
-    checkIn: "08:21",
-    checkOut: "17:10",
-    status: "Late",
-  },
-  {
-    id: "EMP003",
-    name: "Siti Rahma",
-    checkIn: "-",
-    checkOut: "-",
-    status: "Absent",
-  },
-];
+type RecentAttendance = {
+  id: string;
+  name: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
+  workMode: string;
+};
+
+type DashboardResponse = {
+  stats: DashboardStats;
+  recentAttendance: RecentAttendance[];
+};
+
+function getStatusClass(status: string) {
+  if (status === "Present") {
+    return "bg-[#eaf1ff] text-[#123c8c]";
+  }
+
+  if (status === "Late") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  if (status === "Cuti") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  return "bg-slate-100 text-slate-600";
+}
+
+function formatWorkMode(mode: string) {
+  if (mode === "wfh") return "WFH";
+  if (mode === "visit") return "Kunjungan";
+  if (mode === "office") return "Kantor";
+
+  return mode;
+}
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<DashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function loadDashboardData() {
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      const response = await fetch("/api/admin/dashboard", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.message || "Gagal mengambil data dashboard admin.",
+        );
+      }
+
+      setData(result);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat mengambil data dashboard.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const stats = useMemo(() => {
+    const dashboardStats = data?.stats;
+
+    return [
+      {
+        label: "Total Employees",
+        value: String(dashboardStats?.totalEmployees ?? 0),
+        description: "Karyawan aktif terdaftar",
+        icon: UsersRound,
+      },
+      {
+        label: "Present Today",
+        value: String(dashboardStats?.presentToday ?? 0),
+        description: "Sudah melakukan absensi",
+        icon: UserCheck,
+      },
+      {
+        label: "Late Today",
+        value: String(dashboardStats?.lateToday ?? 0),
+        description: "Terlambat masuk",
+        icon: Clock3,
+      },
+      {
+        label: "Absent Today",
+        value: String(dashboardStats?.absentToday ?? 0),
+        description: "Belum hadir / belum absen",
+        icon: CalendarCheck,
+      },
+    ];
+  }, [data]);
+
   return (
     <MobileShell variant="admin">
       <AppHeader
@@ -90,9 +158,19 @@ export default function AdminDashboardPage() {
               </div>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-blue-100">
-                Pantau status kehadiran karyawan, keterlambatan, dan absensi
-                harian melalui dashboard admin yang terintegrasi.
+                Pantau status kehadiran karyawan, keterlambatan, cuti, dan
+                absensi harian melalui dashboard admin yang terhubung langsung
+                dengan database.
               </p>
+
+              <button
+                type="button"
+                onClick={loadDashboardData}
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#123c8c] shadow-lg shadow-blue-950/20 transition hover:bg-blue-50"
+              >
+                <RefreshCcw size={16} />
+                Refresh Data
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 p-5 md:p-6">
@@ -116,9 +194,13 @@ export default function AdminDashboardPage() {
                       />
                     </div>
 
-                    <h3 className="mt-3 text-3xl font-black text-[#123c8c]">
-                      {item.value}
-                    </h3>
+                    {isLoading ? (
+                      <div className="mt-4 h-8 w-16 animate-pulse rounded-xl bg-blue-100" />
+                    ) : (
+                      <h3 className="mt-3 text-3xl font-black text-[#123c8c]">
+                        {item.value}
+                      </h3>
+                    )}
 
                     <p className="mt-1 text-xs font-semibold text-slate-500">
                       {item.description}
@@ -129,6 +211,12 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {errorMessage ? (
+          <div className="rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -148,38 +236,49 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
-            <div className="hidden grid-cols-[0.8fr_1.4fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] md:grid">
+            <div className="hidden grid-cols-[0.8fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] md:grid">
               <p>ID</p>
               <p>Employee</p>
               <p>Check-in</p>
               <p>Check-out</p>
+              <p>Mode</p>
               <p>Status</p>
             </div>
 
             <div className="divide-y divide-blue-100 bg-white">
-              {recentAttendance.map((item) => (
-                <div
-                  key={item.id}
-                  className="grid gap-3 px-5 py-4 text-sm md:grid-cols-[0.8fr_1.4fr_0.8fr_0.8fr_0.8fr] md:items-center"
-                >
-                  <p className="font-black text-[#123c8c]">{item.id}</p>
-                  <p className="font-bold text-slate-950">{item.name}</p>
-                  <p className="text-slate-500">{item.checkIn}</p>
-                  <p className="text-slate-500">{item.checkOut}</p>
-
-                  <span
-                    className={`w-fit rounded-full px-3 py-1 text-xs font-black ${
-                      item.status === "Present"
-                        ? "bg-[#eaf1ff] text-[#123c8c]"
-                        : item.status === "Late"
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm font-bold text-slate-500">
+                  <Loader2 size={18} className="animate-spin" />
+                  Mengambil data absensi...
                 </div>
-              ))}
+              ) : data?.recentAttendance.length ? (
+                data.recentAttendance.map((item) => (
+                  <div
+                    key={`${item.id}-${item.name}`}
+                    className="grid gap-3 px-5 py-4 text-sm md:grid-cols-[0.8fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] md:items-center"
+                  >
+                    <p className="font-black text-[#123c8c]">{item.id}</p>
+                    <p className="font-bold text-slate-950">{item.name}</p>
+                    <p className="text-slate-500">{item.checkIn}</p>
+                    <p className="text-slate-500">{item.checkOut}</p>
+                    <p className="font-semibold text-slate-500">
+                      {formatWorkMode(item.workMode)}
+                    </p>
+
+                    <span
+                      className={`w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
+                        item.status,
+                      )}`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="px-5 py-10 text-center text-sm font-bold text-slate-500">
+                  Belum ada data karyawan atau absensi hari ini.
+                </div>
+              )}
             </div>
           </div>
         </div>

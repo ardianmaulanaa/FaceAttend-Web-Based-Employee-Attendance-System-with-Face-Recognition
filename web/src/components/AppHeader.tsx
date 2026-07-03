@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Building2,
   CalendarClock,
+  CalendarDays,
   Clock3,
   History,
   Home,
@@ -21,6 +22,7 @@ import {
   UserRound,
   UserRoundCog,
   X,
+  Network
 } from "lucide-react";
 
 type AppHeaderProps = {
@@ -34,6 +36,7 @@ const employeeNav = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/attendance", label: "Attendance", icon: ScanFace },
   { href: "/history", label: "History", icon: History },
+  { href: "/cuti", label: "Cuti", icon: CalendarDays },
   { href: "/pengumuman", label: "Info", icon: Megaphone },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
@@ -68,12 +71,17 @@ const masterDataMenus = [
     icon: CalendarClock,
   },
   {
-    href: "/admin/departments",
-    label: "Divisi",
+    href: "/admin/units",
+    label: "Unit",
     icon: Building2,
   },
   {
-    href: "/admin/jabatan",
+    href: "/admin/departments",
+    label: "Divisi",
+    icon: Network,
+  },
+  {
+    href: "/admin/positions",
     label: "Jabatan",
     icon: UserRoundCog,
   },
@@ -85,9 +93,18 @@ const operationalMenus = [
     label: "Register Employee",
     icon: UserPlus,
   },
+  {
+  href: "/admin/cuti",
+  label: "Laporan Cuti",
+  icon: CalendarDays,
+},
 ];
 
 function isActivePath(pathname: string, href: string) {
+  if (href === "/history") {
+    return pathname === "/history";
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -97,10 +114,20 @@ export default function AppHeader({
   rightLabel,
   variant = "employee",
 }: AppHeaderProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const isAdmin = variant === "admin";
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
+  function handleNavigate(href: string) {
+    setIsSidebarOpen(false);
+    router.push(href);
+  }
 
   return (
     <>
@@ -132,28 +159,6 @@ export default function AppHeader({
               )}
             </div>
           </div>
-
-          {!isAdmin && (
-            <nav className="hidden items-center justify-center gap-2 lg:flex">
-              {employeeNav.map((menu) => {
-                const active = isActivePath(pathname, menu.href);
-
-                return (
-                  <Link
-                    key={menu.href}
-                    href={menu.href}
-                    className={`rounded-2xl px-4 py-2 text-sm font-black transition-all duration-300 ${
-                      active
-                        ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                        : "text-slate-500 hover:bg-slate-100 hover:text-[#123c8c]"
-                    }`}
-                  >
-                    {menu.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
 
           {!isAdmin && rightLabel && (
             <div className="hidden items-center justify-end gap-3 md:flex">
@@ -197,6 +202,7 @@ export default function AppHeader({
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#123c8c]">
                   FaceAttend
                 </p>
+
                 <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
                   {isAdmin ? "Admin Panel" : "Employee Menu"}
                 </h2>
@@ -226,11 +232,11 @@ export default function AppHeader({
                     const active = isActivePath(pathname, menu.href);
 
                     return (
-                      <Link
+                      <button
                         key={menu.href}
-                        href={menu.href}
-                        onClick={() => setIsSidebarOpen(false)}
-                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition ${
+                        type="button"
+                        onClick={() => handleNavigate(menu.href)}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
                           active
                             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                             : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
@@ -238,7 +244,7 @@ export default function AppHeader({
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
-                      </Link>
+                      </button>
                     );
                   })}
                 </nav>
@@ -255,11 +261,11 @@ export default function AppHeader({
                       const active = isActivePath(pathname, menu.href);
 
                       return (
-                        <Link
+                        <button
                           key={menu.href}
-                          href={menu.href}
-                          onClick={() => setIsSidebarOpen(false)}
-                          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold transition ${
+                          type="button"
+                          onClick={() => handleNavigate(menu.href)}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
                             active
                               ? "bg-[#eaf1ff] text-[#123c8c]"
                               : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
@@ -267,7 +273,7 @@ export default function AppHeader({
                         >
                           <Icon size={15} strokeWidth={2.5} />
                           {menu.label}
-                        </Link>
+                        </button>
                       );
                     })}
                   </div>
@@ -284,11 +290,11 @@ export default function AppHeader({
                       const active = isActivePath(pathname, menu.href);
 
                       return (
-                        <Link
+                        <button
                           key={menu.href}
-                          href={menu.href}
-                          onClick={() => setIsSidebarOpen(false)}
-                          className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition ${
+                          type="button"
+                          onClick={() => handleNavigate(menu.href)}
+                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
                             active
                               ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                               : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
@@ -296,7 +302,7 @@ export default function AppHeader({
                         >
                           <Icon size={18} strokeWidth={2.5} />
                           {menu.label}
-                        </Link>
+                        </button>
                       );
                     })}
                   </nav>
@@ -314,11 +320,11 @@ export default function AppHeader({
                     const active = isActivePath(pathname, menu.href);
 
                     return (
-                      <Link
+                      <button
                         key={menu.href}
-                        href={menu.href}
-                        onClick={() => setIsSidebarOpen(false)}
-                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition ${
+                        type="button"
+                        onClick={() => handleNavigate(menu.href)}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
                           active
                             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                             : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
@@ -326,7 +332,7 @@ export default function AppHeader({
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
-                      </Link>
+                      </button>
                     );
                   })}
                 </nav>

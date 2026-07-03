@@ -48,6 +48,13 @@ export async function GET(req: NextRequest) {
         status: true,
         profile_photo: true,
 
+        unit: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
         department: {
           select: {
             id: true,
@@ -97,24 +104,26 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         {
-          error: "User tidak ditemukan.",
+          message: "User tidak ditemukan.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json({
-      success: true,
       user,
     });
   } catch (error) {
-    console.error("ME_ERROR:", error);
+    console.error("GET /api/auth/me error:", error);
 
     return NextResponse.json(
       {
-        error: "Gagal mengambil data user.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengambil data user.",
       },
-      { status: 401 }
+      { status: 401 },
     );
   }
 }

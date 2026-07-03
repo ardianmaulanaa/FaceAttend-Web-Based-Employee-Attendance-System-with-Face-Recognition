@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -12,26 +15,12 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 
-const todayStats = [
-  {
-    label: "Check-in",
-    value: "--:--",
-    description: "Belum tercatat",
-    icon: Clock3,
-  },
-  {
-    label: "Check-out",
-    value: "--:--",
-    description: "Belum tercatat",
-    icon: CalendarCheck,
-  },
-  {
-    label: "Status",
-    value: "Pending",
-    description: "Menunggu absensi",
-    icon: ShieldCheck,
-  },
-];
+type AttendanceToday = {
+  checkIn: string;
+  checkOut: string;
+  status: string;
+  description: string;
+};
 
 const quickActions = [
   {
@@ -55,12 +44,107 @@ const quickActions = [
 ];
 
 export default function HomePage() {
+  const [currentTime, setCurrentTime] = useState("");
+  const [currentDate, setCurrentDate] = useState("");
+
+  const [attendanceToday, setAttendanceToday] = useState<AttendanceToday>({
+    checkIn: "--:--",
+    checkOut: "--:--",
+    status: "Pending",
+    description: "Menunggu absensi",
+  });
+
+  useEffect(() => {
+    function updateTime() {
+      const now = new Date();
+
+      const time = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(now);
+
+      const date = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Jakarta",
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(now);
+
+      setCurrentTime(`${time} WIB`);
+      setCurrentDate(date);
+    }
+
+    updateTime();
+
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    async function getTodayAttendance() {
+      try {
+        const response = await fetch("/api/attendance/today", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        setAttendanceToday({
+          checkIn: data.checkIn || "--:--",
+          checkOut: data.checkOut || "--:--",
+          status: data.status || "Pending",
+          description: data.description || "Menunggu absensi",
+        });
+      } catch (error) {
+        console.error("Gagal mengambil data absensi hari ini:", error);
+      }
+    }
+
+    getTodayAttendance();
+  }, []);
+
+  const todayStats = [
+    {
+      label: "Check-in",
+      value: attendanceToday.checkIn,
+      description:
+        attendanceToday.checkIn === "--:--"
+          ? "Belum tercatat"
+          : "Sudah tercatat",
+      icon: Clock3,
+    },
+    {
+      label: "Check-out",
+      value: attendanceToday.checkOut,
+      description:
+        attendanceToday.checkOut === "--:--"
+          ? "Belum tercatat"
+          : "Sudah tercatat",
+      icon: CalendarCheck,
+    },
+    {
+      label: "Status",
+      value: attendanceToday.status,
+      description: attendanceToday.description,
+      icon: ShieldCheck,
+    },
+  ];
+
   return (
     <MobileShell variant="employee">
       <AppHeader
         title="Good Morning"
         subtitle="Muhammad Ardian Maulana"
-        rightLabel="EMP001"
+        rightLabel="Home"
       />
 
       <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
@@ -72,16 +156,21 @@ export default function HomePage() {
             <div className="relative z-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-                  <ScanFace size={26} strokeWidth={2.6} />
+                  <Clock3 size={26} strokeWidth={2.6} />
                 </div>
 
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">
-                    Today Attendance
+                    Waktu Indonesia Barat
                   </p>
+
                   <h2 className="mt-1 text-4xl font-black tracking-tight md:text-5xl">
-                    Belum Check-in
+                    {currentTime || "--:--:-- WIB"}
                   </h2>
+
+                  <p className="mt-2 text-sm font-semibold capitalize text-blue-100">
+                    {currentDate || "Memuat tanggal..."}
+                  </p>
                 </div>
               </div>
 
@@ -136,6 +225,7 @@ export default function HomePage() {
                       <p className="text-sm font-black text-slate-950">
                         {item.label}
                       </p>
+
                       <p className="mt-1 text-xs font-semibold text-slate-500">
                         {item.description}
                       </p>
@@ -157,6 +247,7 @@ export default function HomePage() {
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
                 Quick Actions
               </p>
+
               <h2 className="mt-2 text-2xl font-black text-slate-950">
                 Akses Cepat
               </h2>
