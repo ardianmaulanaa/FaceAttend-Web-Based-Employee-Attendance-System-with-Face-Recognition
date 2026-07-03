@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { AppDataProvider } from "@/context/AppDataContext";
 import ScrollReloadGuard from "@/components/ScrollReloadGuard";
+import LateGuard from "@/components/LateGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <AppDataProvider>
           <ScrollReloadGuard />
+          <LateGuard />
           {children}
         </AppDataProvider>
       </body>

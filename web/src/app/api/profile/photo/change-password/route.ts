@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest) {
       },
       select: {
         id: true,
-        password: true,
+        password_hash: true,
         status: true,
       },
     });
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest) {
 
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      user.password,
+      user.password_hash,
     );
 
     if (!isPasswordValid) {

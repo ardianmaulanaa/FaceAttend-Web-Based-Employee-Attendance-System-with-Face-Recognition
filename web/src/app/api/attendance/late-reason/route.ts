@@ -7,11 +7,17 @@ import { canViewAdminPanel } from "@/lib/adminAccess";
 
 function parseTimeLabel(value: Date | null | undefined) {
   if (!value) return "-";
-  return value.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Jakarta",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(new Date(value));
+  } catch {
+    return "-";
+  }
 }
 
 function computeLateDuration(
@@ -208,7 +214,6 @@ export async function GET(req: Request) {
           isLate: false,
           hasReason: false,
           employeeName: payload.name || "Karyawan",
-          employeeName: attendance.user?.name || "Karyawan",
           scheduledCheckIn: "-",
           checkInTime: "-",
           lateMinutes: 0,
