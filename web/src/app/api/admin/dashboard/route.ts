@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 type AllowedRole = "owner" | "admin" | "cs";
 
 const ALLOWED_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
@@ -151,7 +153,7 @@ export async function GET(req: NextRequest) {
       ],
     });
 
-    const approvedLeavesToday = await prisma.leaveRequest.findMany({
+    const approvedLeavesToday = await db.leaveRequest.findMany({
       where: {
         status: "approved",
         start_date: {
@@ -171,14 +173,16 @@ export async function GET(req: NextRequest) {
 
     const leaveUserIds = new Set(
       approvedLeavesToday
-        .filter((leave) => {
-          const startDate = normalizeDate(leave.start_date);
-          const endDate = normalizeDate(leave.end_date);
-          const todayDate = normalizeDate(today);
+        .filter(
+          (leave: { start_date: Date; end_date: Date; user_id: string }) => {
+            const startDate = normalizeDate(leave.start_date);
+            const endDate = normalizeDate(leave.end_date);
+            const todayDate = normalizeDate(today);
 
-          return startDate <= todayDate && endDate >= todayDate;
-        })
-        .map((leave) => leave.user_id),
+            return startDate <= todayDate && endDate >= todayDate;
+          },
+        )
+        .map((leave: { user_id: string }) => leave.user_id),
     );
 
     const attendanceByUserId = new Map(

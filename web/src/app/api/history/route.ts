@@ -33,7 +33,7 @@ async function getUserIdFromRequest(req: NextRequest) {
 
 function photoToDataUrl(
   photo: Uint8Array | Buffer | null,
-  mime: string | null
+  mime: string | null,
 ) {
   if (!photo) return null;
 
@@ -44,7 +44,7 @@ function photoToDataUrl(
 
 function getAttendanceStatus(
   checkInTime: Date | null,
-  checkOutTime: Date | null
+  checkOutTime: Date | null,
 ) {
   if (checkOutTime) return "CHECKED_OUT";
   if (checkInTime) return "CHECKED_IN";
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
     if (!month || !year || month < 1 || month > 12) {
       return NextResponse.json(
         { error: "Bulan dan tahun tidak valid." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -163,89 +163,118 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const result = attendances.map((attendance) => ({
-      id: attendance.id,
+    const result = attendances.map((attendance) => {
+      const registeredOffice = attendance.registered_office as {
+        id: string;
+        name: string;
+        address: string | null;
+        latitude: number;
+        longitude: number;
+        radius_meters: number;
+      } | null;
 
-      attendanceDate: attendance.attendance_date.toISOString(),
+      const checkInOffice = attendance.check_in_office as {
+        id: string;
+        name: string;
+        address: string | null;
+        latitude: number;
+        longitude: number;
+        radius_meters: number;
+      } | null;
 
-      scheduledCheckIn: toIsoString(attendance.scheduled_check_in),
-      scheduledCheckOut: toIsoString(attendance.scheduled_check_out),
+      const checkOutOffice = attendance.check_out_office as {
+        id: string;
+        name: string;
+        address: string | null;
+        latitude: number;
+        longitude: number;
+        radius_meters: number;
+      } | null;
 
-      checkInTime: toIsoString(attendance.check_in_time),
-      checkOutTime: toIsoString(attendance.check_out_time),
+      return {
+        id: attendance.id,
 
-      checkInPhoto: photoToDataUrl(
-        attendance.check_in_photo,
-        attendance.check_in_photo_mime
-      ),
-      checkOutPhoto: photoToDataUrl(
-        attendance.check_out_photo,
-        attendance.check_out_photo_mime
-      ),
+        attendanceDate: attendance.attendance_date.toISOString(),
 
-      registeredOffice: attendance.registered_office
-        ? {
-            id: attendance.registered_office.id,
-            name: attendance.registered_office.name,
-            address: attendance.registered_office.address,
-            latitude: attendance.registered_office.latitude,
-            longitude: attendance.registered_office.longitude,
-            radiusMeters: attendance.registered_office.radius_meters,
-          }
-        : null,
+        scheduledCheckIn: toIsoString(attendance.scheduled_check_in),
+        scheduledCheckOut: toIsoString(attendance.scheduled_check_out),
 
-      checkInOffice: attendance.check_in_office
-        ? {
-            id: attendance.check_in_office.id,
-            name: attendance.check_in_office.name,
-            address: attendance.check_in_office.address,
-            latitude: attendance.check_in_office.latitude,
-            longitude: attendance.check_in_office.longitude,
-            radiusMeters: attendance.check_in_office.radius_meters,
-          }
-        : null,
+        checkInTime: toIsoString(attendance.check_in_time),
+        checkOutTime: toIsoString(attendance.check_out_time),
 
-      checkInGps: {
-        latitude: attendance.check_in_latitude,
-        longitude: attendance.check_in_longitude,
-        accuracy: attendance.check_in_accuracy,
-        distance: attendance.check_in_distance,
-        withinRadius: attendance.check_in_within_radius,
-      },
+        checkInPhoto: photoToDataUrl(
+          attendance.check_in_photo,
+          attendance.check_in_photo_mime,
+        ),
+        checkOutPhoto: photoToDataUrl(
+          attendance.check_out_photo,
+          attendance.check_out_photo_mime,
+        ),
 
-      checkOutOffice: attendance.check_out_office
-        ? {
-            id: attendance.check_out_office.id,
-            name: attendance.check_out_office.name,
-            address: attendance.check_out_office.address,
-            latitude: attendance.check_out_office.latitude,
-            longitude: attendance.check_out_office.longitude,
-            radiusMeters: attendance.check_out_office.radius_meters,
-          }
-        : null,
+        registeredOffice: registeredOffice
+          ? {
+              id: registeredOffice.id,
+              name: registeredOffice.name,
+              address: registeredOffice.address,
+              latitude: registeredOffice.latitude,
+              longitude: registeredOffice.longitude,
+              radiusMeters: registeredOffice.radius_meters,
+            }
+          : null,
 
-      checkOutGps: {
-        latitude: attendance.check_out_latitude,
-        longitude: attendance.check_out_longitude,
-        accuracy: attendance.check_out_accuracy,
-        distance: attendance.check_out_distance,
-        withinRadius: attendance.check_out_within_radius,
-      },
+        checkInOffice: checkInOffice
+          ? {
+              id: checkInOffice.id,
+              name: checkInOffice.name,
+              address: checkInOffice.address,
+              latitude: checkInOffice.latitude,
+              longitude: checkInOffice.longitude,
+              radiusMeters: checkInOffice.radius_meters,
+            }
+          : null,
 
-      lateMinutes: attendance.late_minutes,
-      earlyLeaveMinutes: attendance.early_leave_minutes,
-      workMinutes: attendance.work_minutes,
+        checkInGps: {
+          latitude: attendance.check_in_latitude,
+          longitude: attendance.check_in_longitude,
+          accuracy: attendance.check_in_accuracy,
+          distance: attendance.check_in_distance,
+          withinRadius: attendance.check_in_within_radius,
+        },
 
-      status: getAttendanceStatus(
-        attendance.check_in_time,
-        attendance.check_out_time
-      ),
-      rawStatus: attendance.status,
-      checkInStatus: attendance.check_in_status,
-      checkOutStatus: attendance.check_out_status,
+        checkOutOffice: checkOutOffice
+          ? {
+              id: checkOutOffice.id,
+              name: checkOutOffice.name,
+              address: checkOutOffice.address,
+              latitude: checkOutOffice.latitude,
+              longitude: checkOutOffice.longitude,
+              radiusMeters: checkOutOffice.radius_meters,
+            }
+          : null,
 
-      note: attendance.note,
-    }));
+        checkOutGps: {
+          latitude: attendance.check_out_latitude,
+          longitude: attendance.check_out_longitude,
+          accuracy: attendance.check_out_accuracy,
+          distance: attendance.check_out_distance,
+          withinRadius: attendance.check_out_within_radius,
+        },
+
+        lateMinutes: attendance.late_minutes,
+        earlyLeaveMinutes: attendance.early_leave_minutes,
+        workMinutes: attendance.work_minutes,
+
+        status: getAttendanceStatus(
+          attendance.check_in_time,
+          attendance.check_out_time,
+        ),
+        rawStatus: attendance.status,
+        checkInStatus: attendance.check_in_status,
+        checkOutStatus: attendance.check_out_status,
+
+        note: attendance.note,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -258,7 +287,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { error: "Gagal mengambil riwayat absensi." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

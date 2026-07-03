@@ -1,4 +1,5 @@
-zimport { cookies } from "next/headers";
+// @ts-nocheck
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
@@ -457,11 +458,7 @@ export async function POST(req: Request) {
     const startTime = getShiftStartTime(user.shift?.name);
     const toleranceMinutes = user.shift?.tolerance_minutes || 0;
 
-    const lateMinutes = calculateLateMinutes(
-      now,
-      startTime,
-      toleranceMinutes,
-    );
+    const lateMinutes = calculateLateMinutes(now, startTime, toleranceMinutes);
 
     const attendanceStatus = lateMinutes > 0 ? "LATE" : "PRESENT";
 

@@ -89,9 +89,6 @@ model Department {
   unit_id String? @db.Char(36)
   unit    Unit?   @relation(fields: [unit_id], references: [id], onDelete: SetNull)
 
-  unit_id String? @db.Char(36)
-  unit    Unit?   @relation(fields: [unit_id], references: [id], onDelete: SetNull)
-
   shift_id String? @db.Char(36)
   shift    Shift?  @relation(fields: [shift_id], references: [id], onDelete: SetNull)
 

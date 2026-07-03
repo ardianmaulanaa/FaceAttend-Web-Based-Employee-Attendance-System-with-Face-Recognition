@@ -1,4 +1,10 @@
-import { ClipboardList, ImagePlus, ShieldCheck, UserRound } from "lucide-react";
+import {
+  Camera,
+  CheckCircle2,
+  ClipboardList,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";

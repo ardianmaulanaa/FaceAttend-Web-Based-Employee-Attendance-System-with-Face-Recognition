@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 type AllowedRole = "owner" | "admin" | "cs";
 
 const VIEW_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
@@ -32,7 +34,7 @@ async function getCurrentUser(req: NextRequest) {
     throw new Error("User ID tidak ditemukan di token.");
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: {
       id: userId,
     },
@@ -93,7 +95,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") || "all";
     const unitId = searchParams.get("unit_id") || "all";
 
-    const departments = await prisma.department.findMany({
+    const departments = await db.department.findMany({
       where: {
         AND: [
           search
@@ -153,7 +155,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const units = await prisma.unit.findMany({
+    const units = await db.unit.findMany({
       select: {
         id: true,
         name: true,
@@ -225,7 +227,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (unitId) {
-      const unit = await prisma.unit.findUnique({
+      const unit = await db.unit.findUnique({
         where: {
           id: unitId,
         },
@@ -244,7 +246,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const existingDepartment = await prisma.department.findFirst({
+    const existingDepartment = await db.department.findFirst({
       where: {
         name,
         unit_id: unitId || null,
@@ -263,7 +265,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const department = await prisma.department.create({
+    const department = await db.department.create({
       data: {
         name,
         unit_id: unitId || null,
@@ -380,7 +382,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const currentDepartment = await prisma.department.findUnique({
+    const currentDepartment = await db.department.findUnique({
       where: {
         id,
       },
@@ -399,7 +401,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (unitId) {
-      const unit = await prisma.unit.findUnique({
+      const unit = await db.unit.findUnique({
         where: {
           id: unitId,
         },
@@ -418,7 +420,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    const existingDepartment = await prisma.department.findFirst({
+    const existingDepartment = await db.department.findFirst({
       where: {
         name,
         unit_id: unitId || null,

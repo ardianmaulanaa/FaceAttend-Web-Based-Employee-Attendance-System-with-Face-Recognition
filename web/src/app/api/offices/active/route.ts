@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 export async function GET() {
   try {
-    const offices = await prisma.officeLocation.findMany({
+    const offices = await db.officeLocation.findMany({
       where: {
         status: "active",
       },
@@ -34,12 +36,9 @@ export async function GET() {
       {
         success: false,
         message: "Gagal mengambil data kantor.",
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

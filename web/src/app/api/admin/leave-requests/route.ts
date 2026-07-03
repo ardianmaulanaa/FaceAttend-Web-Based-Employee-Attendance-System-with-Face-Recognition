@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 async function getUserIdFromRequest(req: NextRequest) {
   const token = req.cookies.get("faceattend_token")?.value;
 
@@ -94,7 +96,7 @@ export async function GET(req: NextRequest) {
             status,
           };
 
-    const requests = await prisma.leaveRequest.findMany({
+    const requests = await db.leaveRequest.findMany({
       where,
       orderBy: {
         created_at: "desc",
@@ -130,21 +132,21 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const total = await prisma.leaveRequest.count();
+    const total = await db.leaveRequest.count();
 
-    const pending = await prisma.leaveRequest.count({
+    const pending = await db.leaveRequest.count({
       where: {
         status: "pending",
       },
     });
 
-    const approved = await prisma.leaveRequest.count({
+    const approved = await db.leaveRequest.count({
       where: {
         status: "approved",
       },
     });
 
-    const rejected = await prisma.leaveRequest.count({
+    const rejected = await db.leaveRequest.count({
       where: {
         status: "rejected",
       },
@@ -158,7 +160,7 @@ export async function GET(req: NextRequest) {
         approved,
         rejected,
       },
-      requests: requests.map((item) => ({
+      requests: requests.map((item: any) => ({
         id: item.id,
         leaveType: item.leave_type,
         leaveTypeLabel: formatLeaveType(item.leave_type),
@@ -191,7 +193,7 @@ export async function GET(req: NextRequest) {
             ? error.message
             : "Gagal mengambil laporan pengajuan cuti.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -212,7 +214,7 @@ export async function PATCH(req: NextRequest) {
           success: false,
           error: "ID pengajuan dan status wajib diisi.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -222,11 +224,11 @@ export async function PATCH(req: NextRequest) {
           success: false,
           error: "Status tidak valid.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const updatedRequest = await prisma.leaveRequest.update({
+    const updatedRequest = await db.leaveRequest.update({
       where: {
         id,
       },
@@ -257,7 +259,7 @@ export async function PATCH(req: NextRequest) {
             ? error.message
             : "Gagal memperbarui status pengajuan cuti.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

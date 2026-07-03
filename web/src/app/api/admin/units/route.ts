@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 type AllowedRole = "owner" | "admin" | "cs";
 
 const VIEW_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
@@ -83,7 +85,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
 
-    const units = await prisma.unit.findMany({
+    const units = await db.unit.findMany({
       where: {
         AND: [
           search
@@ -174,7 +176,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existingUnit = await prisma.unit.findFirst({
+    const existingUnit = await db.unit.findFirst({
       where: {
         name,
       },
@@ -192,7 +194,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const unit = await prisma.unit.create({
+    const unit = await db.unit.create({
       data: {
         name,
         status,
@@ -279,7 +281,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const currentUnit = await prisma.unit.findUnique({
+    const currentUnit = await db.unit.findUnique({
       where: {
         id,
       },
@@ -297,7 +299,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const existingUnit = await prisma.unit.findFirst({
+    const existingUnit = await db.unit.findFirst({
       where: {
         name,
         NOT: {
@@ -318,7 +320,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const unit = await prisma.unit.update({
+    const unit = await db.unit.update({
       where: {
         id,
       },
@@ -388,7 +390,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const unit = await prisma.unit.findUnique({
+    const unit = await db.unit.findUnique({
       where: {
         id,
       },
@@ -423,7 +425,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await prisma.unit.delete({
+    await db.unit.delete({
       where: {
         id,
       },

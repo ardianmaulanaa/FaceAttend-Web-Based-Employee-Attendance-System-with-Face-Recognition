@@ -127,7 +127,7 @@ export async function PATCH(req: NextRequest) {
         id: userId,
       },
       data: {
-        password: hashedPassword,
+        password_hash: hashedPassword,
       },
     });
 
@@ -140,9 +140,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengubah password.",
+          error instanceof Error ? error.message : "Gagal mengubah password.",
       },
       { status: 500 },
     );
