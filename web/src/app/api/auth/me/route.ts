@@ -45,6 +45,10 @@ function buildDemoUserPayload(
   };
 }
 
+function isDemoUserId(userId: string) {
+  return userId.includes("-DEMO-");
+}
+
 export async function GET(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (userId.startsWith("ADM-DEMO-") || userId.startsWith("EMP-DEMO-")) {
+    if (isDemoUserId(userId)) {
       const demoUser = findDemoUserById(userId);
 
       if (!demoUser) {
@@ -193,7 +197,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    if (userId.startsWith("ADM-DEMO-") || userId.startsWith("EMP-DEMO-")) {
+    if (isDemoUserId(userId)) {
       const result = updateDemoUserProfile(userId, payload);
 
       if (!result.ok) {

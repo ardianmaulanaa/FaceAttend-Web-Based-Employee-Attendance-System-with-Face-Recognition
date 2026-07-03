@@ -13,16 +13,18 @@ import {
   ClipboardList,
   FileText,
   Layers3,
-  LogOut,
   Megaphone,
   Monitor,
   Search,
   UserCircle2,
   UserCog,
+  UsersRound,
 } from "lucide-react";
 import { useAppData } from "@/context/AppDataContext";
 import {
+  canAccessAdminPath,
   canViewAdminPanel,
+  getAdminNotificationTitle,
   getAdminRoleLabel,
   isAdminPanelRole,
   type AdminRole,
@@ -57,34 +59,40 @@ const adminMainNav: Array<{
     roles: ["owner", "admin", "cs"],
   },
   {
-    href: "/admin/company-monitor",
-    label: "Monitor Perusahaan",
-    icon: ClipboardList,
-    roles: ["owner", "admin", "cs"],
+    href: "/admin/employees",
+    label: "Karyawan",
+    icon: UsersRound,
+    roles: ["owner", "admin"],
+  },
+  {
+    href: "/admin/employee-requests",
+    label: "Keluhan & Panggilan",
+    icon: Briefcase,
+    roles: ["owner", "cs"],
   },
   {
     href: "/admin/announcements",
     label: "Pengumuman",
     icon: Megaphone,
-    roles: ["owner", "admin", "cs"],
+    roles: ["owner"],
+  },
+  {
+    href: "/admin/company-monitor",
+    label: "Monitor Perusahaan",
+    icon: ClipboardList,
+    roles: ["owner"],
   },
   {
     href: "/admin/master-data",
     label: "Master Data",
     icon: Layers3,
-    roles: ["owner", "admin"],
+    roles: ["owner"],
   },
   {
     href: "/admin/inventory",
     label: "Inventaris",
     icon: Boxes,
-    roles: ["owner", "admin"],
-  },
-  {
-    href: "/admin/employee-requests",
-    label: "Pengajuan Karyawan",
-    icon: Briefcase,
-    roles: ["owner", "admin", "cs"],
+    roles: ["owner"],
   },
 ];
 
@@ -157,7 +165,7 @@ const demoSwitchTargets: DemoSwitchTarget[] = [
 
 type AttendanceNotification = {
   id: string;
-  type: "check-in" | "check-out" | "absent";
+  type: "check-in" | "check-out" | "absent" | "complaint" | "call";
   employeeName: string;
   happenedAt: string;
   message: string;
@@ -182,8 +190,7 @@ export default function AppHeader({
     AttendanceNotification[]
   >([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [employeeNotifCountFromApi, setEmployeeNotifCountFromApi] =
-    useState(0);
+  const [employeeNotifCountFromApi, setEmployeeNotifCountFromApi] = useState(0);
   const [sessionUser, setSessionUser] = useState<AdminSessionUser | null>(null);
   const { authUser, state } = useAppData();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -222,6 +229,10 @@ export default function AppHeader({
     return adminMainNav.find((menu) => pathname.startsWith(menu.href));
   }, [pathname]);
 
+  const adminNotificationTitle = useMemo(() => {
+    return getAdminNotificationTitle(sessionUser?.role || "admin");
+  }, [sessionUser?.role]);
+
   useEffect(() => {
     if (variant !== "admin") return;
 
@@ -248,6 +259,15 @@ export default function AppHeader({
 
     void loadSession();
   }, [variant]);
+
+  useEffect(() => {
+    if (variant !== "admin") return;
+    if (!sessionUser?.role) return;
+
+    if (!canAccessAdminPath(sessionUser.role, pathname)) {
+      router.replace("/admin/dashboard");
+    }
+  }, [pathname, router, sessionUser?.role, variant]);
 
   useEffect(() => {
     if (variant !== "admin") return;
@@ -499,7 +519,7 @@ export default function AppHeader({
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 rounded-2xl border border-blue-100 bg-white p-2 shadow-xl shadow-slate-300/40">
                     <div className="px-2 pb-2 pt-1">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                        Notifikasi Presensi Karyawan
+                        {adminNotificationTitle}
                       </p>
                     </div>
 
@@ -513,7 +533,7 @@ export default function AppHeader({
                       {!isLoadingNotifications &&
                         attendanceNotifications.length === 0 && (
                           <p className="px-2 py-2 text-xs font-semibold text-slate-500">
-                            Belum ada notifikasi presensi.
+                            Belum ada notifikasi untuk role ini.
                           </p>
                         )}
 
@@ -537,14 +557,22 @@ export default function AppHeader({
                                   ? "bg-emerald-50 text-emerald-700"
                                   : notification.type === "check-out"
                                     ? "bg-cyan-50 text-cyan-700"
-                                    : "bg-rose-50 text-rose-700"
+                                    : notification.type === "complaint"
+                                      ? "bg-amber-50 text-amber-700"
+                                      : notification.type === "call"
+                                        ? "bg-indigo-50 text-indigo-700"
+                                        : "bg-rose-50 text-rose-700"
                               }`}
                             >
                               {notification.type === "check-in"
                                 ? "Check-in"
                                 : notification.type === "check-out"
                                   ? "Check-out"
-                                  : "Absen"}
+                                  : notification.type === "complaint"
+                                    ? "Keluhan"
+                                    : notification.type === "call"
+                                      ? "Panggilan"
+                                      : "Absen"}
                             </p>
                           </div>
                         ))}

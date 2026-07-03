@@ -5,8 +5,15 @@ import { verifyToken } from "@/lib/auth";
 import { canViewAdminPanel } from "@/lib/adminAccess";
 import {
   isDatabaseUnavailable,
-  listDemoAttendanceNotifications,
+  listDemoRoleNotifications,
 } from "@/lib/demoStore";
+
+type NotificationType =
+  | "check-in"
+  | "check-out"
+  | "absent"
+  | "complaint"
+  | "call";
 
 type DbNotificationRow = {
   id: string;
@@ -16,14 +23,48 @@ type DbNotificationRow = {
   status: string | null;
 };
 
-function mapDbRowsToNotifications(rows: DbNotificationRow[]) {
+function buildCustomerServiceNotifications() {
+  const now = Date.now();
+  const nowIso = (offsetMinutes: number) =>
+    new Date(now - offsetMinutes * 60 * 1000).toISOString();
+
+  return [
+    {
+      id: "CS-NOTIF-1",
+      type: "complaint" as const,
+      employeeName: "Customer A",
+      happenedAt: nowIso(5),
+      message: "Keluhan customer: kesulitan akses akun. Mohon follow-up.",
+    },
+    {
+      id: "CS-NOTIF-2",
+      type: "call" as const,
+      employeeName: "Customer B",
+      happenedAt: nowIso(14),
+      message: "Panggilan masuk customer terkait status layanan.",
+    },
+    {
+      id: "CS-NOTIF-3",
+      type: "complaint" as const,
+      employeeName: "Customer C",
+      happenedAt: nowIso(32),
+      message: "Keluhan customer: konfirmasi pembayaran belum diterima.",
+    },
+  ];
+}
+
+function mapDbRowsToNotifications(rows: DbNotificationRow[], role: string) {
   const notifications: Array<{
     id: string;
-    type: "check-in" | "check-out" | "absent";
+    type: NotificationType;
     employeeName: string;
     happenedAt: string;
     message: string;
   }> = [];
+
+  if (role === "cs") {
+    return buildCustomerServiceNotifications();
+  }
 
   for (const row of rows) {
     if (row.check_in_time) {
@@ -32,11 +73,14 @@ function mapDbRowsToNotifications(rows: DbNotificationRow[]) {
         type: "check-in",
         employeeName: row.employee_name,
         happenedAt: row.check_in_time.toISOString(),
-        message: `${row.employee_name} melakukan check-in`,
+        message:
+          role === "admin"
+            ? `${row.employee_name} check-in. Pantau kepatuhan jam kerja.`
+            : `${row.employee_name} melakukan check-in`,
       });
     }
 
-    if (row.check_out_time) {
+    if (row.check_out_time && role !== "admin") {
       notifications.push({
         id: `${row.id}-check-out`,
         type: "check-out",
@@ -55,7 +99,10 @@ function mapDbRowsToNotifications(rows: DbNotificationRow[]) {
         type: "absent",
         employeeName: row.employee_name,
         happenedAt: new Date().toISOString(),
-        message: `${row.employee_name} tercatat absen`,
+        message:
+          role === "admin"
+            ? `${row.employee_name} tercatat absen. Perlu tindak lanjut HR.`
+            : `${row.employee_name} tercatat absen`,
       });
     }
   }
@@ -109,7 +156,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: mapDbRowsToNotifications(rows),
+      data: mapDbRowsToNotifications(rows, payload.role),
     });
   } catch (error) {
     console.error(error);
@@ -123,13 +170,11 @@ export async function GET() {
       }
 
       const payload = await verifyToken(token);
-      const demoItems = listDemoAttendanceNotifications();
+      const demoItems = listDemoRoleNotifications(payload.role);
 
       return NextResponse.json({
         success: true,
-        data: canViewAdminPanel(payload.role)
-          ? demoItems.slice(0, 20)
-          : demoItems.slice(0, 20),
+        data: demoItems.slice(0, 20),
       });
     }
 

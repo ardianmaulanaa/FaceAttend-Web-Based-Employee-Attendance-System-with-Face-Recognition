@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import {
   Megaphone,
   LogOut,
 } from "lucide-react";
+import { isAdminPanelRole, type AdminRole } from "@/lib/adminAccess";
 
 type BottomNavProps = {
   variant?: "employee" | "admin";
@@ -26,21 +28,78 @@ const employeeMenus = [
   { href: "/announcements", label: "Info", icon: Megaphone },
 ];
 
-const adminMenus = [
-  { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
-  { href: "/admin/employees", label: "Staff", icon: UsersRound },
-  { href: "/admin/master-data", label: "Master", icon: Layers3 },
-  { href: "/admin/reports", label: "Reports", icon: ClipboardList },
-  { href: "/login", label: "Logout", icon: LogOut },
-];
+const adminMenusByRole: Record<
+  AdminRole,
+  Array<{ href: string; label: string; icon: typeof LayoutDashboard }>
+> = {
+  owner: [
+    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
+    { href: "/admin/employees", label: "Staff", icon: UsersRound },
+    { href: "/admin/master-data", label: "Master", icon: Layers3 },
+    { href: "/admin/employee-requests", label: "Layanan", icon: ClipboardList },
+    { href: "/login", label: "Logout", icon: LogOut },
+  ],
+  admin: [
+    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
+    { href: "/admin/employees", label: "Staff", icon: UsersRound },
+    { href: "/login", label: "Logout", icon: LogOut },
+  ],
+  cs: [
+    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
+    { href: "/admin/employee-requests", label: "Layanan", icon: ClipboardList },
+    { href: "/login", label: "Logout", icon: LogOut },
+  ],
+};
 
 export default function BottomNav({ variant = "employee" }: BottomNavProps) {
   const pathname = usePathname();
-  const menus = variant === "admin" ? adminMenus : employeeMenus;
+  const [adminRole, setAdminRole] = useState<AdminRole>("admin");
+
+  useEffect(() => {
+    if (variant !== "admin") return;
+
+    let active = true;
+
+    async function loadSessionRole() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const result = await response.json();
+
+        if (!active || !response.ok) return;
+        const role = String(result.user?.role || "").toLowerCase();
+        if (isAdminPanelRole(role)) {
+          setAdminRole(role);
+        }
+      } catch {
+        if (active) {
+          setAdminRole("admin");
+        }
+      }
+    }
+
+    void loadSessionRole();
+
+    return () => {
+      active = false;
+    };
+  }, [variant]);
+
+  const menus = useMemo(() => {
+    if (variant !== "admin") return employeeMenus;
+    return adminMenusByRole[adminRole];
+  }, [adminRole, variant]);
 
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-[2rem] border border-white/70 bg-white/90 px-3 py-3 shadow-2xl shadow-slate-300/60 backdrop-blur-2xl md:hidden">
-      <div className="grid grid-cols-4 gap-2">
+      <div
+        className="grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${menus.length}, minmax(0, 1fr))`,
+        }}
+      >
         {menus.map((menu) => {
           const Icon = menu.icon;
           const active =

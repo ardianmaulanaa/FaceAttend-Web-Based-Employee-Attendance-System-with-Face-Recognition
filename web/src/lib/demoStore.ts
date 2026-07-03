@@ -66,6 +66,14 @@ export type DemoAttendanceNotification = {
   message: string;
 };
 
+export type DemoRoleNotification = {
+  id: string;
+  type: "check-in" | "check-out" | "absent" | "complaint" | "call";
+  employeeName: string;
+  happenedAt: string;
+  message: string;
+};
+
 const demoUsers: DemoUser[] = [
   {
     id: "OWN-DEMO-001",
@@ -586,6 +594,48 @@ export function listDemoAttendanceNotifications() {
   }
 
   return notifications.sort((a, b) => b.happenedAt.localeCompare(a.happenedAt));
+}
+
+export function listDemoCustomerServiceNotifications() {
+  const now = Date.now();
+  const nowIso = (offsetMinutes: number) =>
+    new Date(now - offsetMinutes * 60 * 1000).toISOString();
+
+  const csItems: DemoRoleNotification[] = [
+    {
+      id: "CS-DEMO-NOTIF-1",
+      type: "complaint",
+      employeeName: "Customer A",
+      happenedAt: nowIso(7),
+      message: "Keluhan: Aplikasi sulit login, mohon ditindaklanjuti.",
+    },
+    {
+      id: "CS-DEMO-NOTIF-2",
+      type: "call",
+      employeeName: "Customer B",
+      happenedAt: nowIso(19),
+      message: "Panggilan masuk: Permintaan update status tiket #CS-091.",
+    },
+    {
+      id: "CS-DEMO-NOTIF-3",
+      type: "complaint",
+      employeeName: "Customer C",
+      happenedAt: nowIso(38),
+      message: "Keluhan: Verifikasi pembayaran belum terkonfirmasi.",
+    },
+  ];
+
+  return csItems;
+}
+
+export function listDemoRoleNotifications(
+  role: string,
+): DemoRoleNotification[] {
+  if (role === "cs") {
+    return listDemoCustomerServiceNotifications();
+  }
+
+  return listDemoAttendanceNotifications();
 }
 
 export function setDemoAttendanceLateReason(payload: {
