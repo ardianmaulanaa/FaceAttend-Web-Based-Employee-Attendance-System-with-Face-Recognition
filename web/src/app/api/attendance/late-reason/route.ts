@@ -2,26 +2,276 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
-import {
-  isDatabaseUnavailable,
-  setDemoAttendanceLateReason,
-} from "@/lib/demoStore";
+import { canViewAdminPanel } from "@/lib/adminAccess";
 
-export async function POST(req: Request) {
-  let reason = "";
+function parseTimeLabel(value: Date | null | undefined) {
+  if (!value) return "-";
+  return value.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
+function computeLateDuration(
+  scheduledCheckIn: Date | null,
+  checkInTime: Date | null,
+  storedMinutes: number,
+  storedSeconds: number,
+  storedIsLate: boolean,
+) {
+  if (!scheduledCheckIn || !checkInTime) {
+    return {
+      isLate: Boolean(storedIsLate),
+      lateMinutes: Math.max(0, Number(storedMinutes) || 0),
+      lateSeconds: Math.max(0, Number(storedSeconds) || 0),
+    };
+  }
+
+  const rawDiffSeconds = Math.floor(
+    (checkInTime.getTime() - scheduledCheckIn.getTime()) / 1000,
+  );
+
+  if (rawDiffSeconds <= 0) {
+    return {
+      isLate: false,
+      lateMinutes: 0,
+      lateSeconds: 0,
+    };
+  }
+
+  return {
+    isLate: true,
+    lateMinutes: Math.floor(rawDiffSeconds / 60),
+    lateSeconds: rawDiffSeconds % 60,
+  };
+}
+
+async function getAuthPayload() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("faceattend_token")?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  return verifyToken(token);
+}
+
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("faceattend_token")?.value;
+    const payload = await getAuthPayload();
 
-    if (!token) {
+    if (!payload) {
       return NextResponse.json(
         { success: false, message: "Belum login" },
         { status: 401 },
       );
     }
 
-    const payload = await verifyToken(token);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayDate = new Date(todayKey);
+
+    const url = new URL(req.url);
+    const scope = String(url.searchParams.get("scope") || "employee");
+
+    if (scope === "admin") {
+      if (!canViewAdminPanel(payload.role)) {
+        return NextResponse.json(
+          { success: false, message: "Akses ditolak" },
+          { status: 403 },
+        );
+      }
+
+      const [employeesCount, lateAttendances] = await Promise.all([
+        prisma.user.count({
+          where: {
+            role: "employee",
+            status: "active",
+          },
+        }),
+        prisma.attendance.findMany({
+          where: {
+            attendance_date: todayDate,
+            OR: [
+              { is_late: true },
+              { late_minutes: { gt: 0 } },
+              { status: "LATE" },
+            ],
+          },
+          orderBy: {
+            check_in_time: "asc",
+          },
+          select: {
+            id: true,
+            late_reason: true,
+            late_minutes: true,
+            late_seconds: true,
+            is_late: true,
+            scheduled_check_in: true,
+            check_in_time: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const rows = lateAttendances.map((item) => {
+        const computed = computeLateDuration(
+          item.scheduled_check_in,
+          item.check_in_time,
+          item.late_minutes,
+          item.late_seconds,
+          item.is_late,
+        );
+
+        return {
+          id: item.id,
+          employeeId: item.user.id,
+          employeeName: item.user.name,
+          checkInTime: parseTimeLabel(item.check_in_time),
+          scheduledCheckIn: parseTimeLabel(item.scheduled_check_in),
+          lateReason: item.late_reason || "Belum diisi",
+          lateMinutes: computed.lateMinutes,
+          lateSeconds: computed.lateSeconds,
+          isLate: computed.isLate,
+        };
+      });
+
+      const lateCount = rows.length;
+      const latePercentage =
+        employeesCount > 0
+          ? Number(((lateCount / employeesCount) * 100).toFixed(2))
+          : 0;
+
+      const histogram = [
+        { bucket: "1-5 menit", count: 0 },
+        { bucket: "6-10 menit", count: 0 },
+        { bucket: "11-15 menit", count: 0 },
+        { bucket: "16-30 menit", count: 0 },
+        { bucket: ">30 menit", count: 0 },
+      ];
+
+      for (const row of rows) {
+        const totalMinutes = row.lateMinutes + row.lateSeconds / 60;
+
+        if (totalMinutes <= 5) histogram[0].count += 1;
+        else if (totalMinutes <= 10) histogram[1].count += 1;
+        else if (totalMinutes <= 15) histogram[2].count += 1;
+        else if (totalMinutes <= 30) histogram[3].count += 1;
+        else histogram[4].count += 1;
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          dateKey: todayKey,
+          totalEmployees: employeesCount,
+          lateCount,
+          latePercentage,
+          rows,
+          histogram,
+        },
+      });
+    }
+
+    const attendance = await prisma.attendance.findFirst({
+      where: {
+        user_id: payload.id,
+        attendance_date: todayDate,
+      },
+      select: {
+        id: true,
+        late_reason: true,
+        late_minutes: true,
+        late_seconds: true,
+        is_late: true,
+        scheduled_check_in: true,
+        check_in_time: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!attendance) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          isLate: false,
+          hasReason: false,
+          employeeName: payload.name || "Karyawan",
+          scheduledCheckIn: "-",
+          checkInTime: "-",
+          lateMinutes: 0,
+          lateSeconds: 0,
+        },
+      });
+    }
+
+    const computed = computeLateDuration(
+      attendance.scheduled_check_in,
+      attendance.check_in_time,
+      attendance.late_minutes,
+      attendance.late_seconds,
+      attendance.is_late,
+    );
+
+    if (
+      attendance.is_late !== computed.isLate ||
+      attendance.late_minutes !== computed.lateMinutes ||
+      attendance.late_seconds !== computed.lateSeconds
+    ) {
+      await prisma.attendance.update({
+        where: { id: attendance.id },
+        data: {
+          is_late: computed.isLate,
+          late_minutes: computed.lateMinutes,
+          late_seconds: computed.lateSeconds,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        isLate: computed.isLate,
+        hasReason: Boolean(
+          attendance.late_reason && attendance.late_reason.trim(),
+        ),
+        employeeName: attendance.user.name,
+        scheduledCheckIn: parseTimeLabel(attendance.scheduled_check_in),
+        checkInTime: parseTimeLabel(attendance.check_in_time),
+        lateMinutes: computed.lateMinutes,
+        lateSeconds: computed.lateSeconds,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { success: false, message: "Gagal mengambil data keterlambatan" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const payload = await getAuthPayload();
+
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, message: "Belum login" },
+        { status: 401 },
+      );
+    }
 
     if (payload.role !== "employee") {
       return NextResponse.json(
@@ -34,105 +284,77 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    reason = String(body.reason || "").trim();
+    const lateReason = String(body.reason || "").trim();
 
-    if (!reason) {
+    if (!lateReason) {
       return NextResponse.json(
         { success: false, message: "Alasan keterlambatan wajib diisi" },
         { status: 400 },
       );
     }
 
-    const todayDate = new Date(new Date().toISOString().slice(0, 10));
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayDate = new Date(todayKey);
 
-    const target = await prisma.attendance.findUnique({
+    const attendance = await prisma.attendance.findFirst({
       where: {
-        employee_id_attendance_date: {
-          employee_id: payload.id,
-          attendance_date: todayDate,
-        },
+        user_id: payload.id,
+        attendance_date: todayDate,
       },
       select: {
         id: true,
+        scheduled_check_in: true,
         check_in_time: true,
         late_minutes: true,
-        status: true,
-        notes: true,
+        late_seconds: true,
+        is_late: true,
       },
     });
 
-    if (!target?.check_in_time) {
+    if (!attendance || !attendance.check_in_time) {
       return NextResponse.json(
         { success: false, message: "Belum ada data check-in hari ini" },
         { status: 400 },
       );
     }
 
-    const isLate =
-      Number(target.late_minutes || 0) > 0 ||
-      String(target.status || "").toLowerCase() === "late";
+    const computed = computeLateDuration(
+      attendance.scheduled_check_in,
+      attendance.check_in_time,
+      attendance.late_minutes,
+      attendance.late_seconds,
+      attendance.is_late,
+    );
 
-    if (!isLate) {
+    if (!computed.isLate) {
       return NextResponse.json(
         { success: false, message: "Hari ini tidak tercatat terlambat" },
         { status: 400 },
       );
     }
 
-    const baseNotes = String(target.notes || "")
-      .split(" | ")
-      .filter((part) => !part.startsWith("late_reason="));
-
-    baseNotes.push(`late_reason=${reason.slice(0, 180)}`);
-
     await prisma.attendance.update({
-      where: { id: target.id },
+      where: { id: attendance.id },
       data: {
-        notes: baseNotes.join(" | ").slice(0, 255),
+        late_reason: lateReason.slice(0, 255),
+        late_minutes: computed.lateMinutes,
+        late_seconds: computed.lateSeconds,
+        is_late: true,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message:
-        "Alasan telat tersimpan. Aturan: kantor dulu baru kunjungan, jam kerja tetap mengikuti jam karyawan.",
+      message: "Alasan keterlambatan berhasil disimpan.",
+      data: {
+        lateReason: lateReason.slice(0, 255),
+        lateMinutes: computed.lateMinutes,
+        lateSeconds: computed.lateSeconds,
+        isLate: true,
+      },
     });
   } catch (error) {
     console.error(error);
-
-    if (isDatabaseUnavailable(error)) {
-      const cookieStore = await cookies();
-      const token = cookieStore.get("faceattend_token")?.value;
-
-      if (!token) {
-        return NextResponse.json(
-          { success: false, message: "Belum login" },
-          { status: 401 },
-        );
-      }
-
-      const payload = await verifyToken(token);
-      const demoResult = setDemoAttendanceLateReason({
-        employeeId: payload.id,
-        reason,
-      });
-
-      if (!demoResult.ok) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Gagal menyimpan alasan telat (demo mode)",
-          },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        message:
-          "Alasan telat tersimpan (demo mode). Aturan: kantor dulu baru kunjungan, jam kerja tetap mengikuti jam karyawan.",
-      });
-    }
 
     return NextResponse.json(
       { success: false, message: "Gagal menyimpan alasan telat" },

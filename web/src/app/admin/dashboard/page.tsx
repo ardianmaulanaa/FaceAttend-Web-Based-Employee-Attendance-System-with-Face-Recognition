@@ -15,6 +15,31 @@ type Employee = {
   position: string | null;
 };
 
+type LateRow = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  checkInTime: string;
+  scheduledCheckIn: string;
+  lateReason: string;
+  lateMinutes: number;
+  lateSeconds: number;
+  isLate: boolean;
+};
+
+type HistogramBucket = {
+  bucket: string;
+  count: number;
+};
+
+type LateAnalytics = {
+  totalEmployees: number;
+  lateCount: number;
+  latePercentage: number;
+  rows: LateRow[];
+  histogram: HistogramBucket[];
+};
+
 function parseTimeToMinutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
   if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
@@ -34,6 +59,9 @@ export default function AdminDashboardPage() {
   const { state } = useAppData();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [sessionRole, setSessionRole] = useState<AdminRole>("admin");
+  const [lateAnalytics, setLateAnalytics] = useState<LateAnalytics | null>(
+    null,
+  );
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
@@ -83,6 +111,29 @@ export default function AdminDashboardPage() {
     void loadEmployees();
   }, []);
 
+  useEffect(() => {
+    async function loadLateAnalytics() {
+      try {
+        const response = await fetch(
+          "/api/attendance/late-reason?scope=admin",
+          {
+            method: "GET",
+            cache: "no-store",
+          },
+        );
+
+        const result = await response.json();
+        if (!response.ok || !result.success) return;
+
+        setLateAnalytics(result.data as LateAnalytics);
+      } catch {
+        // Keep dashboard usable without analytics data.
+      }
+    }
+
+    void loadLateAnalytics();
+  }, []);
+
   const totalEmployees = useMemo(() => {
     return employees.filter((item) => item.role === "employee").length;
   }, [employees]);
@@ -96,12 +147,21 @@ export default function AdminDashboardPage() {
   }, [todayAttendance]);
 
   const lateToday = useMemo(() => {
+    if (lateAnalytics) {
+      return lateAnalytics.lateCount;
+    }
+
     return todayAttendance.filter((item) => item.status === "Late").length;
-  }, [todayAttendance]);
+  }, [lateAnalytics, todayAttendance]);
 
   const absentToday = useMemo(() => {
     return Math.max(totalEmployees - presentToday, 0);
   }, [totalEmployees, presentToday]);
+
+  const histogramMax = useMemo(() => {
+    const values = lateAnalytics?.histogram.map((item) => item.count) || [0];
+    return Math.max(...values, 1);
+  }, [lateAnalytics]);
 
   const dashboardRows = useMemo(() => {
     return employees
@@ -227,6 +287,11 @@ export default function AdminDashboardPage() {
             <p className="mt-3 text-3xl font-black text-amber-700">
               {lateToday}
             </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {lateAnalytics
+                ? `${lateAnalytics.latePercentage.toFixed(2)}% dari total karyawan`
+                : "Persentase telat dimuat otomatis"}
+            </p>
           </div>
 
           <div className="rounded-2xl border border-rose-100 bg-white p-4">
@@ -239,6 +304,97 @@ export default function AdminDashboardPage() {
             <p className="mt-3 text-3xl font-black text-rose-700">
               {absentToday}
             </p>
+          </div>
+        </div>
+
+        <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-3xl border border-amber-100 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
+            <h3 className="text-xl font-black text-slate-950">
+              Karyawan Terlambat Hari Ini
+            </h3>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Menampilkan nama, alasan telat, jam check-in, dan durasi
+              keterlambatan.
+            </p>
+
+            {!lateAnalytics || lateAnalytics.rows.length === 0 ? (
+              <p className="mt-4 text-sm font-semibold text-slate-500">
+                Tidak ada data keterlambatan hari ini.
+              </p>
+            ) : (
+              <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100">
+                <div className="hidden grid-cols-[1.1fr_1.5fr_0.8fr_0.9fr] bg-amber-50/70 px-4 py-3 text-xs font-black uppercase tracking-wide text-amber-800 md:grid">
+                  <p>Nama</p>
+                  <p>Alasan</p>
+                  <p>Check-in</p>
+                  <p>Keterlambatan</p>
+                </div>
+                <div className="divide-y divide-amber-100 bg-white">
+                  {lateAnalytics.rows.map((row) => (
+                    <div
+                      key={`late-row-${row.id}`}
+                      className="grid gap-3 px-4 py-4 text-sm md:grid-cols-[1.1fr_1.5fr_0.8fr_0.9fr] md:items-center"
+                    >
+                      <div>
+                        <p className="font-black text-slate-950">
+                          {row.employeeName}
+                        </p>
+                        <p className="text-xs font-semibold text-slate-500">
+                          {row.employeeId}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-slate-600">
+                        {row.lateReason}
+                      </p>
+                      <p className="font-black text-amber-700">
+                        {row.checkInTime}
+                      </p>
+                      <p className="font-black text-amber-700">
+                        {row.lateMinutes}m {row.lateSeconds}s
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-3xl border border-blue-100 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
+            <h3 className="text-xl font-black text-slate-950">
+              Histogram Keterlambatan
+            </h3>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Distribusi jumlah karyawan telat berdasarkan rentang menit.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {(lateAnalytics?.histogram || []).map((bucket) => {
+                const widthPercent = Math.max(
+                  8,
+                  Math.round((bucket.count / histogramMax) * 100),
+                );
+
+                return (
+                  <div key={`hist-${bucket.bucket}`}>
+                    <div className="mb-1 flex items-center justify-between text-xs font-black text-slate-600">
+                      <span>{bucket.bucket}</span>
+                      <span>{bucket.count}</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-blue-100">
+                      <div
+                        className="h-3 rounded-full bg-[#123c8c] transition-all"
+                        style={{ width: `${widthPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {(!lateAnalytics || lateAnalytics.histogram.length === 0) && (
+                <p className="text-sm font-semibold text-slate-500">
+                  Histogram belum tersedia.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

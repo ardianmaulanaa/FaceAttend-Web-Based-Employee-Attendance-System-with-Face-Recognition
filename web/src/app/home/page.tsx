@@ -17,6 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
+import LateReasonModal from "@/components/LateReasonModal";
 import MobileShell from "@/components/MobileShell";
 import { useAppData } from "@/context/AppDataContext";
 
@@ -92,6 +93,16 @@ function getLateReasonStorageKey(userId: string, dateKey: string) {
   return `late-reason-${userId}-${dateKey}`;
 }
 
+type LateStatus = {
+  isLate: boolean;
+  hasReason: boolean;
+  employeeName: string;
+  scheduledCheckIn: string;
+  checkInTime: string;
+  lateMinutes: number;
+  lateSeconds: number;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { authUser, state } = useAppData();
@@ -100,6 +111,7 @@ export default function HomePage() {
   const [showLateReasonPopup, setShowLateReasonPopup] = useState(false);
   const [lateReason, setLateReason] = useState("");
   const [isSubmittingLateReason, setIsSubmittingLateReason] = useState(false);
+  const [lateStatus, setLateStatus] = useState<LateStatus | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -169,28 +181,58 @@ export default function HomePage() {
       record.date === new Date().toISOString().slice(0, 10),
   );
 
-  const isLateToday =
-    (todayAttendance?.status || "").toLowerCase() === "late" ||
-    Number(todayAttendance?.lateMinutes || 0) > 0;
-
   useEffect(() => {
-    if (!effectiveUser || !isLateToday) {
+    if (!effectiveUser) {
+      setLateStatus(null);
       setShowLateReasonPopup(false);
       return;
     }
 
-    const savedReason = window.localStorage.getItem(
-      getLateReasonStorageKey(effectiveUser.id, todayKey),
-    );
+    let active = true;
 
-    if (savedReason) {
-      setLateReason(savedReason);
-      setShowLateReasonPopup(false);
-      return;
+    async function loadLateStatus() {
+      try {
+        const response = await fetch("/api/attendance/late-reason", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+        if (!active || !response.ok || !result.success) {
+          setShowLateReasonPopup(false);
+          return;
+        }
+
+        const data = result.data as LateStatus;
+        setLateStatus(data);
+
+        if (!data.isLate || data.hasReason) {
+          setShowLateReasonPopup(false);
+          return;
+        }
+
+        const savedReason = window.localStorage.getItem(
+          getLateReasonStorageKey(effectiveUser.id, todayKey),
+        );
+
+        if (savedReason) {
+          setLateReason(savedReason);
+        }
+
+        setShowLateReasonPopup(true);
+      } catch {
+        if (active) {
+          setShowLateReasonPopup(false);
+        }
+      }
     }
 
-    setShowLateReasonPopup(true);
-  }, [effectiveUser, isLateToday, todayKey]);
+    void loadLateStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [effectiveUser, todayKey]);
 
   if (isLoadingSession) {
     return (
@@ -245,6 +287,12 @@ export default function HomePage() {
         reason,
       );
       setShowLateReasonPopup(false);
+      if (lateStatus) {
+        setLateStatus({
+          ...lateStatus,
+          hasReason: true,
+        });
+      }
       alert(result.message || "Alasan telat berhasil dikirim.");
     } catch {
       alert("Terjadi kesalahan saat mengirim alasan telat.");
@@ -315,39 +363,20 @@ export default function HomePage() {
 
   return (
     <MobileShell variant="employee">
-      {showLateReasonPopup && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl shadow-slate-950/30 md:p-7">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-              Wajib Isi Alasan Telat
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950">
-              Anda terdeteksi terlambat hari ini
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              Isi alasan bebas langsung dari halaman home. Aturan operasional:
-              kantor dulu baru kunjungan, dan jika ada kunjungan jam kerja tetap
-              mengikuti jam karyawan tetap.
-            </p>
-
-            <textarea
-              value={lateReason}
-              onChange={(event) => setLateReason(event.target.value)}
-              placeholder="Contoh: Terlambat karena antrean transportasi, sudah izin ke atasan."
-              className="mt-4 min-h-32 w-full rounded-2xl border border-amber-100 bg-amber-50/30 px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-amber-400 focus:bg-white"
-            />
-
-            <button
-              type="button"
-              onClick={submitLateReason}
-              disabled={isSubmittingLateReason}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-amber-200 transition disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmittingLateReason ? "Mengirim..." : "Kirim Alasan Telat"}
-            </button>
-          </div>
-        </div>
-      )}
+      <LateReasonModal
+        open={showLateReasonPopup}
+        employeeName={lateStatus?.employeeName || effectiveUser.name}
+        scheduledCheckIn={lateStatus?.scheduledCheckIn || "-"}
+        checkInTime={lateStatus?.checkInTime || "-"}
+        lateMinutes={lateStatus?.lateMinutes || 0}
+        lateSeconds={lateStatus?.lateSeconds || 0}
+        reason={lateReason}
+        isSubmitting={isSubmittingLateReason}
+        onReasonChange={setLateReason}
+        onSubmit={() => {
+          void submitLateReason();
+        }}
+      />
 
       <AppHeader
         title="Good Morning"
@@ -355,7 +384,11 @@ export default function HomePage() {
         rightLabel={effectiveUser.id}
       />
 
-      <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
+      <section
+        className={`mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16 ${
+          showLateReasonPopup ? "pointer-events-none select-none" : ""
+        }`}
+      >
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="relative overflow-hidden rounded-3xl bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/20 md:p-8">
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
