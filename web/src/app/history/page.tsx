@@ -179,10 +179,6 @@ export default function HistoryPage() {
               <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456]">
                 Laporan Presensi
               </h1>
-
-              <p className="mt-2 text-sm font-bold text-slate-500">
-                Riwayat kehadiran dan detail absensi kamu.
-              </p>
             </div>
 
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#123c8c] text-white ring-1 ring-[#123c8c]">

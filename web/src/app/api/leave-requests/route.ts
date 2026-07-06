@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const db = prisma as any;
+
 async function getUserIdFromRequest(req: NextRequest) {
   const token = req.cookies.get("faceattend_token")?.value;
 
@@ -37,7 +39,6 @@ function toDateOnly(value: string) {
 function countTotalDays(startDate: Date, endDate: Date) {
   const oneDay = 1000 * 60 * 60 * 24;
   const diff = endDate.getTime() - startDate.getTime();
-
   return Math.floor(diff / oneDay) + 1;
 }
 
@@ -50,6 +51,16 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+function toIsoDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toISOString();
+}
+
 function formatLeaveType(type: string) {
   if (type === "annual") return "Cuti Tahunan";
   if (type === "permission") return "Izin";
@@ -60,6 +71,14 @@ function formatLeaveType(type: string) {
   if (type === "other") return "Lainnya";
 
   return type;
+}
+
+function formatStatus(status: string) {
+  if (status === "pending") return "Menunggu";
+  if (status === "approved") return "Disetujui";
+  if (status === "rejected") return "Ditolak";
+
+  return status;
 }
 
 function getRequestedWorkMode(type: string, rawMode: string) {
@@ -85,19 +104,11 @@ const allowedLeaveTypes = [
   "other",
 ];
 
-function formatStatus(status: string) {
-  if (status === "pending") return "Menunggu";
-  if (status === "approved") return "Disetujui";
-  if (status === "rejected") return "Ditolak";
-
-  return status;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);
 
-    const requests = await prisma.leaveRequest.findMany({
+    const requests = await db.leaveRequest.findMany({
       where: {
         user_id: userId,
       },
@@ -126,13 +137,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      requests: requests.map((item) => ({
+      requests: requests.map((item: any) => ({
         id: item.id,
         leaveType: item.leave_type,
         leaveTypeLabel: formatLeaveType(item.leave_type),
         startDate: formatDate(item.start_date),
         endDate: formatDate(item.end_date),
-        totalDays: item.total_days,
+        startDateRaw: toIsoDate(item.start_date),
+        endDateRaw: toIsoDate(item.end_date),
+        totalDays: Number(item.total_days || 0),
         reason: item.reason,
         requestedWorkMode: item.requested_work_mode,
         locationUnlockRequested: item.location_unlock_requested,
@@ -143,8 +156,8 @@ export async function GET(req: NextRequest) {
         visitLongitude: item.visit_longitude,
         status: item.status,
         statusLabel: formatStatus(item.status),
-        adminNote: item.admin_note,
-        createdAt: formatDate(item.created_at),
+        adminNote: item.admin_note || null,
+        createdAt: toIsoDate(item.created_at),
       })),
     });
   } catch (error) {
@@ -166,13 +179,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);
-
     const body = await req.json();
 
     const leaveType = String(body.leaveType || "").trim();
     const startDateRaw = String(body.startDate || "").trim();
     const endDateRaw = String(body.endDate || "").trim();
     const reason = String(body.reason || "").trim();
+
     const requestedWorkMode = getRequestedWorkMode(
       leaveType,
       String(body.requestedWorkMode || "").trim(),
@@ -196,8 +209,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Jenis cuti, tanggal mulai, tanggal selesai, dan alasan wajib diisi.",
+          error: "Jenis cuti, tanggal mulai, tanggal selesai, dan alasan wajib diisi.",
         },
         { status: 400 },
       );
@@ -208,19 +220,6 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: "Jenis pengajuan tidak valid.",
-        },
-        { status: 400 },
-      );
-    }
-
-    if (
-      (visitLatitude !== null && !Number.isFinite(visitLatitude)) ||
-      (visitLongitude !== null && !Number.isFinite(visitLongitude))
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Koordinat lokasi kunjungan tidak valid.",
         },
         { status: 400 },
       );
@@ -249,9 +248,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (
+      (visitLatitude !== null && !Number.isFinite(visitLatitude)) ||
+      (visitLongitude !== null && !Number.isFinite(visitLongitude))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Koordinat lokasi kunjungan tidak valid.",
+        },
+        { status: 400 },
+      );
+    }
+
     const totalDays = countTotalDays(startDate, endDate);
 
-    const leaveRequest = await prisma.leaveRequest.create({
+    const leaveRequest = await db.leaveRequest.create({
       data: {
         user_id: userId,
         leave_type: leaveType,
@@ -275,7 +287,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Pengajuan karyawan berhasil dikirim.",
+      message: "Pengajuan berhasil dikirim.",
       request: leaveRequest,
     });
   } catch (error) {
@@ -287,7 +299,7 @@ export async function POST(req: NextRequest) {
         error:
           error instanceof Error
             ? error.message
-            : "Gagal membuat pengajuan cuti.",
+            : "Gagal membuat pengajuan.",
       },
       { status: 500 },
     );

@@ -1,253 +1,221 @@
-import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export const runtime = "nodejs";
-
-const db = prisma as any;
-
-type AllowedRole = "owner" | "admin" | "cs";
-
-const ALLOWED_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
-
-function getTodayDate() {
+function getTodayRangeWIB() {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const wibDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+
+  const start = new Date(`${wibDate}T00:00:00.000+07:00`);
+  const end = new Date(`${wibDate}T23:59:59.999+07:00`);
+
+  return { start, end };
 }
 
-function formatTime(date?: Date | null) {
-  if (!date) return "-";
+function toIsoDate(value: Date | string | null | undefined) {
+  if (!value) return null;
 
-  return date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toISOString();
 }
 
-function normalizeDate(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+function calculateWorkMinutes(
+  workMinutes: number | null | undefined,
+  checkInTime: Date | null | undefined,
+  checkOutTime: Date | null | undefined
+) {
+  if (workMinutes && workMinutes > 0) {
+    return Number(workMinutes);
+  }
+
+  if (!checkInTime || !checkOutTime) {
+    return 0;
+  }
+
+  const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+
+  if (diffMs <= 0) return 0;
+
+  return Math.floor(diffMs / 60000);
 }
 
-async function getCurrentUser(req: NextRequest) {
-  const token = req.cookies.get("faceattend_token")?.value;
+function isLateStatus(status?: string | null) {
+  if (!status) return false;
 
-  if (!token) {
-    throw new Error("Token login tidak ditemukan.");
-  }
+  const normalizedStatus = status.toLowerCase();
 
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET belum ada di file .env");
-  }
-
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-  const { payload } = await jwtVerify(token, secret);
-
-  const userId =
-    (payload.id as string | undefined) ||
-    (payload.userId as string | undefined) ||
-    (payload.sub as string | undefined);
-
-  if (!userId) {
-    throw new Error("User ID tidak ditemukan di token.");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      role: true,
-      status: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error("User tidak ditemukan.");
-  }
-
-  return user;
+  return normalizedStatus === "late" || normalizedStatus === "terlambat";
 }
 
-function getAttendanceStatusLabel(record?: {
+function getActivityTime(attendance: {
+  attendance_date: Date;
   check_in_time: Date | null;
   check_out_time: Date | null;
-  status: string;
-  check_in_status: string | null;
-  late_minutes: number;
 }) {
-  if (!record || !record.check_in_time) return "Absent";
-
-  if (
-    record.check_in_status === "LATE" ||
-    record.status === "LATE" ||
-    record.late_minutes > 0
-  ) {
-    return "Late";
-  }
-
-  return "Present";
+  return (
+    attendance.check_out_time?.getTime() ||
+    attendance.check_in_time?.getTime() ||
+    attendance.attendance_date.getTime()
+  );
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const currentUser = await getCurrentUser(req);
-
-    if (
-      currentUser.status !== "active" ||
-      !ALLOWED_ROLES.includes(currentUser.role as AllowedRole)
-    ) {
-      return NextResponse.json(
-        {
-          message: "Akses ditolak. Hanya owner, admin, atau cs yang diizinkan.",
-        },
-        { status: 403 },
-      );
-    }
-
-    const today = getTodayDate();
+    const { start, end } = getTodayRangeWIB();
 
     const employees = await prisma.user.findMany({
       where: {
-        role: "employee",
-        status: "active",
+        role: {
+          in: ["employee", "EMPLOYEE"],
+        },
+        status: {
+          in: ["active", "ACTIVE"],
+        },
       },
       select: {
         id: true,
         employee_code: true,
         name: true,
+        department: {
+          select: {
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            name: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
       },
     });
 
-    const todayAttendance = await prisma.attendance.findMany({
+    const todayAttendances = await prisma.attendance.findMany({
       where: {
-        attendance_date: today,
+        OR: [
+          {
+            attendance_date: {
+              gte: start,
+              lte: end,
+            },
+          },
+          {
+            check_in_time: {
+              gte: start,
+              lte: end,
+            },
+          },
+          {
+            check_out_time: {
+              gte: start,
+              lte: end,
+            },
+          },
+        ],
       },
       select: {
         id: true,
         user_id: true,
+        attendance_date: true,
         check_in_time: true,
         check_out_time: true,
         status: true,
-        check_in_status: true,
         late_minutes: true,
-        work_mode: true,
-        is_wfh: true,
-        is_visit: true,
-        user: {
-          select: {
-            id: true,
-            employee_code: true,
-            name: true,
-          },
-        },
+        work_minutes: true,
       },
       orderBy: [
         {
-          check_in_time: "desc",
+          attendance_date: "desc",
         },
         {
-          created_at: "desc",
+          check_in_time: "desc",
         },
       ],
     });
 
-    const approvedLeavesToday = await db.leaveRequest.findMany({
-      where: {
-        status: "approved",
-        start_date: {
-          lte: today,
-        },
-        end_date: {
-          gte: today,
-        },
-      },
-      select: {
-        id: true,
-        user_id: true,
-        start_date: true,
-        end_date: true,
-      },
-    });
+    const attendanceByUserId = new Map<string, (typeof todayAttendances)[number]>();
 
-    const leaveUserIds = new Set(
-      approvedLeavesToday
-        .filter(
-          (leave: { start_date: Date; end_date: Date; user_id: string }) => {
-            const startDate = normalizeDate(leave.start_date);
-            const endDate = normalizeDate(leave.end_date);
-            const todayDate = normalizeDate(today);
+    for (const attendance of todayAttendances) {
+      const existingAttendance = attendanceByUserId.get(attendance.user_id);
 
-            return startDate <= todayDate && endDate >= todayDate;
-          },
-        )
-        .map((leave: { user_id: string }) => leave.user_id),
-    );
+      if (!existingAttendance) {
+        attendanceByUserId.set(attendance.user_id, attendance);
+        continue;
+      }
 
-    const attendanceByUserId = new Map(
-      todayAttendance.map((record) => [record.user_id, record]),
-    );
+      if (getActivityTime(attendance) > getActivityTime(existingAttendance)) {
+        attendanceByUserId.set(attendance.user_id, attendance);
+      }
+    }
 
-    const totalEmployees = employees.length;
-
-    const presentToday = todayAttendance.filter((record) =>
-      Boolean(record.check_in_time),
-    ).length;
-
-    const lateToday = todayAttendance.filter(
-      (record) =>
-        record.check_in_status === "LATE" ||
-        record.status === "LATE" ||
-        record.late_minutes > 0,
-    ).length;
-
-    const absentToday = employees.filter((employee) => {
-      const hasAttendance = attendanceByUserId.has(employee.id);
-      const isLeave = leaveUserIds.has(employee.id);
-
-      return !hasAttendance && !isLeave;
-    }).length;
-
-    const recentAttendance = employees.slice(0, 8).map((employee) => {
-      const record = attendanceByUserId.get(employee.id);
+    const recentAttendance = employees.map((employee) => {
+      const attendance = attendanceByUserId.get(employee.id);
 
       return {
-        id: employee.employee_code || employee.id.slice(0, 8).toUpperCase(),
+        id: employee.id,
+        attendanceId: attendance?.id || "",
         name: employee.name,
-        checkIn: formatTime(record?.check_in_time),
-        checkOut: formatTime(record?.check_out_time),
-        status: leaveUserIds.has(employee.id)
-          ? "Cuti"
-          : getAttendanceStatusLabel(record),
-        workMode: record?.is_wfh
-          ? "WFH"
-          : record?.is_visit
-            ? "Kunjungan"
-            : record?.work_mode || "office",
+        employeeCode: employee.employee_code || "-",
+        position: employee.position?.name || null,
+        department: employee.department?.name || null,
+        checkInTime: toIsoDate(attendance?.check_in_time),
+        checkOutTime: toIsoDate(attendance?.check_out_time),
+        status: attendance?.status || "ABSENT",
+        lateMinutes: Number(attendance?.late_minutes || 0),
+        workMinutes: calculateWorkMinutes(
+          Number(attendance?.work_minutes || 0),
+          attendance?.check_in_time,
+          attendance?.check_out_time
+        ),
       };
     });
 
+    const checkInToday = recentAttendance.filter(
+      (attendance) => attendance.checkInTime
+    ).length;
+
+    const checkOutToday = recentAttendance.filter(
+      (attendance) => attendance.checkOutTime
+    ).length;
+
+    const lateToday = recentAttendance.filter((attendance) => {
+      return attendance.lateMinutes > 0 || isLateStatus(attendance.status);
+    }).length;
+
+    const absentToday = recentAttendance.filter(
+      (attendance) => !attendance.checkInTime
+    ).length;
+
     return NextResponse.json({
       stats: {
-        totalEmployees,
-        presentToday,
+        totalEmployees: employees.length,
+        checkInToday,
+        checkOutToday,
         lateToday,
         absentToday,
       },
       recentAttendance,
     });
   } catch (error) {
-    console.error("GET /api/admin/dashboard error:", error);
+    console.error("ADMIN_DASHBOARD_ERROR:", error);
 
     return NextResponse.json(
       {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengambil data dashboard admin.",
+        message: "Gagal mengambil data dashboard admin.",
       },
-      { status: 500 },
+      {
+        status: 500,
+      }
     );
   }
 }

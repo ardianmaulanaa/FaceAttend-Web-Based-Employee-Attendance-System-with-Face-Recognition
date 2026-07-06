@@ -274,10 +274,6 @@ export default function UnitsPage() {
                   Daftar Unit
                 </h1>
 
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100">
-                  Unit digunakan untuk mengelompokkan divisi dan karyawan pada
-                  struktur perusahaan.
-                </p>
               </div>
 
               <button

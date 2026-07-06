@@ -3,127 +3,91 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  ClipboardList,
-  UserRound,
-  LayoutDashboard,
-  Layers3,
-  UsersRound,
-  Wallet,
-  Megaphone,
-  LogOut,
-} from "lucide-react";
-import { isAdminPanelRole, type AdminRole } from "@/lib/adminAccess";
+import { History, Home, ScanFace, UserRound } from "lucide-react";
 
 type BottomNavProps = {
   variant?: "employee" | "admin";
 };
 
 const employeeMenus = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/attendance", label: "Attend", icon: ClipboardList },
-  { href: "/salary", label: "Salary", icon: Wallet },
-  { href: "/profile", label: "Profile", icon: UserRound },
-  { href: "/announcements", label: "Info", icon: Megaphone },
+  {
+    href: "/home",
+    label: "Home",
+    icon: Home,
+  },
+  {
+    href: "/attendance",
+    label: "Attend",
+    icon: ScanFace,
+  },
+  {
+    href: "/history",
+    label: "History",
+    icon: History,
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    icon: UserRound,
+  },
 ];
 
-const adminMenusByRole: Record<
-  AdminRole,
-  Array<{ href: string; label: string; icon: typeof LayoutDashboard }>
-> = {
-  owner: [
-    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
-    { href: "/admin/employees", label: "Staff", icon: UsersRound },
-    { href: "/admin/master-data", label: "Master", icon: Layers3 },
-    { href: "/admin/employee-requests", label: "Layanan", icon: ClipboardList },
-    { href: "/login", label: "Logout", icon: LogOut },
-  ],
-  admin: [
-    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
-    { href: "/admin/employees", label: "Staff", icon: UsersRound },
-    { href: "/login", label: "Logout", icon: LogOut },
-  ],
-  cs: [
-    { href: "/admin/dashboard", label: "Dash", icon: LayoutDashboard },
-    { href: "/admin/employee-requests", label: "Layanan", icon: ClipboardList },
-    { href: "/login", label: "Logout", icon: LogOut },
-  ],
-};
+function isActivePath(pathname: string, href: string) {
+  if (href === "/home") {
+    return pathname === "/home" || pathname === "/";
+  }
+
+  if (href === "/history") {
+    return pathname === "/history" || pathname.startsWith("/history/");
+  }
+
+  if (href === "/profile") {
+    return pathname === "/profile";
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function BottomNav({ variant = "employee" }: BottomNavProps) {
   const pathname = usePathname();
-  const [adminRole, setAdminRole] = useState<AdminRole>("admin");
 
-  useEffect(() => {
-    if (variant !== "admin") return;
-
-    let active = true;
-
-    async function loadSessionRole() {
-      try {
-        const response = await fetch("/api/auth/me", {
-          method: "GET",
-          cache: "no-store",
-        });
-        const result = await response.json();
-
-        if (!active || !response.ok) return;
-        const role = String(result.user?.role || "").toLowerCase();
-        if (isAdminPanelRole(role)) {
-          setAdminRole(role);
-        }
-      } catch {
-        if (active) {
-          setAdminRole("admin");
-        }
-      }
-    }
-
-    void loadSessionRole();
-
-    return () => {
-      active = false;
-    };
-  }, [variant]);
-
-  const menus = useMemo(() => {
-    if (variant !== "admin") return employeeMenus;
-    return adminMenusByRole[adminRole];
-  }, [adminRole, variant]);
+  if (variant === "admin") {
+    return null;
+  }
 
   return (
-    <nav className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-[2rem] border border-white/70 bg-white/90 px-3 py-3 shadow-2xl shadow-slate-300/60 backdrop-blur-2xl md:hidden">
-      <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${menus.length}, minmax(0, 1fr))`,
-        }}
-      >
-        {menus.map((menu) => {
-          const Icon = menu.icon;
-          const active =
-            pathname === menu.href || pathname.startsWith(`${menu.href}/`);
+    <nav className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[34rem] -translate-x-1/2 md:hidden">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 px-3 py-3 shadow-2xl shadow-slate-400/30 backdrop-blur-2xl">
+        <div className="grid grid-cols-4 gap-2">
+          {employeeMenus.map((menu) => {
+            const Icon = menu.icon;
+            const active = isActivePath(pathname, menu.href);
 
-          return (
-            <Link
-              key={menu.href}
-              href={menu.href}
-              className={`relative flex flex-col items-center justify-center gap-1 rounded-[1.5rem] px-2 py-3 text-xs font-black transition-all duration-300 ${
-                active
-                  ? "bg-[#123c8c] text-white shadow-xl shadow-blue-900/30"
-                  : "text-slate-400 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-              }`}
-            >
-              {active && (
-                <span className="absolute -top-3 h-1.5 w-10 rounded-full bg-[#7dbbff]" />
-              )}
+            return (
+              <Link
+                key={menu.href}
+                href={menu.href}
+                className={`relative flex h-[4.7rem] flex-col items-center justify-center gap-1 rounded-[1.45rem] text-xs font-black transition-all duration-300 active:scale-[0.96] ${
+                  active
+                    ? "bg-[#123c8c] text-white shadow-xl shadow-blue-900/25"
+                    : "text-slate-400 hover:bg-[#f6f8ff] hover:text-[#123c8c]"
+                }`}
+              >
+                {active ? (
+                  <span className="absolute -top-2 h-1.5 w-12 rounded-full bg-blue-300" />
+                ) : null}
 
-              <Icon size={24} strokeWidth={2.7} />
-              <span>{menu.label}</span>
-            </Link>
-          );
-        })}
+                <Icon
+                  size={26}
+                  strokeWidth={active ? 2.8 : 2.5}
+                  className={active ? "text-white" : "text-slate-400"}
+                />
+
+                <span className="leading-none">{menu.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

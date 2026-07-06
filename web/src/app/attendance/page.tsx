@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   Camera,
   CheckCircle2,
   Clock3,
   ImageUp,
   Loader2,
+  LogIn,
+  LogOut,
   MapPin,
   Power,
   RotateCcw,
+  ScanFace,
   ShieldCheck,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -19,43 +21,84 @@ import MobileShell from "@/components/MobileShell";
 
 type AttendanceAction = "check-in" | "check-out";
 
+function isCameraAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function createAbortError(message: string) {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
 export default function AttendancePage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const startingRef = useRef(false);
+  const mountedRef = useRef(false);
+  const lastPhotoUrlRef = useRef<string | null>(null);
 
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<AttendanceAction | null>(
+    null
+  );
   const [lastPhotoUrl, setLastPhotoUrl] = useState<string | null>(null);
+
   const [lastLatitude, setLastLatitude] = useState<number | null>(null);
   const [lastLongitude, setLastLongitude] = useState<number | null>(null);
   const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
+
   const [statusTitle, setStatusTitle] = useState("Waiting for Camera");
   const [statusText, setStatusText] = useState(
-    "Aktifkan kamera dan izinkan lokasi GPS sebelum melakukan absensi.",
+    "Aktifkan kamera dan izinkan lokasi GPS sebelum melakukan absensi."
   );
-  const [workMode, setWorkMode] = useState("office");
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const timer = window.setTimeout(() => {
-      void startCamera();
-    }, 500);
+      startCamera();
+    }, 700);
 
     return () => {
+      mountedRef.current = false;
       window.clearTimeout(timer);
       releaseCamera(false, false);
 
-      if (lastPhotoUrl) {
-        URL.revokeObjectURL(lastPhotoUrl);
+      if (lastPhotoUrlRef.current) {
+        URL.revokeObjectURL(lastPhotoUrlRef.current);
+        lastPhotoUrlRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function safeSetCameraReady(value: boolean) {
+    if (mountedRef.current) setCameraReady(value);
+  }
+
+  function safeSetCameraStarting(value: boolean) {
+    if (mountedRef.current) setCameraStarting(value);
+  }
+
+  function safeSetStatus(title: string, text: string) {
+    if (!mountedRef.current) return;
+
+    setStatusTitle(title);
+    setStatusText(text);
+  }
+
   function releaseCamera(updateStatus = true, updateState = true) {
+    startingRef.current = false;
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+
       streamRef.current = null;
     }
 
@@ -64,49 +107,57 @@ export default function AttendancePage() {
       videoRef.current.srcObject = null;
     }
 
-    if (updateState) {
+    if (updateState && mountedRef.current) {
       setCameraReady(false);
       setCameraStarting(false);
     }
 
-    if (updateStatus) {
+    if (updateStatus && mountedRef.current) {
       setStatusTitle("Camera Off");
       setStatusText(
-        "Kamera sudah dimatikan. Klik Aktifkan Kamera sebelum melakukan absensi.",
+        "Kamera sudah dimatikan. Klik Aktifkan Kamera sebelum melakukan absensi."
       );
     }
   }
 
   function waitForVideoElement(): Promise<HTMLVideoElement> {
     return new Promise((resolve, reject) => {
-      const startedAt = Date.now();
+      const startTime = Date.now();
 
-      const tick = () => {
+      const checkVideo = () => {
+        if (!mountedRef.current) {
+          reject(createAbortError("Halaman kamera sudah ditutup."));
+          return;
+        }
+
         if (videoRef.current) {
           resolve(videoRef.current);
           return;
         }
 
-        if (Date.now() - startedAt > 4000) {
+        if (Date.now() - startTime > 4000) {
           reject(
-            new Error(
-              "Element video belum siap. Refresh halaman lalu coba lagi.",
-            ),
+            new Error("Element video belum siap. Refresh halaman lalu coba lagi.")
           );
           return;
         }
 
-        window.requestAnimationFrame(tick);
+        window.requestAnimationFrame(checkVideo);
       };
 
-      tick();
+      checkVideo();
     });
   }
 
   function waitForCameraFrame(video: HTMLVideoElement): Promise<void> {
     return new Promise((resolve, reject) => {
-      const isReady = () =>
-        video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0;
+      const isReady = () => {
+        return (
+          video.readyState >= 2 &&
+          video.videoWidth > 0 &&
+          video.videoHeight > 0
+        );
+      };
 
       if (isReady()) {
         resolve();
@@ -128,6 +179,12 @@ export default function AttendancePage() {
       };
 
       const checkReady = () => {
+        if (!mountedRef.current) {
+          cleanup();
+          reject(createAbortError("Halaman kamera sudah ditutup."));
+          return;
+        }
+
         if (isReady()) {
           cleanup();
           resolve();
@@ -137,9 +194,7 @@ export default function AttendancePage() {
       const timeoutId = setTimeout(() => {
         cleanup();
         reject(
-          new Error(
-            "Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi.",
-          ),
+          new Error("Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi.")
         );
       }, 7000);
 
@@ -152,13 +207,13 @@ export default function AttendancePage() {
   }
 
   async function startCamera() {
-    if (cameraStarting) return;
+    if (startingRef.current) return;
 
     try {
-      setCameraStarting(true);
-      setCameraReady(false);
-      setStatusTitle("Starting Camera");
-      setStatusText("Mengaktifkan kamera...");
+      startingRef.current = true;
+      safeSetCameraReady(false);
+      safeSetCameraStarting(true);
+      safeSetStatus("Starting Camera", "Mengaktifkan kamera...");
 
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Browser tidak mendukung kamera.");
@@ -180,12 +235,13 @@ export default function AttendancePage() {
         audio: false,
       });
 
-      if (!videoRef.current) {
+      if (!mountedRef.current) {
         stream.getTracks().forEach((track) => track.stop());
-        throw new Error("Element video tidak ditemukan.");
+        return;
       }
 
       streamRef.current = stream;
+
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
@@ -193,23 +249,30 @@ export default function AttendancePage() {
       await video.play();
       await waitForCameraFrame(video);
 
-      setCameraReady(true);
-      setStatusTitle("Camera Ready");
-      setStatusText(
-        "Kamera sudah aktif. Kamu bisa melakukan check-in atau check-out.",
+      safeSetCameraReady(true);
+      safeSetCameraStarting(false);
+      safeSetStatus(
+        "Camera Ready",
+        "Kamera sudah aktif. Kamu bisa melakukan check-in atau check-out."
       );
     } catch (error) {
+      if (isCameraAbortError(error)) {
+        safeSetCameraStarting(false);
+        startingRef.current = false;
+        return;
+      }
+
       console.error("CAMERA_ERROR", error);
 
       releaseCamera(false, true);
-      setStatusTitle("Camera Permission Needed");
-      setStatusText(
+      safeSetStatus(
+        "Camera Permission Needed",
         error instanceof Error
           ? error.message
-          : "Aktifkan izin kamera di browser terlebih dahulu.",
+          : "Aktifkan izin kamera di browser terlebih dahulu."
       );
     } finally {
-      setCameraStarting(false);
+      startingRef.current = false;
     }
   }
 
@@ -237,33 +300,28 @@ export default function AttendancePage() {
     });
   }
 
-  function capturePhoto(): Promise<File> {
+  async function capturePhoto(): Promise<File> {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!video || !canvas || !streamRef.current) {
+      throw new Error("Kamera belum siap.");
+    }
+
+    await waitForCameraFrame(video);
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Canvas tidak tersedia.");
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
     return new Promise((resolve, reject) => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-
-      if (!video || !canvas || !streamRef.current) {
-        reject(new Error("Kamera belum siap."));
-        return;
-      }
-
-      if (!video.videoWidth || !video.videoHeight) {
-        reject(new Error("Kamera belum memuat gambar."));
-        return;
-      }
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      const context = canvas.getContext("2d");
-
-      if (!context) {
-        reject(new Error("Canvas tidak tersedia."));
-        return;
-      }
-
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -271,21 +329,22 @@ export default function AttendancePage() {
             return;
           }
 
-          if (lastPhotoUrl) {
-            URL.revokeObjectURL(lastPhotoUrl);
+          if (lastPhotoUrlRef.current) {
+            URL.revokeObjectURL(lastPhotoUrlRef.current);
           }
 
           const previewUrl = URL.createObjectURL(blob);
+          lastPhotoUrlRef.current = previewUrl;
           setLastPhotoUrl(previewUrl);
 
-          resolve(
-            new File([blob], `attendance-${Date.now()}.jpg`, {
-              type: "image/jpeg",
-            }),
-          );
+          const file = new File([blob], `attendance-${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
+
+          resolve(file);
         },
         "image/jpeg",
-        0.9,
+        0.9
       );
     });
   }
@@ -293,6 +352,7 @@ export default function AttendancePage() {
   async function handleAttendance(action: AttendanceAction) {
     try {
       setLoading(true);
+      setActiveAction(action);
       setStatusTitle("Processing");
       setStatusText("Menyiapkan kamera, mengambil foto, dan lokasi GPS...");
 
@@ -324,7 +384,6 @@ export default function AttendancePage() {
       formData.append("latitude", String(latitude));
       formData.append("longitude", String(longitude));
       formData.append("accuracy", String(accuracy));
-      formData.append("workMode", workMode);
 
       if (action === "check-in") {
         formData.append("checkInLatitude", String(latitude));
@@ -343,22 +402,31 @@ export default function AttendancePage() {
         body: formData,
       });
 
-      const data = await response
-        .json()
-        .catch(() => ({}) as Record<string, string>);
+      const data = await response.json();
 
       if (!response.ok) {
-        const message = data.error || data.message || "Absensi gagal.";
         setStatusTitle("Attendance Failed");
-        setStatusText(message);
-        alert(message);
+        setStatusText(data.error || data.message || "Absensi gagal.");
+        alert(data.error || data.message || "Absensi gagal.");
         return;
       }
 
-      const message = data.message || "Absensi berhasil.";
+      const officeName = data.office?.name;
+      const distance = data.office?.distance;
+      const radius = data.office?.radius;
+
       setStatusTitle("Attendance Success");
-      setStatusText(`${message} Akurasi GPS ±${Math.round(accuracy)} meter.`);
-      alert(message);
+      setStatusText(
+        officeName
+          ? `${data.message} Lokasi valid di ${officeName}. Jarak ${distance} meter dari kantor, radius ${radius} meter. Akurasi GPS ±${Math.round(
+              accuracy
+            )} meter.`
+          : `${data.message || "Absensi berhasil."} Akurasi GPS ±${Math.round(
+              accuracy
+            )} meter.`
+      );
+
+      alert(data.message || "Absensi berhasil.");
     } catch (error) {
       console.error("ATTENDANCE_ERROR", error);
 
@@ -372,8 +440,12 @@ export default function AttendancePage() {
       alert(message);
     } finally {
       setLoading(false);
+      setActiveAction(null);
     }
   }
+
+  const checkInProcessing = loading && activeAction === "check-in";
+  const checkOutProcessing = loading && activeAction === "check-out";
 
   return (
     <MobileShell variant="employee" withBottomPadding={false}>
@@ -386,7 +458,7 @@ export default function AttendancePage() {
         />
       </div>
 
-      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-28 text-slate-950">
+      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-40 text-slate-950 md:pb-28">
         <section className="mx-auto max-w-7xl px-5 pt-7 md:hidden">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -398,9 +470,6 @@ export default function AttendancePage() {
                 Face Attendance
               </h1>
 
-              <p className="mt-2 text-sm font-bold text-slate-500">
-                Pastikan wajah terlihat jelas dan GPS aktif.
-              </p>
             </div>
 
             <div
@@ -415,7 +484,7 @@ export default function AttendancePage() {
               {cameraStarting ? (
                 <Loader2 size={23} className="animate-spin" />
               ) : (
-                <ShieldCheck size={24} strokeWidth={2.5} />
+                <ScanFace size={24} strokeWidth={2.5} />
               )}
             </div>
           </div>
@@ -494,12 +563,13 @@ export default function AttendancePage() {
                 />
 
                 <div className="pointer-events-none absolute inset-5 rounded-[1.4rem] border border-white/15 md:inset-6" />
+
                 <div className="pointer-events-none absolute left-6 top-6 h-11 w-11 rounded-tl-3xl border-l-4 border-t-4 border-blue-300 md:left-7 md:top-7 md:h-12 md:w-12" />
                 <div className="pointer-events-none absolute right-6 top-6 h-11 w-11 rounded-tr-3xl border-r-4 border-t-4 border-blue-300 md:right-7 md:top-7 md:h-12 md:w-12" />
                 <div className="pointer-events-none absolute bottom-6 left-6 h-11 w-11 rounded-bl-3xl border-b-4 border-l-4 border-blue-300 md:bottom-7 md:left-7 md:h-12 md:w-12" />
                 <div className="pointer-events-none absolute bottom-6 right-6 h-11 w-11 rounded-br-3xl border-b-4 border-r-4 border-blue-300 md:bottom-7 md:right-7 md:h-12 md:w-12" />
 
-                <div className="absolute left-4 top-4 rounded-full bg-slate-950/50 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur-md md:hidden">
+                <div className="absolute left-4 top-4 z-20 rounded-full bg-slate-950/50 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur-md md:left-5 md:top-5 md:text-xs">
                   {cameraReady
                     ? "Camera Active"
                     : cameraStarting
@@ -507,8 +577,42 @@ export default function AttendancePage() {
                       : "Camera Off"}
                 </div>
 
+                <div className="absolute bottom-4 left-4 right-4 z-30 grid grid-cols-2 gap-3 md:bottom-5 md:left-5 md:right-5">
+                  <button
+                    type="button"
+                    onClick={toggleCamera}
+                    disabled={loading || cameraStarting}
+                    className={`flex h-12 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-black shadow-xl backdrop-blur-md transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 md:h-13 md:text-sm ${
+                      cameraReady
+                        ? "bg-red-500/95 text-white"
+                        : "bg-white/95 text-[#123c8c]"
+                    }`}
+                  >
+                    {cameraStarting ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <Power size={17} />
+                    )}
+                    {cameraReady ? "Matikan" : "Aktifkan"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    disabled={loading || cameraStarting}
+                    className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/95 px-3 text-xs font-black text-[#123c8c] shadow-xl backdrop-blur-md transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 md:h-13 md:text-sm"
+                  >
+                    {cameraStarting ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <RotateCcw size={17} />
+                    )}
+                    Restart
+                  </button>
+                </div>
+
                 {!cameraReady && (
-                  <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-white">
+                  <div className="absolute inset-0 flex items-center justify-center px-6 pb-20 text-center text-white md:pb-24">
                     <div>
                       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl">
                         {cameraStarting ? (
@@ -525,7 +629,7 @@ export default function AttendancePage() {
                       <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
                         {cameraStarting
                           ? "Mohon tunggu sampai kamera memuat gambar."
-                          : "Kamera sedang mati. Klik tombol aktifkan kamera."}
+                          : "Kamera sedang mati. Klik Aktifkan Kamera di area kamera."}
                       </p>
                     </div>
                   </div>
@@ -535,101 +639,59 @@ export default function AttendancePage() {
 
             <canvas ref={canvasRef} className="hidden" />
 
-            <div className="mt-4">
-              <label className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
-                Mode Kerja
-              </label>
-              <select
-                value={workMode}
-                onChange={(event) => setWorkMode(event.target.value)}
-                className="mt-2 h-13 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="office">WFO / Kantor</option>
-                <option value="wfh">WFH</option>
-                <option value="visit">Kunjungan</option>
-                <option value="flexible">Shift Fleksibel</option>
-              </select>
-            </div>
-
-            {workMode === "visit" && (
-              <div className="mt-3 rounded-2xl border border-blue-100 bg-[#f4f7ff] p-4 text-xs font-semibold text-blue-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <span className="leading-relaxed">Ingin mengirim detail & foto bukti kunjungan lapangan?</span>
-                <Link
-                  href="/attendance/visit"
-                  className="shrink-0 rounded-xl bg-[#123c8c] px-3.5 py-2 font-black text-white hover:bg-[#0f3275] transition active:scale-[0.97]"
-                >
-                  Kirim Bukti Kunjungan
-                </Link>
-              </div>
-            )}
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3">
               <button
                 disabled={loading || cameraStarting}
-                onClick={() => void handleAttendance("check-in")}
-                className="flex h-14 items-center justify-center rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white shadow-lg shadow-blue-900/25 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:h-16 md:text-base"
+                onClick={() => handleAttendance("check-in")}
+                className="flex min-h-[92px] items-center justify-center rounded-[1.7rem] bg-[#123c8c] px-5 text-white shadow-xl shadow-blue-900/25 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[70px] md:rounded-2xl"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Processing..." : "Check-in"}
+                <span className="flex w-full items-center justify-center gap-3">
+                  {checkInProcessing ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 md:h-10 md:w-10">
+                      <LogIn size={23} />
+                    </span>
+                  )}
+
+                  <span className="text-left">
+                    <span className="block text-[11px] font-black uppercase tracking-[0.22em] text-blue-100">
+                      Masuk
+                    </span>
+                    <span className="block text-xl font-black md:text-lg">
+                      {checkInProcessing ? "Processing..." : "Check-in"}
+                    </span>
+                  </span>
                 </span>
               </button>
 
               <button
                 disabled={loading || cameraStarting}
-                onClick={() => void handleAttendance("check-out")}
-                className="flex h-14 items-center justify-center rounded-2xl border border-blue-200 bg-[#f8fbff] px-5 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:h-16 md:text-base"
+                onClick={() => handleAttendance("check-out")}
+                className="flex min-h-[92px] items-center justify-center rounded-[1.7rem] border border-blue-200 bg-white px-5 text-[#123c8c] shadow-xl shadow-slate-200/70 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[70px] md:rounded-2xl md:bg-[#f8fbff]"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Processing..." : "Check-out"}
+                <span className="flex w-full items-center justify-center gap-3">
+                  {checkOutProcessing ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 md:h-10 md:w-10">
+                      <LogOut size={23} />
+                    </span>
+                  )}
+
+                  <span className="text-left">
+                    <span className="block text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      Keluar
+                    </span>
+                    <span className="block text-xl font-black md:text-lg">
+                      {checkOutProcessing ? "Processing..." : "Check-out"}
+                    </span>
+                  </span>
                 </span>
               </button>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => void toggleCamera()}
-                type="button"
-                disabled={loading || cameraStarting}
-                className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-xs font-black text-[#123c8c] shadow-sm transition hover:bg-[#f8fbff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Power size={17} />
-                  {cameraReady ? "Matikan" : "Aktifkan"}
-                </span>
-              </button>
-
-              <button
-                onClick={() => void startCamera()}
-                type="button"
-                disabled={loading || cameraStarting}
-                className="rounded-2xl bg-[#eaf1ff] px-4 py-3 text-xs font-black text-[#123c8c] shadow-sm transition hover:bg-[#dceaff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <RotateCcw size={17} />
-                  Restart
-                </span>
-              </button>
-            </div>
-
-            <div className="mt-6 rounded-3xl border border-dashed border-blue-200 bg-blue-50/10 p-5 text-center">
-              <p className="text-sm font-semibold text-slate-500">
-                Memiliki agenda kunjungan kerja tambahan hari ini?
-              </p>
-              <Link
-                href="/attendance/visit"
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-white border border-blue-100 px-4 py-2.5 text-xs font-black text-[#123c8c] hover:bg-[#f6f9ff] hover:text-[#0f3275] shadow-sm transition active:scale-[0.98]"
-              >
-                Kirim Bukti Kunjungan Lapangan &rarr;
-              </Link>
-            </div>
-
-            {lastPhotoUrl ? (
+            {lastPhotoUrl && (
               <div className="mt-5 rounded-3xl border border-blue-100 bg-[#f6f8ff] p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <ImageUp size={18} className="text-[#123c8c]" />
@@ -644,7 +706,7 @@ export default function AttendancePage() {
                   className="h-36 w-36 rounded-2xl object-cover shadow-md"
                 />
               </div>
-            ) : null}
+            )}
           </div>
 
           <div className="space-y-5">
@@ -669,10 +731,6 @@ export default function AttendancePage() {
                   </div>
                 </div>
 
-                <p className="relative mt-5 text-sm leading-7 text-blue-100">
-                  Sistem akan menyimpan foto, waktu, koordinat GPS, dan akurasi
-                  GPS sebagai bukti check-in atau check-out.
-                </p>
               </div>
             </div>
 
@@ -703,6 +761,7 @@ export default function AttendancePage() {
                   <p className="mt-3 text-sm font-black text-slate-950">
                     Jam Kerja
                   </p>
+
                   <p className="mt-1 text-sm text-slate-500">08:00 - 17:00</p>
                 </div>
 
@@ -715,7 +774,6 @@ export default function AttendancePage() {
 
                   {lastLatitude && lastLongitude ? (
                     <div className="mt-1 space-y-1 text-sm text-slate-500">
-                      <p>Mode: {workMode === "office" ? "WFO" : workMode.toUpperCase()}</p>
                       <p>Lat: {lastLatitude.toFixed(6)}</p>
                       <p>Lng: {lastLongitude.toFixed(6)}</p>
                       <p>

@@ -452,12 +452,6 @@ export default function WorkSchedulesPage() {
                 <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
                   Daftar Jam Kerja
                 </h1>
-
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100">
-                  Atur hari kerja, jam masuk, dan jam pulang berdasarkan shift.
-                  Status aktif atau nonaktif mengikuti data dari halaman Daftar
-                  Shift.
-                </p>
               </div>
 
               <div className="grid w-full gap-3 rounded-3xl bg-white/10 p-3 backdrop-blur md:grid-cols-[1fr_auto_auto] lg:max-w-2xl">

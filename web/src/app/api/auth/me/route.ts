@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import {
@@ -7,7 +9,15 @@ import {
   updateDemoUserProfile,
 } from "@/lib/demoStore";
 
-export const runtime = "nodejs";
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET belum diatur di .env");
+  }
+
+  return new TextEncoder().encode(secret);
+}
 
 function isSchemaMigrationMissing(error: unknown) {
   const message = String(error || "").toLowerCase();
@@ -24,7 +34,7 @@ async function getUserIdFromRequest(req: NextRequest) {
   }
 
   const payload = await verifyToken(token);
-  return payload.id;
+  return payload ? payload.id : null;
 }
 
 function buildDemoUserPayload(
@@ -49,14 +59,80 @@ function isDemoUserId(userId: string) {
   return userId.includes("-DEMO-");
 }
 
-export async function GET(req: NextRequest) {
+async function getTokenFromCookie() {
+  const cookieStore = await cookies();
+
+  return (
+    cookieStore.get("token")?.value ||
+    cookieStore.get("auth_token")?.value ||
+    cookieStore.get("authToken")?.value ||
+    cookieStore.get("faceattend_token")?.value ||
+    ""
+  );
+}
+
+async function getUserIdFromToken() {
+  const token = await getTokenFromCookie();
+
+  if (!token) {
+    return null;
+  }
+
+  const { payload } = await jwtVerify(token, getJwtSecret());
+
+  const userId =
+    payload.id ||
+    payload.userId ||
+    payload.user_id ||
+    payload.sub ||
+    null;
+
+  if (!userId) {
+    return null;
+  }
+
+  return String(userId);
+}
+
+function serializeOffice(
+  office:
+    | {
+        id: string;
+        name: string;
+        address: string | null;
+        latitude: unknown;
+        longitude: unknown;
+        radius_meters: number;
+      }
+    | null
+    | undefined
+) {
+  if (!office) return null;
+
+  return {
+    id: office.id,
+    name: office.name,
+    address: office.address,
+    latitude: Number(office.latitude),
+    longitude: Number(office.longitude),
+    radius_meters: Number(office.radius_meters),
+  };
+}
+
+export async function GET() {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const userId = await getUserIdFromToken();
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, message: "Belum login" },
-        { status: 401 },
+        {
+          success: false,
+          message: "Unauthorized",
+          error: "Token tidak ditemukan atau tidak valid.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
@@ -119,10 +195,17 @@ export async function GET(req: NextRequest) {
                 check_in_time: true,
                 check_out_time: true,
               },
-              orderBy: {
-                day_of_week: "asc",
-              },
             },
+          },
+        },
+        registered_office: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            radius_meters: true,
           },
         },
       },
@@ -131,9 +214,13 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         {
+          success: false,
           message: "User tidak ditemukan.",
+          error: "User tidak ditemukan.",
         },
-        { status: 404 },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -158,19 +245,37 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      user,
+      success: true,
+      user: {
+        id: user.id,
+        employee_code: user.employee_code,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        status: user.status,
+        profile_photo: user.profile_photo,
+
+        unit: user.unit,
+        department: user.department,
+        position: user.position,
+        shift: user.shift,
+
+        registered_office: serializeOffice(user.registered_office),
+      },
     });
   } catch (error) {
-    console.error("GET /api/auth/me error:", error);
+    console.error("AUTH_ME_ERROR:", error);
 
     return NextResponse.json(
       {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengambil data user.",
+        success: false,
+        message: "Gagal mengambil data user.",
+        error: "Gagal mengambil data user.",
       },
-      { status: 401 },
+      {
+        status: 500,
+      }
     );
   }
 }
