@@ -2,19 +2,40 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createToken, verifyPassword } from "@/lib/auth";
 
+const ALLOWED_EMAIL_DOMAIN = "@creativemu.com";
+
+function isCreativemuEmail(email: string) {
+  return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
+}
+
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
-    if (!email || !password) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedPassword = String(password || "");
+
+    if (!normalizedEmail || !normalizedPassword) {
       return NextResponse.json(
         { success: false, message: "Email dan password wajib diisi" },
         { status: 400 }
       );
     }
 
+    if (!isCreativemuEmail(normalizedEmail)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Login hanya dapat menggunakan email resmi @creativemu.com.",
+        },
+        { status: 403 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: {
+        email: normalizedEmail,
+      },
     });
 
     if (!user) {
@@ -31,7 +52,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const isValidPassword = await verifyPassword(password, user.password_hash);
+    const isValidPassword = await verifyPassword(
+      normalizedPassword,
+      user.password_hash
+    );
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -71,7 +95,7 @@ export async function POST(req: Request) {
 
     return response;
   } catch (error) {
-    console.error(error);
+    console.error("LOGIN_ERROR:", error);
 
     return NextResponse.json(
       { success: false, message: "Terjadi kesalahan server" },
