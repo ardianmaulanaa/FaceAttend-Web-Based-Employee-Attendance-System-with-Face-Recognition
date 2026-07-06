@@ -184,6 +184,18 @@ export async function GET(req: NextRequest) {
             status: true,
           },
         },
+
+        registered_office: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            radius_meters: true,
+            status: true,
+          },
+        },
       },
       orderBy: {
         created_at: "desc",
@@ -256,12 +268,36 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const offices = await prisma.officeLocation.findMany({
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        radius_meters: true,
+        status: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
     return NextResponse.json({
       data: employees,
       units,
       departments,
       positions,
       shifts,
+      offices: offices.map((office) => ({
+        id: office.id,
+        name: office.name,
+        address: office.address,
+        latitude: Number(office.latitude),
+        longitude: Number(office.longitude),
+        radius_meters: Number(office.radius_meters),
+        status: office.status,
+      })),
     });
   } catch (error) {
     console.error("GET /api/employees error:", error);
@@ -306,6 +342,7 @@ export async function POST(req: NextRequest) {
     const departmentId = String(body.department_id || "").trim();
     const positionId = String(body.position_id || "").trim();
     const shiftId = String(body.shift_id || "").trim();
+    const registeredOfficeId = String(body.registered_office_id || "").trim();
     const status = String(body.status || "active");
 
     if (
@@ -315,12 +352,13 @@ export async function POST(req: NextRequest) {
       !unitId ||
       !departmentId ||
       !positionId ||
-      !shiftId
+      !shiftId ||
+      !registeredOfficeId
     ) {
       return NextResponse.json(
         {
           message:
-            "Nama, email, password, unit, divisi, jabatan, dan shift wajib diisi.",
+            "Nama, email, password, unit, divisi, jabatan, shift, dan kantor terdaftar wajib diisi.",
         },
         { status: 400 },
       );
@@ -458,6 +496,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const office = await prisma.officeLocation.findUnique({
+      where: {
+        id: registeredOfficeId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!office || office.status !== "active") {
+      return NextResponse.json(
+        {
+          message: "Kantor terdaftar tidak ditemukan atau tidak aktif.",
+        },
+        { status: 404 },
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
     const employee = await prisma.user.create({
@@ -472,6 +529,7 @@ export async function POST(req: NextRequest) {
         department_id: departmentId,
         position_id: positionId,
         shift_id: shiftId,
+        registered_office_id: registeredOfficeId,
       },
       select: {
         id: true,
@@ -517,6 +575,18 @@ export async function POST(req: NextRequest) {
             id: true,
             name: true,
             tolerance_minutes: true,
+            status: true,
+          },
+        },
+
+        registered_office: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            radius_meters: true,
             status: true,
           },
         },
@@ -570,6 +640,7 @@ export async function PATCH(req: NextRequest) {
     const departmentId = String(body.department_id || "").trim();
     const positionId = String(body.position_id || "").trim();
     const shiftId = String(body.shift_id || "").trim();
+    const registeredOfficeId = String(body.registered_office_id || "").trim();
     const status = String(body.status || "active");
 
     if (!id) {
@@ -581,10 +652,18 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    if (!name || !email || !unitId || !departmentId || !positionId || !shiftId) {
+    if (
+      !name ||
+      !email ||
+      !unitId ||
+      !departmentId ||
+      !positionId ||
+      !shiftId ||
+      !registeredOfficeId
+    ) {
       return NextResponse.json(
         {
-          message: "Nama, email, unit, divisi, jabatan, dan shift wajib diisi.",
+          message: "Nama, email, unit, divisi, jabatan, shift, dan kantor terdaftar wajib diisi.",
         },
         { status: 400 },
       );
@@ -744,6 +823,25 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const office = await prisma.officeLocation.findUnique({
+      where: {
+        id: registeredOfficeId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!office || office.status !== "active") {
+      return NextResponse.json(
+        {
+          message: "Kantor terdaftar tidak ditemukan atau tidak aktif.",
+        },
+        { status: 404 },
+      );
+    }
+
     const updatedEmployee = await prisma.user.update({
       where: {
         id,
@@ -756,6 +854,7 @@ export async function PATCH(req: NextRequest) {
         department_id: departmentId,
         position_id: positionId,
         shift_id: shiftId,
+        registered_office_id: registeredOfficeId,
       },
       select: {
         id: true,
@@ -801,6 +900,18 @@ export async function PATCH(req: NextRequest) {
             id: true,
             name: true,
             tolerance_minutes: true,
+            status: true,
+          },
+        },
+
+        registered_office: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            radius_meters: true,
             status: true,
           },
         },

@@ -1,83 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 
-export const runtime = "nodejs";
+function getLeaveTypeLabel(type: string | null | undefined) {
+  const normalized = String(type || "").toLowerCase();
 
-async function getUserIdFromRequest(req: NextRequest) {
-  const token = req.cookies.get("faceattend_token")?.value;
+  if (normalized === "annual") return "Cuti Tahunan";
+  if (normalized === "permission") return "Izin";
+  if (normalized === "sick") return "Sakit";
+  if (normalized === "other") return "Lainnya";
 
-  if (!token) {
-    throw new Error("Token login tidak ditemukan.");
-  }
-
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET belum ada di file .env");
-  }
-
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-  const { payload } = await jwtVerify(token, secret);
-
-  const userId =
-    (payload.id as string | undefined) ||
-    (payload.userId as string | undefined) ||
-    (payload.sub as string | undefined);
-
-  if (!userId) {
-    throw new Error("User ID tidak ditemukan di token.");
-  }
-
-  return userId;
+  return type || "Cuti";
 }
 
-function toDateOnly(value: string) {
-  return new Date(`${value}T00:00:00.000Z`);
+function getStatusLabel(status: string | null | undefined) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (normalized === "approved") return "Disetujui";
+  if (normalized === "rejected") return "Ditolak";
+  if (normalized === "pending") return "Menunggu";
+
+  return status || "Menunggu";
 }
 
-function countTotalDays(startDate: Date, endDate: Date) {
-  const oneDay = 1000 * 60 * 60 * 24;
-  const diff = endDate.getTime() - startDate.getTime();
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "-";
 
-  return Math.floor(diff / oneDay) + 1;
-}
+  const date = value instanceof Date ? value : new Date(value);
 
-function formatDate(date: Date) {
+  if (Number.isNaN(date.getTime())) return "-";
+
   return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Jakarta",
   }).format(date);
 }
 
-function formatLeaveType(type: string) {
-  if (type === "annual") return "Cuti Tahunan";
-  if (type === "permission") return "Izin";
-  if (type === "sick") return "Sakit";
-  if (type === "other") return "Lainnya";
+function toIsoDate(value: Date | string | null | undefined) {
+  if (!value) return null;
 
-  return type;
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toISOString();
 }
 
-function formatStatus(status: string) {
-  if (status === "pending") return "Menunggu";
-  if (status === "approved") return "Disetujui";
-  if (status === "rejected") return "Ditolak";
+function normalizeStatus(value: unknown) {
+  const status = String(value || "").trim().toLowerCase();
 
-  return status;
+  if (status === "approved") return "approved";
+  if (status === "rejected") return "rejected";
+  if (status === "pending") return "pending";
+
+  return "";
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const userId = await getUserIdFromRequest(req);
-
     const requests = await prisma.leaveRequest.findMany({
-      where: {
-        user_id: userId,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
       select: {
         id: true,
         leave_type: true,
@@ -88,6 +70,26 @@ export async function GET(req: NextRequest) {
         status: true,
         admin_note: true,
         created_at: true,
+        user: {
+          select: {
+            id: true,
+            employee_code: true,
+            name: true,
+            department: {
+              select: {
+                name: true,
+              },
+            },
+            position: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        created_at: "desc",
       },
     });
 
@@ -95,113 +97,129 @@ export async function GET(req: NextRequest) {
       success: true,
       requests: requests.map((item) => ({
         id: item.id,
+        employeeName: item.user?.name || "-",
+        employeeCode: item.user?.employee_code || null,
+        employeePosition: item.user?.position?.name || null,
+        employeeDepartment: item.user?.department?.name || null,
         leaveType: item.leave_type,
-        leaveTypeLabel: formatLeaveType(item.leave_type),
+        leaveTypeLabel: getLeaveTypeLabel(item.leave_type),
         startDate: formatDate(item.start_date),
         endDate: formatDate(item.end_date),
-        totalDays: item.total_days,
+        startDateRaw: toIsoDate(item.start_date),
+        endDateRaw: toIsoDate(item.end_date),
+        totalDays: Number(item.total_days || 0),
         reason: item.reason,
         status: item.status,
-        statusLabel: formatStatus(item.status),
-        adminNote: item.admin_note,
-        createdAt: formatDate(item.created_at),
+        statusLabel: getStatusLabel(item.status),
+        adminNote: item.admin_note || null,
+        createdAt: toIsoDate(item.created_at),
       })),
     });
   } catch (error) {
-    console.error("GET_LEAVE_REQUESTS_ERROR:", error);
+    console.error("GET_ADMIN_LEAVE_REQUESTS_ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengambil data pengajuan cuti.",
+        message: "Gagal mengambil laporan cuti.",
+        requests: [],
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(req);
-
     const body = await req.json();
 
-    const leaveType = String(body.leaveType || "").trim();
-    const startDateRaw = String(body.startDate || "").trim();
-    const endDateRaw = String(body.endDate || "").trim();
-    const reason = String(body.reason || "").trim();
+    const id = String(body.id || "").trim();
+    const status = normalizeStatus(body.status);
+    const adminNote = String(body.adminNote || "").trim();
 
-    if (!leaveType || !startDateRaw || !endDateRaw || !reason) {
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Jenis cuti, tanggal mulai, tanggal selesai, dan alasan wajib diisi.",
+          message: "ID pengajuan cuti wajib dikirim.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const startDate = toDateOnly(startDateRaw);
-    const endDate = toDateOnly(endDateRaw);
-
-    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    if (!status || status === "pending") {
       return NextResponse.json(
         {
           success: false,
-          error: "Format tanggal tidak valid.",
+          message: "Status hanya boleh approved atau rejected.",
         },
-        { status: 400 }
-      );
-    }
-
-    if (endDate < startDate) {
-      return NextResponse.json(
         {
-          success: false,
-          error: "Tanggal selesai tidak boleh lebih awal dari tanggal mulai.",
-        },
-        { status: 400 }
+          status: 400,
+        }
       );
     }
 
-    const totalDays = countTotalDays(startDate, endDate);
-
-    const leaveRequest = await prisma.leaveRequest.create({
-      data: {
-        user_id: userId,
-        leave_type: leaveType,
-        start_date: startDate,
-        end_date: endDate,
-        total_days: totalDays,
-        reason,
-        status: "pending",
+    const existingRequest = await prisma.leaveRequest.findUnique({
+      where: {
+        id,
       },
       select: {
         id: true,
+        status: true,
+      },
+    });
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Pengajuan cuti tidak ditemukan.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const updatedRequest = await prisma.leaveRequest.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+        admin_note:
+          adminNote ||
+          (status === "approved"
+            ? "Pengajuan cuti disetujui oleh admin."
+            : "Pengajuan cuti ditolak oleh admin."),
+      },
+      select: {
+        id: true,
+        status: true,
+        admin_note: true,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Pengajuan cuti berhasil dikirim.",
-      request: leaveRequest,
+      message: "Status pengajuan cuti berhasil diperbarui.",
+      request: updatedRequest,
     });
   } catch (error) {
-    console.error("CREATE_LEAVE_REQUEST_ERROR:", error);
+    console.error("PATCH_ADMIN_LEAVE_REQUESTS_ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Gagal membuat pengajuan cuti.",
+        message: "Gagal memperbarui status pengajuan cuti.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

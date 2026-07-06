@@ -310,9 +310,6 @@ export default function ShiftsPage() {
                 DAFTAR SHIFT
               </h1>
 
-              <p className="mt-3 text-sm font-black text-slate-500">
-                Beranda / Manajemen Shift / Daftar Shift
-              </p>
             </div>
 
             <div className="w-full md:w-72">
@@ -334,17 +331,7 @@ export default function ShiftsPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-3xl border border-blue-100 bg-[#f8fbff] p-5">
-            <p className="text-sm font-black text-[#123c8c]">Catatan Shift</p>
-
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-              Nama shift dibuat tetap agar tidak merusak relasi jadwal kerja.
-              Yang bisa diubah hanya toleransi telat dan status aktif/nonaktif.
-              Jika status dibuat nonaktif, shift tersebut sebaiknya tidak
-              digunakan untuk karyawan baru.
-            </p>
-          </div>
-
+      
           <div className="mt-8">
             <label className="text-sm font-black text-slate-500">
               Nama Shift

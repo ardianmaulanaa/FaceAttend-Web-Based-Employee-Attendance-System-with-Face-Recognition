@@ -9,6 +9,7 @@ import {
   Edit,
   KeyRound,
   Mail,
+  MapPin,
   Network,
   Plus,
   RefreshCw,
@@ -82,10 +83,30 @@ type ShiftOption = {
   tolerance_minutes: number;
 };
 
+type OfficeOption = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  status: string;
+};
+
 type ShiftRelation = {
   id: string;
   name: string;
   tolerance_minutes?: number;
+  status?: string;
+} | null;
+
+type OfficeRelation = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude?: number;
+  longitude?: number;
+  radius_meters?: number;
   status?: string;
 } | null;
 
@@ -99,6 +120,7 @@ type Employee = {
   department: DepartmentRelation;
   position: PositionRelation;
   shift: ShiftRelation;
+  registered_office: OfficeRelation;
   phone: string | null;
   status: "active" | "inactive";
   created_at: string;
@@ -111,6 +133,7 @@ type EmployeeForm = {
   department_id: string;
   position_id: string;
   shift_id: string;
+  registered_office_id: string;
   temporaryPassword: string;
   status: "active" | "inactive";
 };
@@ -122,6 +145,7 @@ const initialForm: EmployeeForm = {
   department_id: "",
   position_id: "",
   shift_id: "",
+  registered_office_id: "",
   temporaryPassword: "",
   status: "active",
 };
@@ -141,7 +165,7 @@ function formatStatus(status: "active" | "inactive") {
 }
 
 function getRelationName(
-  item: RelationItem | DepartmentRelation | PositionRelation | ShiftRelation,
+  item: RelationItem | DepartmentRelation | PositionRelation | ShiftRelation | OfficeRelation,
 ) {
   return item?.name || "-";
 }
@@ -162,6 +186,7 @@ export default function AdminEmployeesPage() {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   const [shifts, setShifts] = useState<ShiftOption[]>([]);
+  const [offices, setOffices] = useState<OfficeOption[]>([]);
 
   const [keyword, setKeyword] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -193,6 +218,7 @@ export default function AdminEmployeesPage() {
       setDepartments(result.departments || []);
       setPositions(result.positions || []);
       setShifts(result.shifts || []);
+      setOffices(result.offices || []);
     } catch (error) {
       console.error("LOAD_EMPLOYEES_ERROR:", error);
       alert("Terjadi kesalahan saat mengambil data karyawan.");
@@ -234,6 +260,10 @@ export default function AdminEmployeesPage() {
     return shifts.filter((shift) => shift.status === "active");
   }, [shifts]);
 
+  const activeOffices = useMemo(() => {
+    return offices.filter((office) => office.status === "active");
+  }, [offices]);
+
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
       const text = `
@@ -244,6 +274,8 @@ export default function AdminEmployeesPage() {
         ${employee.department?.name || ""}
         ${employee.position?.name || ""}
         ${employee.shift?.name || ""}
+        ${employee.registered_office?.name || ""}
+        ${employee.registered_office?.address || ""}
         ${employee.status}
       `.toLowerCase();
 
@@ -278,6 +310,7 @@ export default function AdminEmployeesPage() {
       department_id: departmentId,
       position_id: positionId,
       shift_id: employee.shift?.id || "",
+      registered_office_id: employee.registered_office?.id || "",
       temporaryPassword: "",
       status: employee.status,
     });
@@ -301,9 +334,10 @@ export default function AdminEmployeesPage() {
       !form.unit_id ||
       !form.department_id ||
       !form.position_id ||
-      !form.shift_id
+      !form.shift_id ||
+      !form.registered_office_id
     ) {
-      alert("Nama, email, unit, divisi, jabatan, dan shift wajib diisi.");
+      alert("Nama, email, unit, divisi, jabatan, shift, dan kantor terdaftar wajib diisi.");
       return;
     }
 
@@ -334,6 +368,7 @@ export default function AdminEmployeesPage() {
           department_id: form.department_id,
           position_id: form.position_id,
           shift_id: form.shift_id,
+          registered_office_id: form.registered_office_id,
           status: form.status,
         }),
       });
@@ -423,7 +458,7 @@ export default function AdminEmployeesPage() {
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-100">
                 Admin dapat menambahkan akun karyawan dengan alur Unit → Divisi
-                → Jabatan → Shift.
+                → Jabatan → Shift → Kantor.
               </p>
             </div>
 
@@ -538,13 +573,14 @@ export default function AdminEmployeesPage() {
           </div>
 
           <div className="mt-5 overflow-hidden rounded-3xl border border-blue-100">
-            <div className="hidden grid-cols-[1fr_1.05fr_0.7fr_0.7fr_0.75fr_0.65fr_0.6fr_0.9fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
+            <div className="hidden grid-cols-[1fr_1.05fr_0.65fr_0.65fr_0.7fr_0.65fr_0.8fr_0.6fr_0.85fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
               <p>Employee</p>
               <p>Email</p>
               <p>Unit</p>
               <p>Divisi</p>
               <p>Jabatan</p>
               <p>Shift</p>
+              <p>Kantor</p>
               <p>Status</p>
               <p className="text-center">Aksi</p>
             </div>
@@ -562,7 +598,7 @@ export default function AdminEmployeesPage() {
                 filteredEmployees.map((employee) => (
                   <div
                     key={employee.id}
-                    className="grid gap-4 px-5 py-5 transition hover:bg-[#f8fbff] md:grid-cols-[1fr_1.05fr_0.7fr_0.7fr_0.75fr_0.65fr_0.6fr_0.9fr] md:items-center"
+                    className="grid gap-4 px-5 py-5 transition hover:bg-[#f8fbff] md:grid-cols-[1fr_1.05fr_0.65fr_0.65fr_0.7fr_0.65fr_0.8fr_0.6fr_0.85fr] md:items-center"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
@@ -598,6 +634,13 @@ export default function AdminEmployeesPage() {
                     <p className="text-sm font-semibold text-slate-600">
                       {getRelationName(employee.shift)}
                     </p>
+
+                    <div className="text-sm font-semibold text-slate-600">
+                      <p>{getRelationName(employee.registered_office)}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+                        {employee.registered_office?.address || "-"}
+                      </p>
+                    </div>
 
                     <div>
                       <span
@@ -667,8 +710,8 @@ export default function AdminEmployeesPage() {
 
                 <p className="mt-1 text-sm leading-6 text-slate-500">
                   {editingEmployee
-                    ? "Ubah data karyawan dengan alur unit, divisi, jabatan, shift, dan status."
-                    : "Pilih unit dulu, lalu divisi, lalu jabatan sesuai divisi yang dipilih."}
+                    ? "Ubah data karyawan dengan alur unit, divisi, jabatan, shift, kantor, dan status."
+                    : "Pilih unit dulu, lalu divisi, jabatan, shift, dan kantor terdaftar."}
                 </p>
               </div>
 
@@ -729,7 +772,7 @@ export default function AdminEmployeesPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-5">
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-700">
                     Unit
@@ -858,6 +901,35 @@ export default function AdminEmployeesPage() {
                     </select>
                   </div>
                 </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Kantor
+                  </label>
+                  <div className="relative">
+                    <MapPin
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.registered_office_id}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          registered_office_id: event.target.value,
+                        }))
+                      }
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                    >
+                      <option value="">Pilih Kantor</option>
+                      {activeOffices.map((office) => (
+                        <option key={office.id} value={office.id}>
+                          {office.name} - {office.address || "Tanpa alamat"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -912,10 +984,9 @@ export default function AdminEmployeesPage() {
                   Catatan Employee
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Jabatan akan muncul setelah memilih divisi. Contoh: Divisi{" "}
-                  <span className="font-black">Finance</span> hanya menampilkan
-                  jabatan seperti <span className="font-black">Akuntansi</span>{" "}
-                  atau <span className="font-black">Staff Pajak</span>.
+                  Kantor terdaftar dipakai untuk validasi radius GPS absensi.
+                  Setelah disimpan, kantor dan alamat kantor akan tampil di
+                  halaman detail personal karyawan.
                 </p>
               </div>
 

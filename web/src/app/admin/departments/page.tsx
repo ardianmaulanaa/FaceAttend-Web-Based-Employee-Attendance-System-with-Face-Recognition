@@ -307,10 +307,6 @@ export default function DepartmentsPage() {
                   Daftar Divisi
                 </h1>
 
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100">
-                  Divisi digunakan untuk mengelompokkan karyawan berdasarkan
-                  bagian kerja di dalam unit perusahaan.
-                </p>
               </div>
 
               <button

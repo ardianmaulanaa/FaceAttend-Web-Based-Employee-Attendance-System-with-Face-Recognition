@@ -15,11 +15,8 @@ export default function MobileShell({
     admin: "min-h-dvh w-full overflow-x-hidden bg-[#f6f8ff] text-slate-950",
   };
 
-  const paddingClass = withBottomPadding
-    ? variant === "admin"
-      ? "pb-28 md:pb-8"
-      : "pb-28 md:pb-8"
-    : "";
+  const paddingClass =
+    withBottomPadding && variant !== "admin" ? "pb-28 md:pb-8" : "";
 
   return (
     <main className={shellClass[variant]}>

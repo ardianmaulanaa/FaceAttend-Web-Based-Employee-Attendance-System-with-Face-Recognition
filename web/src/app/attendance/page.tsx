@@ -7,6 +7,8 @@ import {
   Clock3,
   ImageUp,
   Loader2,
+  LogIn,
+  LogOut,
   MapPin,
   Power,
   RotateCcw,
@@ -40,6 +42,9 @@ export default function AttendancePage() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<AttendanceAction | null>(
+    null
+  );
   const [lastPhotoUrl, setLastPhotoUrl] = useState<string | null>(null);
 
   const [lastLatitude, setLastLatitude] = useState<number | null>(null);
@@ -131,7 +136,9 @@ export default function AttendancePage() {
         }
 
         if (Date.now() - startTime > 4000) {
-          reject(new Error("Element video belum siap. Refresh halaman lalu coba lagi."));
+          reject(
+            new Error("Element video belum siap. Refresh halaman lalu coba lagi.")
+          );
           return;
         }
 
@@ -187,9 +194,7 @@ export default function AttendancePage() {
       const timeoutId = setTimeout(() => {
         cleanup();
         reject(
-          new Error(
-            "Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi."
-          )
+          new Error("Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi.")
         );
       }, 7000);
 
@@ -347,6 +352,7 @@ export default function AttendancePage() {
   async function handleAttendance(action: AttendanceAction) {
     try {
       setLoading(true);
+      setActiveAction(action);
       setStatusTitle("Processing");
       setStatusText("Menyiapkan kamera, mengambil foto, dan lokasi GPS...");
 
@@ -434,8 +440,12 @@ export default function AttendancePage() {
       alert(message);
     } finally {
       setLoading(false);
+      setActiveAction(null);
     }
   }
+
+  const checkInProcessing = loading && activeAction === "check-in";
+  const checkOutProcessing = loading && activeAction === "check-out";
 
   return (
     <MobileShell variant="employee" withBottomPadding={false}>
@@ -448,7 +458,7 @@ export default function AttendancePage() {
         />
       </div>
 
-      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-28 text-slate-950">
+      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-40 text-slate-950 md:pb-28">
         <section className="mx-auto max-w-7xl px-5 pt-7 md:hidden">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -460,9 +470,6 @@ export default function AttendancePage() {
                 Face Attendance
               </h1>
 
-              <p className="mt-2 text-sm font-bold text-slate-500">
-                Pastikan wajah terlihat jelas dan GPS aktif.
-              </p>
             </div>
 
             <div
@@ -562,7 +569,7 @@ export default function AttendancePage() {
                 <div className="pointer-events-none absolute bottom-6 left-6 h-11 w-11 rounded-bl-3xl border-b-4 border-l-4 border-blue-300 md:bottom-7 md:left-7 md:h-12 md:w-12" />
                 <div className="pointer-events-none absolute bottom-6 right-6 h-11 w-11 rounded-br-3xl border-b-4 border-r-4 border-blue-300 md:bottom-7 md:right-7 md:h-12 md:w-12" />
 
-                <div className="absolute left-4 top-4 rounded-full bg-slate-950/50 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur-md md:hidden">
+                <div className="absolute left-4 top-4 z-20 rounded-full bg-slate-950/50 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur-md md:left-5 md:top-5 md:text-xs">
                   {cameraReady
                     ? "Camera Active"
                     : cameraStarting
@@ -570,8 +577,42 @@ export default function AttendancePage() {
                       : "Camera Off"}
                 </div>
 
+                <div className="absolute bottom-4 left-4 right-4 z-30 grid grid-cols-2 gap-3 md:bottom-5 md:left-5 md:right-5">
+                  <button
+                    type="button"
+                    onClick={toggleCamera}
+                    disabled={loading || cameraStarting}
+                    className={`flex h-12 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-black shadow-xl backdrop-blur-md transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 md:h-13 md:text-sm ${
+                      cameraReady
+                        ? "bg-red-500/95 text-white"
+                        : "bg-white/95 text-[#123c8c]"
+                    }`}
+                  >
+                    {cameraStarting ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <Power size={17} />
+                    )}
+                    {cameraReady ? "Matikan" : "Aktifkan"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    disabled={loading || cameraStarting}
+                    className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/95 px-3 text-xs font-black text-[#123c8c] shadow-xl backdrop-blur-md transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 md:h-13 md:text-sm"
+                  >
+                    {cameraStarting ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <RotateCcw size={17} />
+                    )}
+                    Restart
+                  </button>
+                </div>
+
                 {!cameraReady && (
-                  <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-white">
+                  <div className="absolute inset-0 flex items-center justify-center px-6 pb-20 text-center text-white md:pb-24">
                     <div>
                       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl">
                         {cameraStarting ? (
@@ -588,7 +629,7 @@ export default function AttendancePage() {
                       <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
                         {cameraStarting
                           ? "Mohon tunggu sampai kamera memuat gambar."
-                          : "Kamera sedang mati. Klik tombol aktifkan kamera."}
+                          : "Kamera sedang mati. Klik Aktifkan Kamera di area kamera."}
                       </p>
                     </div>
                   </div>
@@ -598,56 +639,54 @@ export default function AttendancePage() {
 
             <canvas ref={canvasRef} className="hidden" />
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3">
               <button
                 disabled={loading || cameraStarting}
                 onClick={() => handleAttendance("check-in")}
-                className="flex h-14 items-center justify-center rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white shadow-lg shadow-blue-900/25 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:h-16 md:text-base"
+                className="flex min-h-[92px] items-center justify-center rounded-[1.7rem] bg-[#123c8c] px-5 text-white shadow-xl shadow-blue-900/25 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[70px] md:rounded-2xl"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Processing..." : "Check-in"}
+                <span className="flex w-full items-center justify-center gap-3">
+                  {checkInProcessing ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 md:h-10 md:w-10">
+                      <LogIn size={23} />
+                    </span>
+                  )}
+
+                  <span className="text-left">
+                    <span className="block text-[11px] font-black uppercase tracking-[0.22em] text-blue-100">
+                      Masuk
+                    </span>
+                    <span className="block text-xl font-black md:text-lg">
+                      {checkInProcessing ? "Processing..." : "Check-in"}
+                    </span>
+                  </span>
                 </span>
               </button>
 
               <button
                 disabled={loading || cameraStarting}
                 onClick={() => handleAttendance("check-out")}
-                className="flex h-14 items-center justify-center rounded-2xl border border-blue-200 bg-[#f8fbff] px-5 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:h-16 md:text-base"
+                className="flex min-h-[92px] items-center justify-center rounded-[1.7rem] border border-blue-200 bg-white px-5 text-[#123c8c] shadow-xl shadow-slate-200/70 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[70px] md:rounded-2xl md:bg-[#f8fbff]"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Processing..." : "Check-out"}
-                </span>
-              </button>
-            </div>
+                <span className="flex w-full items-center justify-center gap-3">
+                  {checkOutProcessing ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 md:h-10 md:w-10">
+                      <LogOut size={23} />
+                    </span>
+                  )}
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <button
-                onClick={toggleCamera}
-                type="button"
-                disabled={loading || cameraStarting}
-                className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-xs font-black text-[#123c8c] shadow-sm transition hover:bg-[#f8fbff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Power size={17} />
-                  {cameraReady ? "Matikan" : "Aktifkan"}
-                </span>
-              </button>
-
-              <button
-                onClick={startCamera}
-                type="button"
-                disabled={loading || cameraStarting}
-                className="rounded-2xl bg-[#eaf1ff] px-4 py-3 text-xs font-black text-[#123c8c] shadow-sm transition hover:bg-[#dceaff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <RotateCcw size={17} />
-                  Restart
+                  <span className="text-left">
+                    <span className="block text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      Keluar
+                    </span>
+                    <span className="block text-xl font-black md:text-lg">
+                      {checkOutProcessing ? "Processing..." : "Check-out"}
+                    </span>
+                  </span>
                 </span>
               </button>
             </div>
@@ -692,10 +731,6 @@ export default function AttendancePage() {
                   </div>
                 </div>
 
-                <p className="relative mt-5 text-sm leading-7 text-blue-100">
-                  Sistem akan menyimpan foto, waktu, koordinat GPS, akurasi GPS,
-                  dan radius kantor sebagai bukti check-in atau check-out.
-                </p>
               </div>
             </div>
 

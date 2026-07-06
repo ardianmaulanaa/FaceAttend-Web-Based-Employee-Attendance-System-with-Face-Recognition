@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,13 +16,13 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Network,
   ScanFace,
   Settings,
   UserPlus,
   UserRound,
   UserRoundCog,
   X,
-  Network
 } from "lucide-react";
 
 type AppHeaderProps = {
@@ -94,15 +94,15 @@ const operationalMenus = [
     icon: UserPlus,
   },
   {
-  href: "/admin/cuti",
-  label: "Laporan Cuti",
-  icon: CalendarDays,
-},
+    href: "/admin/cuti",
+    label: "Laporan Cuti",
+    icon: CalendarDays,
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/history") {
-    return pathname === "/history";
+    return pathname === "/history" || pathname.startsWith("/history/");
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -116,13 +116,39 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const isAdmin = variant === "admin";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  const resolvedVariant = useMemo(() => {
+    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+      return "admin";
+    }
+
+    return variant;
+  }, [pathname, variant]);
+
+  const isAdmin = resolvedVariant === "admin";
 
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    function handleScroll() {
+      setHasScrolled(window.scrollY > 8);
+    }
+
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   function handleNavigate(href: string) {
     setIsSidebarOpen(false);
@@ -131,53 +157,61 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/90 px-5 py-4 shadow-sm shadow-slate-200/40 backdrop-blur-2xl md:px-10 lg:px-16">
+      <header
+        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${
+          hasScrolled
+            ? "border-blue-100/80 bg-white/95 shadow-lg shadow-slate-300/30"
+            : "border-white/60 bg-white/90 shadow-sm shadow-slate-200/40"
+        }`}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-sm transition active:scale-[0.96]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-sm transition active:scale-[0.96]"
               aria-label="Open menu"
             >
               <Menu size={24} strokeWidth={2.8} />
             </button>
 
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#123c8c] md:text-[10px]">
                 FaceAttend
               </p>
 
-              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-2xl lg:text-3xl">
+              <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950 md:text-2xl lg:text-3xl">
                 {title}
               </h1>
 
-              {subtitle && (
-                <p className="mt-1 max-w-xl text-sm font-semibold leading-5 text-slate-500 md:text-sm">
+              {subtitle ? (
+                <p className="mt-1 line-clamp-1 max-w-xl text-sm font-semibold leading-5 text-slate-500 md:text-sm">
                   {subtitle}
                 </p>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {!isAdmin && rightLabel && (
+          {!isAdmin && rightLabel ? (
             <div className="hidden items-center justify-end gap-3 md:flex">
               <span className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100">
                 {rightLabel}
               </span>
             </div>
-          )}
+          ) : null}
         </div>
       </header>
 
-      {isSidebarOpen && (
+      <div className={subtitle ? "h-[105px]" : "h-[88px]"} />
+
+      {isSidebarOpen ? (
         <button
           type="button"
           aria-label="Close sidebar"
           onClick={() => setIsSidebarOpen(false)}
           className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm"
         />
-      )}
+      ) : null}
 
       <aside
         className={`fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-blue-100 bg-white shadow-2xl shadow-slate-950/20 transition-transform duration-300 ${

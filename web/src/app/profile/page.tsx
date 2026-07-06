@@ -1,30 +1,37 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  ChevronRight,
   Clock3,
   Eye,
   EyeOff,
   IdCard,
+  Image as ImageIcon,
   Loader2,
   LockKeyhole,
+  LogOut,
   Mail,
   MapPin,
   Network,
+  Pencil,
   Phone,
+  Save,
   ShieldCheck,
   Upload,
   UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
-import StatCard from "@/components/StatCard";
 
 type ShiftWorkSchedule = {
   day_of_week: string;
@@ -70,23 +77,28 @@ type ProfileUser = {
   } | null;
 };
 
-type InfoCardItem = {
-  label: string;
-  value: string;
-  description?: string;
-  icon: LucideIcon;
-};
-
 type PasswordForm = {
   current_password: string;
   new_password: string;
   confirm_password: string;
 };
 
+type EditProfileForm = {
+  name: string;
+  phone: string;
+};
+
+type ProfileView = "menu" | "personal-detail";
+
 const initialPasswordForm: PasswordForm = {
   current_password: "",
   new_password: "",
   confirm_password: "",
+};
+
+const initialEditProfileForm: EditProfileForm = {
+  name: "",
+  phone: "",
 };
 
 const dayLabels: Record<string, string> = {
@@ -172,30 +184,98 @@ async function readJsonResponse(response: Response) {
   }
 }
 
-function InfoCard({ item }: { item: InfoCardItem }) {
-  const Icon = item.icon;
+type ProfileAvatarProps = {
+  user: ProfileUser;
+  initials: string;
+  size?: "sm" | "md" | "lg";
+};
+
+function ProfileAvatar({ user, initials, size = "md" }: ProfileAvatarProps) {
+  const sizeClass = {
+    sm: "h-16 w-16 text-xl",
+    md: "h-24 w-24 text-3xl",
+    lg: "h-32 w-32 text-4xl",
+  }[size];
 
   return (
-    <div className="rounded-3xl border border-blue-100 bg-[#f8fbff] p-4 md:p-5">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-          <Icon size={22} strokeWidth={2.7} />
+    <div
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#eaf1ff] font-black text-[#123c8c] ring-4 ring-blue-100 ${sizeClass}`}
+    >
+      {user.profile_photo ? (
+        <img
+          src={user.profile_photo}
+          alt={user.name}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        initials
+      )}
+    </div>
+  );
+}
+
+type SectionRowProps = {
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+  onClick?: () => void;
+};
+
+function SectionRow({ icon: Icon, title, subtitle, onClick }: SectionRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full border-b border-slate-100 transition active:scale-[0.99]"
+    >
+      <div className="flex w-full items-center gap-4 py-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+          <Icon size={24} strokeWidth={2.7} />
         </div>
 
-        <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-            {item.label}
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-base font-black text-slate-950 md:text-lg">
+            {title}
           </p>
 
-          <p className="mt-1 break-words text-base font-black text-slate-950">
-            {item.value}
-          </p>
-
-          {item.description ? (
-            <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
-              {item.description}
+          {subtitle ? (
+            <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400">
+              {subtitle}
             </p>
           ) : null}
+        </div>
+
+        <ChevronRight
+          size={24}
+          strokeWidth={2.8}
+          className="shrink-0 text-[#123c8c]"
+        />
+      </div>
+    </button>
+  );
+}
+
+type DetailItemProps = {
+  label: string;
+  value: string;
+  icon?: LucideIcon;
+};
+
+function DetailItem({ label, value, icon: Icon }: DetailItemProps) {
+  return (
+    <div className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm shadow-slate-200/40 md:p-6">
+      <div className="flex items-start gap-4">
+        {Icon ? (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+            <Icon size={22} strokeWidth={2.7} />
+          </div>
+        ) : null}
+
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-400">{label}</p>
+          <p className="mt-2 break-words text-lg font-black leading-7 text-[#123456]">
+            {value || "-"}
+          </p>
         </div>
       </div>
     </div>
@@ -248,10 +328,21 @@ function PasswordInput({
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
+
+  const [activeView, setActiveView] = useState<ProfileView>("menu");
+
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [editProfileForm, setEditProfileForm] =
+    useState<EditProfileForm>(initialEditProfileForm);
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -289,6 +380,106 @@ export default function ProfilePage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  function openEditProfileModal() {
+    if (!user) return;
+
+    setEditProfileForm({
+      name: user.name || "",
+      phone: user.phone || "",
+    });
+
+    setIsEditProfileModalOpen(true);
+  }
+
+  function closeEditProfileModal() {
+    setEditProfileForm(initialEditProfileForm);
+    setIsEditProfileModalOpen(false);
+  }
+
+  async function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const name = editProfileForm.name.trim();
+    const phone = editProfileForm.phone.trim();
+
+    if (!name) {
+      alert("Nama lengkap wajib diisi.");
+      return;
+    }
+
+    try {
+      setIsUpdatingProfile(true);
+
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          phone,
+        }),
+      });
+
+      const data = await readJsonResponse(response);
+
+      if (!response.ok || !data.success) {
+        alert(data.message || data.error || "Gagal memperbarui profil.");
+        return;
+      }
+
+      setUser((currentUser) =>
+        currentUser
+          ? {
+              ...currentUser,
+              name: data.user?.name || name,
+              phone: data.user?.phone || phone || null,
+            }
+          : currentUser
+      );
+
+      alert("Profil berhasil diperbarui.");
+      closeEditProfileModal();
+    } catch (error) {
+      console.error("UPDATE_PROFILE_ERROR:", error);
+      alert("Gagal memperbarui profil.");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      setIsLoggingOut(true);
+
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        cache: "no-store",
+      });
+
+      window.localStorage.removeItem("faceattend_read_announcement_id");
+      window.sessionStorage.clear();
+
+      document.cookie.split(";").forEach((cookie) => {
+        const cookieName = cookie.split("=")[0]?.trim();
+
+        if (!cookieName) return;
+
+        document.cookie = `${cookieName}=; Max-Age=0; path=/`;
+      });
+
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("LOGOUT_ERROR:", error);
+
+      router.replace("/login");
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
     }
   }
 
@@ -419,10 +610,9 @@ export default function ProfilePage() {
     if (!user) return "";
 
     return [
-      cleanValue(user.employee_code),
+      cleanValue(user.position?.name),
       cleanValue(user.unit?.name),
       cleanValue(user.department?.name),
-      cleanValue(user.position?.name),
     ]
       .filter(Boolean)
       .join(" • ");
@@ -432,312 +622,262 @@ export default function ProfilePage() {
     return getActiveScheduleText(user?.shift?.work_schedules);
   }, [user?.shift?.work_schedules]);
 
-  const infoCards = useMemo(() => {
+  const headerRightLabel = user?.employee_code || user?.shift?.name || undefined;
+
+  const detailItems = useMemo(() => {
     if (!user) return [];
 
-    const items: InfoCardItem[] = [];
-
-    if (cleanValue(user.employee_code)) {
-      items.push({
-        label: "Kode Karyawan",
-        value: user.employee_code || "",
-        icon: IdCard,
-      });
-    }
-
-    if (cleanValue(user.email)) {
-      items.push({
+    return [
+      {
+        label: "Nama Lengkap",
+        value: user.name,
+        icon: UserRound,
+      },
+      {
         label: "Email",
         value: user.email,
         icon: Mail,
-      });
-    }
-
-    if (cleanValue(user.phone)) {
-      items.push({
+      },
+      {
         label: "Nomor Telepon",
-        value: user.phone || "",
+        value: user.phone || "-",
         icon: Phone,
-      });
-    }
-
-    if (cleanValue(user.unit?.name)) {
-      items.push({
-        label: "Unit",
-        value: user.unit?.name || "",
-        icon: Building2,
-      });
-    }
-
-    if (cleanValue(user.department?.name)) {
-      items.push({
-        label: "Divisi",
-        value: user.department?.name || "",
-        icon: Network,
-      });
-    }
-
-    if (cleanValue(user.position?.name)) {
-      items.push({
-        label: "Jabatan",
-        value: user.position?.name || "",
-        icon: BriefcaseBusiness,
-      });
-    }
-
-    if (cleanValue(user.role)) {
-      items.push({
+      },
+      {
+        label: "Kode Karyawan",
+        value: user.employee_code || "-",
+        icon: IdCard,
+      },
+      {
+        label: "Status Akun",
+        value: formatStatus(user.status),
+        icon: BadgeCheck,
+      },
+      {
         label: "Role Akun",
         value: formatRole(user.role),
         icon: ShieldCheck,
-      });
-    }
-
-    if (cleanValue(user.shift?.name)) {
-      items.push({
+      },
+      {
+        label: "Unit Kerja",
+        value: user.unit?.name || "-",
+        icon: Building2,
+      },
+      {
+        label: "Divisi",
+        value: user.department?.name || "-",
+        icon: Network,
+      },
+      {
+        label: "Jabatan",
+        value: user.position?.name || "-",
+        icon: BriefcaseBusiness,
+      },
+      {
         label: "Shift",
-        value: user.shift?.name || "",
-        description:
-          user.shift?.tolerance_minutes !== undefined
-            ? `Toleransi telat ${user.shift.tolerance_minutes} menit`
-            : "",
+        value: user.shift?.name || "-",
         icon: CalendarDays,
-      });
-    }
-
-    if (workSchedule) {
-      items.push({
+      },
+      {
         label: "Jam Kerja",
-        value: workSchedule,
-        description: "Jadwal aktif berdasarkan data shift.",
+        value: workSchedule || "-",
         icon: Clock3,
-      });
-    }
-
-    if (cleanValue(user.registered_office?.name)) {
-      items.push({
+      },
+      {
         label: "Kantor Terdaftar",
-        value: user.registered_office?.name || "",
-        description: cleanValue(user.registered_office?.address),
+        value: user.registered_office?.name || "-",
         icon: MapPin,
-      });
-    }
-
-    return items;
+      },
+      {
+        label: "Alamat Kantor",
+        value: user.registered_office?.address || "-",
+        icon: MapPin,
+      },
+    ];
   }, [user, workSchedule]);
-
-  const headerRightLabel = user?.employee_code || user?.shift?.name || undefined;
-  const statusTone = user?.status?.toLowerCase() === "active" ? "green" : "red";
 
   return (
     <MobileShell variant="employee" withBottomPadding={false}>
       <div className="hidden md:block">
         <AppHeader
-          title="Profile"
-          subtitle="Informasi akun karyawan"
+          title={activeView === "personal-detail" ? "Detail Personal" : "Profile"}
+          subtitle={
+            activeView === "personal-detail"
+              ? "Informasi lengkap data karyawan"
+              : "Pengaturan akun dan data pribadi"
+          }
           rightLabel={headerRightLabel}
           variant="employee"
         />
       </div>
 
-      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-28 text-slate-950">
-        <section className="mx-auto max-w-7xl px-5 pt-7 md:hidden">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
-                FaceAttend
-              </p>
-
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456]">
-                Profil Saya
-              </h1>
-
-              <p className="mt-2 text-sm font-bold text-slate-500">
-                Informasi akun dan data karyawan.
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#123c8c] text-white ring-1 ring-[#123c8c]">
-              <UserRound size={24} strokeWidth={2.6} />
-            </div>
-          </div>
-        </section>
-
-        {user ? (
-          <section className="mx-auto hidden max-w-7xl px-10 pt-8 md:block lg:px-16">
-            <div className="relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-8 text-white">
-              <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
-              <div className="absolute bottom-[-7rem] right-24 h-60 w-60 rounded-full bg-blue-300/10" />
-
-              <div className="relative z-10 flex items-center justify-between gap-8">
-                <div className="flex min-w-0 items-center gap-5">
-                  <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-2xl font-black text-white ring-4 ring-white/20">
-                    {user.profile_photo ? (
-                      <img
-                        src={user.profile_photo}
-                        alt={user.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <h1 className="truncate text-4xl font-black tracking-tight">
-                      {user.name}
-                    </h1>
-
-                    <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-blue-100">
-                      Data profil ini mengikuti informasi yang sudah didaftarkan
-                      oleh admin, termasuk unit, divisi, jabatan, shift, jam
-                      kerja, dan kantor terdaftar.
-                    </p>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {user.shift?.name ? (
-                        <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                          {user.shift.name}
-                        </span>
-                      ) : null}
-
-                      {user.position?.name ? (
-                        <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                          {user.position.name}
-                        </span>
-                      ) : null}
-
-                      {user.unit?.name ? (
-                        <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                          {user.unit.name}
-                        </span>
-                      ) : null}
-
-                      {user.department?.name ? (
-                        <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                          {user.department.name}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/80 ring-1 ring-white/20">
-                  <UserRound size={30} strokeWidth={2.6} />
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mx-auto max-w-7xl rounded-t-[2.5rem] bg-white px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
-          {loading ? (
+      <main className="min-h-dvh bg-white pb-28 text-slate-950 md:bg-gradient-to-br md:from-[#f6f8ff] md:via-white md:to-[#eef4ff]">
+        {loading ? (
+          <section className="mx-auto max-w-5xl px-5 pt-8 md:px-10">
             <div className="flex items-center gap-3 rounded-3xl border border-blue-100 bg-[#f8fbff] p-5 text-sm font-bold text-slate-500">
               <Loader2 size={20} className="animate-spin text-[#123c8c]" />
               Mengambil data profil...
             </div>
-          ) : errorMessage || !user ? (
+          </section>
+        ) : errorMessage || !user ? (
+          <section className="mx-auto max-w-5xl px-5 pt-8 md:px-10">
             <div className="rounded-3xl border border-red-100 bg-red-50 px-6 py-8 text-center">
               <p className="text-sm font-black text-red-700">
                 {errorMessage || "Profil tidak ditemukan."}
               </p>
             </div>
-          ) : (
-            <>
-              <div className="relative overflow-hidden rounded-[2rem] bg-[#123c8c] p-6 text-white md:hidden">
-                <div className="absolute -right-16 -top-20 h-60 w-60 rounded-full bg-white/10" />
-                <div className="absolute bottom-[-7rem] right-24 h-56 w-56 rounded-full bg-blue-300/10" />
+          </section>
+        ) : activeView === "personal-detail" ? (
+          <section className="mx-auto max-w-5xl px-5 pt-5 md:px-10 md:pt-8">
+            <div className="flex items-center gap-4 border-b border-slate-100 pb-5 md:hidden">
+              <button
+                type="button"
+                onClick={() => setActiveView("menu")}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#123456] transition active:scale-[0.96]"
+              >
+                <ArrowLeft size={25} strokeWidth={2.8} />
+              </button>
 
-                <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-4xl font-black text-white ring-4 ring-white/20">
-                    {user.profile_photo ? (
-                      <img
-                        src={user.profile_photo}
-                        alt={user.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
+              <h1 className="text-xl font-black text-[#123456]">
+                Detail Personal
+              </h1>
+            </div>
 
-                  <h2 className="mt-5 text-3xl font-black tracking-tight">
-                    {user.name}
-                  </h2>
+            <div className="hidden items-center gap-4 md:flex">
+              <button
+                type="button"
+                onClick={() => setActiveView("menu")}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#123456] shadow-sm shadow-slate-200 transition active:scale-[0.96]"
+              >
+                <ArrowLeft size={25} strokeWidth={2.8} />
+              </button>
 
-                  {subtitleInfo ? (
-                    <p className="mt-2 max-w-2xl text-sm font-semibold leading-7 text-blue-100">
-                      {subtitleInfo}
-                    </p>
-                  ) : null}
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-[#123c8c]">
+                  Data Pribadi
+                </p>
 
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                      <BadgeCheck size={16} strokeWidth={2.7} />
-                      {formatStatus(user.status)}
-                    </span>
+                <h1 className="mt-1 text-3xl font-black text-[#123456]">
+                  Detail Personal
+                </h1>
+              </div>
+            </div>
 
-                    {user.shift?.name ? (
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                        <CalendarDays size={16} strokeWidth={2.7} />
-                        {user.shift.name}
-                      </span>
-                    ) : null}
-                  </div>
+            <div className="mt-10 flex flex-col items-center md:mt-8">
+              <ProfileAvatar user={user} initials={initials} size="md" />
+
+              <h2 className="mt-5 text-center text-2xl font-black text-[#123456] md:text-3xl">
+                {user.name}
+              </h2>
+
+              {user.position?.name ? (
+                <p className="mt-2 text-center text-base font-semibold text-slate-400">
+                  {user.position.name}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={openEditProfileModal}
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition active:scale-[0.98]"
+              >
+                <Pencil size={17} strokeWidth={2.7} />
+                Edit Detail
+              </button>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2">
+              {detailItems.map((item) => (
+                <DetailItem
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  icon={item.icon}
+                />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto max-w-5xl px-5 pt-5 md:px-10 md:pt-8">
+            <div className="rounded-[1.7rem] border border-blue-100 bg-[#f8fbff] p-5 shadow-sm shadow-blue-100/60 md:rounded-[2rem] md:bg-white md:p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#123c8c] text-white">
+                  <UserRound size={24} strokeWidth={2.7} />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                    Profile
+                  </p>
+
+                  <h1 className="mt-1 text-2xl font-black tracking-tight text-[#123456] md:text-3xl">
+                    Akun
+                  </h1>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-0 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <StatCard
-                  label="Kode"
-                  value={user.employee_code || "-"}
-                  description="Kode karyawan"
-                  tone="blue"
-                  icon={IdCard}
-                />
+            <div className="mt-6 flex items-center gap-5 rounded-[2rem] bg-white md:border md:border-blue-100 md:p-6 md:shadow-xl md:shadow-slate-200/50">
+              <ProfileAvatar user={user} initials={initials} size="sm" />
 
-                <StatCard
-                  label="Status"
-                  value={formatStatus(user.status)}
-                  description="Status akun"
-                  tone={statusTone}
-                  icon={BadgeCheck}
-                />
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-black text-[#123456] md:text-3xl">
+                  {user.name}
+                </h2>
 
-                <StatCard
-                  label="Unit"
-                  value={user.unit?.name || "-"}
-                  description="Unit kerja"
-                  tone="blue"
-                  icon={Building2}
-                />
-
-                <StatCard
-                  label="Shift"
-                  value={user.shift?.name || "-"}
-                  description={
-                    user.shift?.tolerance_minutes !== undefined
-                      ? `Toleransi ${user.shift.tolerance_minutes} menit`
-                      : "Shift kerja"
-                  }
-                  tone="orange"
-                  icon={CalendarDays}
-                />
+                <p className="mt-1 truncate text-base font-semibold text-slate-400 md:text-lg">
+                  {subtitleInfo || formatRole(user.role)}
+                </p>
               </div>
+            </div>
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <label className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white transition active:scale-[0.98]">
-                  {isUploadingPhoto ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Mengupload...
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={18} strokeWidth={2.7} />
-                      Ubah Foto
-                    </>
-                  )}
+            <div className="mt-12 md:mt-10">
+              <h3 className="text-xl font-black text-slate-950">
+                Data Pribadi
+              </h3>
+
+              <div className="mt-5 overflow-hidden rounded-[1.8rem] bg-white md:border md:border-blue-100 md:p-2 md:shadow-xl md:shadow-slate-200/50">
+                <SectionRow
+                  icon={UserRound}
+                  title="Info Pribadi"
+                  subtitle="Lihat detail personal dan data karyawan"
+                  onClick={() => setActiveView("personal-detail")}
+                />
+
+                <label
+                  className={`block w-full border-b border-slate-100 transition active:scale-[0.99] ${
+                    isUploadingPhoto
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  <div className="flex w-full items-center gap-4 py-5">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+                      {isUploadingPhoto ? (
+                        <Loader2 size={23} className="animate-spin" />
+                      ) : (
+                        <ImageIcon size={24} strokeWidth={2.7} />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-base font-black text-slate-950 md:text-lg">
+                        Foto Data Pribadi
+                      </p>
+
+                      <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400">
+                        {isUploadingPhoto
+                          ? "Mengupload foto..."
+                          : "Ubah foto profil akun"}
+                      </p>
+                    </div>
+
+                    <Upload
+                      size={24}
+                      strokeWidth={2.8}
+                      className="shrink-0 text-[#123c8c]"
+                    />
+                  </div>
 
                   <input
                     type="file"
@@ -756,55 +896,150 @@ export default function ProfilePage() {
                   />
                 </label>
 
+                <SectionRow
+                  icon={LockKeyhole}
+                  title="Ubah Kata Sandi"
+                  subtitle="Perbarui password akun"
+                  onClick={openPasswordModal}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="mt-20 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white text-base font-black text-[#123456] shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:mx-auto md:mt-12 md:max-w-sm"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Keluar...
+                </>
+              ) : (
+                <>
+                  <LogOut size={19} strokeWidth={2.7} />
+                  Keluar Akun
+                </>
+              )}
+            </button>
+          </section>
+        )}
+
+        {isEditProfileModalOpen ? (
+          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
+            <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                    Edit Profil
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black text-slate-950">
+                    Ubah Detail Personal
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Hanya nama lengkap dan nomor telepon yang dapat diedit.
+                  </p>
+                </div>
+
                 <button
                   type="button"
-                  onClick={openPasswordModal}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white transition active:scale-[0.98]"
+                  onClick={closeEditProfileModal}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition active:scale-[0.96]"
                 >
-                  <LockKeyhole size={18} strokeWidth={2.7} />
-                  Ubah Password
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="mt-6 rounded-3xl border border-blue-100 bg-[#f8fbff] p-5 md:p-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-                    <UserRound size={23} strokeWidth={2.7} />
+              <form onSubmit={handleUpdateProfile} className="mt-6 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Nama Lengkap
+                  </label>
+
+                  <div className="relative">
+                    <UserRound
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={editProfileForm.name}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          name: event.target.value,
+                        }))
+                      }
+                      placeholder="Masukkan nama lengkap"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
                   </div>
+                </div>
 
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
-                      Informasi Akun
-                    </p>
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Nomor Telepon
+                  </label>
 
-                    <h2 className="text-xl font-black text-slate-950">
-                      Detail Profil Karyawan
-                    </h2>
+                  <div className="relative">
+                    <Phone
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={editProfileForm.phone}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          phone: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: 081234567890"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
                   </div>
                 </div>
 
-                <p className="mt-4 text-sm font-semibold leading-7 text-slate-500">
-                  Data profil ini mengikuti informasi yang sudah didaftarkan
-                  oleh admin.
-                </p>
-              </div>
+                <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500">
+                  Email, kode karyawan, status, role, unit, divisi, jabatan,
+                  shift, dan kantor terdaftar hanya dapat diubah oleh admin.
+                </div>
 
-              {infoCards.length > 0 ? (
-                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {infoCards.map((item) => (
-                    <InfoCard key={item.label} item={item} />
-                  ))}
+                <div className="flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end">
+                  <button
+                    type="button"
+                    onClick={closeEditProfileModal}
+                    className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-200"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingProfile}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isUpdatingProfile ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        Simpan Perubahan
+                      </>
+                    )}
+                  </button>
                 </div>
-              ) : (
-                <div className="mt-6 rounded-3xl border border-blue-100 bg-[#f8fbff] p-6 text-center">
-                  <p className="text-sm font-black text-slate-500">
-                    Belum ada informasi akun tambahan.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+              </form>
+            </div>
+          </div>
+        ) : null}
 
         {isPasswordModalOpen ? (
           <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
@@ -816,11 +1051,11 @@ export default function ProfilePage() {
                   </p>
 
                   <h2 className="mt-2 text-2xl font-black text-slate-950">
-                    Ubah Password
+                    Ubah Kata Sandi
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Gunakan password baru minimal 8 karakter.
+                    Gunakan kata sandi baru minimal 8 karakter.
                   </p>
                 </div>
 
@@ -835,9 +1070,9 @@ export default function ProfilePage() {
 
               <form onSubmit={handleChangePassword} className="mt-6 space-y-4">
                 <PasswordInput
-                  label="Password Lama"
+                  label="Kata Sandi Lama"
                   value={passwordForm.current_password}
-                  placeholder="Masukkan password lama"
+                  placeholder="Masukkan kata sandi lama"
                   show={showCurrentPassword}
                   onToggleShow={() => setShowCurrentPassword((prev) => !prev)}
                   onChange={(value) =>
@@ -849,7 +1084,7 @@ export default function ProfilePage() {
                 />
 
                 <PasswordInput
-                  label="Password Baru"
+                  label="Kata Sandi Baru"
                   value={passwordForm.new_password}
                   placeholder="Minimal 8 karakter"
                   show={showNewPassword}
@@ -863,9 +1098,9 @@ export default function ProfilePage() {
                 />
 
                 <PasswordInput
-                  label="Konfirmasi Password Baru"
+                  label="Konfirmasi Kata Sandi Baru"
                   value={passwordForm.confirm_password}
-                  placeholder="Ulangi password baru"
+                  placeholder="Ulangi kata sandi baru"
                   show={showConfirmPassword}
                   onToggleShow={() => setShowConfirmPassword((prev) => !prev)}
                   onChange={(value) =>
@@ -877,8 +1112,8 @@ export default function ProfilePage() {
                 />
 
                 <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500">
-                  Setelah password berhasil diubah, gunakan password baru untuk
-                  login berikutnya.
+                  Setelah kata sandi berhasil diubah, gunakan kata sandi baru
+                  untuk login berikutnya.
                 </div>
 
                 <div className="flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end">
@@ -887,7 +1122,7 @@ export default function ProfilePage() {
                     onClick={closePasswordModal}
                     className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-200"
                   >
-                    Cancel
+                    Batal
                   </button>
 
                   <button
@@ -903,7 +1138,7 @@ export default function ProfilePage() {
                     ) : (
                       <>
                         <LockKeyhole size={18} />
-                        Simpan Password
+                        Simpan Kata Sandi
                       </>
                     )}
                   </button>

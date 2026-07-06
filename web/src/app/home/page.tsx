@@ -608,19 +608,19 @@ export default function HomePage() {
                     href="/pengumuman"
                     onClick={markAnnouncementsAsRead}
                     key={announcement.id}
-                    className="rounded-3xl border border-blue-100 bg-[#f8fbff] p-5 transition hover:bg-[#eef5ff]"
+                    className="min-w-0 rounded-3xl border border-blue-100 bg-[#f8fbff] p-5 transition hover:bg-[#eef5ff]"
                   >
                     <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#eaf1ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#123c8c]">
                       <Megaphone size={14} />
                       Pengumuman
                     </div>
 
-                    <p className="text-base font-black text-slate-950">
+                    <p className="break-words text-base font-black text-slate-950 [overflow-wrap:anywhere]">
                       {announcement.title}
                     </p>
 
                     {announcement.content ? (
-                      <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
+                      <p className="mt-2 line-clamp-2 break-words text-sm font-semibold leading-6 text-slate-500 [overflow-wrap:anywhere]">
                         {announcement.content}
                       </p>
                     ) : null}
