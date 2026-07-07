@@ -7,6 +7,8 @@ export const runtime = "nodejs";
 
 const MAX_GPS_ACCURACY_METERS = 100;
 
+type WorkMode = "office" | "wfh" | "wfc" | "visit";
+
 type ParsedAttendanceBody = {
   photoBuffer: Buffer | null;
   photoMime: string;
@@ -127,6 +129,26 @@ function toNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : null;
 }
 
+function normalizeWorkMode(value: unknown): WorkMode {
+  const mode = String(value || "office").trim().toLowerCase();
+
+  if (mode === "wfh") return "wfh";
+  if (mode === "wfc") return "wfc";
+  if (mode === "visit" || mode === "kunjungan") return "visit";
+  if (mode === "office" || mode === "wfo" || mode === "kantor") {
+    return "office";
+  }
+
+  return "office";
+}
+
+function getWorkModeLabel(workMode: WorkMode) {
+  if (workMode === "wfh") return "WFH";
+  if (workMode === "wfc") return "WFC";
+  if (workMode === "visit") return "Kunjungan";
+  return "Kantor";
+}
+
 function dataUrlToBuffer(dataUrl: string) {
   const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
 
@@ -175,7 +197,7 @@ function getDistanceInMeters(from: GeoPoint, to: GeoPoint) {
 
 function findNearestValidOffice(
   userLocation: GeoPoint,
-  offices: OfficeGeofence[],
+  offices: OfficeGeofence[]
 ) {
   const validOffices = offices
     .map((office) => {
@@ -197,7 +219,7 @@ function findNearestValidOffice(
 }
 
 async function parseAttendanceBody(
-  req: NextRequest,
+  req: NextRequest
 ): Promise<ParsedAttendanceBody> {
   const contentType = req.headers.get("content-type") || "";
 
@@ -211,15 +233,15 @@ async function parseAttendanceBody(
       formData.get("image");
 
     const latitude = toNumber(
-      formData.get("latitude") ?? formData.get("checkOutLatitude"),
+      formData.get("latitude") ?? formData.get("checkOutLatitude")
     );
 
     const longitude = toNumber(
-      formData.get("longitude") ?? formData.get("checkOutLongitude"),
+      formData.get("longitude") ?? formData.get("checkOutLongitude")
     );
 
     const accuracy = toNumber(
-      formData.get("accuracy") ?? formData.get("checkOutAccuracy"),
+      formData.get("accuracy") ?? formData.get("checkOutAccuracy")
     );
 
     if (photo instanceof File) {
@@ -269,15 +291,15 @@ async function parseAttendanceBody(
             : null;
 
   const latitude = toNumber(
-    body.latitude ?? body.checkOutLatitude ?? body.location?.latitude,
+    body.latitude ?? body.checkOutLatitude ?? body.location?.latitude
   );
 
   const longitude = toNumber(
-    body.longitude ?? body.checkOutLongitude ?? body.location?.longitude,
+    body.longitude ?? body.checkOutLongitude ?? body.location?.longitude
   );
 
   const accuracy = toNumber(
-    body.accuracy ?? body.checkOutAccuracy ?? body.location?.accuracy,
+    body.accuracy ?? body.checkOutAccuracy ?? body.location?.accuracy
   );
 
   if (!photoDataUrl) {
@@ -311,21 +333,21 @@ export async function POST(req: NextRequest) {
     if (!photoBuffer) {
       return NextResponse.json(
         { error: "Foto check-out wajib dikirim." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (latitude === null || longitude === null) {
       return NextResponse.json(
         { error: "Lokasi GPS check-out wajib dikirim." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (accuracy === null) {
       return NextResponse.json(
         { error: "Akurasi GPS check-out wajib dikirim." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -335,7 +357,7 @@ export async function POST(req: NextRequest) {
           error: `Akurasi GPS terlalu rendah. Maksimal ±${MAX_GPS_ACCURACY_METERS} meter.`,
           accuracy,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -345,6 +367,7 @@ export async function POST(req: NextRequest) {
       },
       select: {
         id: true,
+        name: true,
         registered_office_id: true,
         shift: {
           select: {
@@ -366,47 +389,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "Data user tidak ditemukan." },
-        { status: 404 },
-      );
-    }
-
-    const offices = await prisma.officeLocation.findMany({
-      where: {
-        status: "active",
-      },
-      select: {
-        id: true,
-        name: true,
-        latitude: true,
-        longitude: true,
-        radius_meters: true,
-      },
-    });
-
-    if (offices.length === 0) {
-      return NextResponse.json(
-        { error: "Belum ada data kantor aktif untuk validasi GPS." },
-        { status: 400 },
-      );
-    }
-
-    const matchedOffice = findNearestValidOffice(
-      {
-        lat: latitude,
-        lng: longitude,
-      },
-      offices,
-    );
-
-    if (!matchedOffice) {
-      return NextResponse.json(
-        {
-          error: "Lokasi kamu berada di luar radius semua kantor aktif.",
-          latitude,
-          longitude,
-          accuracy,
-        },
-        { status: 400 },
+        { status: 404 }
       );
     }
 
@@ -423,15 +406,70 @@ export async function POST(req: NextRequest) {
     if (!attendance || !attendance.check_in_time) {
       return NextResponse.json(
         { error: "Kamu belum melakukan check-in hari ini." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (attendance.check_out_time) {
       return NextResponse.json(
         { error: "Kamu sudah melakukan check-out hari ini." },
-        { status: 400 },
+        { status: 400 }
       );
+    }
+
+    const workMode = normalizeWorkMode(attendance.work_mode);
+    const isOfficeMode = workMode === "office";
+    const isWfhMode = workMode === "wfh";
+    const isWfcMode = workMode === "wfc";
+    const isVisitMode = workMode === "visit";
+    const isFlexibleMode = isWfhMode || isWfcMode || isVisitMode;
+
+    let matchedOffice: {
+      office: OfficeGeofence;
+      distance: number;
+      isWithinRadius: boolean;
+    } | null = null;
+
+    if (isOfficeMode) {
+      const offices = await prisma.officeLocation.findMany({
+        where: {
+          status: "active",
+        },
+        select: {
+          id: true,
+          name: true,
+          latitude: true,
+          longitude: true,
+          radius_meters: true,
+        },
+      });
+
+      if (offices.length === 0) {
+        return NextResponse.json(
+          { error: "Belum ada data kantor aktif untuk validasi GPS." },
+          { status: 400 }
+        );
+      }
+
+      matchedOffice = findNearestValidOffice(
+        {
+          lat: latitude,
+          lng: longitude,
+        },
+        offices
+      );
+
+      if (!matchedOffice) {
+        return NextResponse.json(
+          {
+            error: "Lokasi kamu berada di luar radius semua kantor aktif.",
+            latitude,
+            longitude,
+            accuracy,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const todayName = getDayOfWeekEnum(now);
@@ -443,7 +481,7 @@ export async function POST(req: NextRequest) {
     if (todaySchedule && todaySchedule.is_work_day === false) {
       return NextResponse.json(
         { error: "Hari ini bukan jadwal kerja kamu." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -453,39 +491,83 @@ export async function POST(req: NextRequest) {
 
     const workMinutes = Math.max(
       0,
-      Math.floor((now.getTime() - attendance.check_in_time.getTime()) / 60000),
+      Math.floor((now.getTime() - attendance.check_in_time.getTime()) / 60000)
     );
 
     const earlyLeaveMinutes = calculateEarlyLeaveMinutes(
       now,
-      scheduledCheckOutTime,
+      scheduledCheckOutTime
     );
 
     const checkOutStatus = earlyLeaveMinutes > 0 ? "EARLY" : "NORMAL";
 
-    const updatedAttendance = await prisma.attendance.update({
-      where: {
-        id: attendance.id,
-      },
-      data: {
-        check_out_time: now,
-        check_out_photo: photoBuffer,
-        check_out_photo_mime: photoMime,
+    const updatedAttendance = await prisma.$transaction(async (tx) => {
+      const savedAttendance = await tx.attendance.update({
+        where: {
+          id: attendance.id,
+        },
+        data: {
+          check_out_time: now,
+          check_out_photo: photoBuffer,
+          check_out_photo_mime: photoMime,
 
-        check_out_latitude: latitude,
-        check_out_longitude: longitude,
-        check_out_accuracy: accuracy,
-        check_out_distance: matchedOffice.distance,
-        check_out_within_radius: true,
-        check_out_office_id: matchedOffice.office.id,
+          check_out_latitude: latitude,
+          check_out_longitude: longitude,
+          check_out_accuracy: accuracy,
+          check_out_distance: matchedOffice?.distance ?? null,
+          check_out_within_radius: Boolean(matchedOffice?.isWithinRadius),
+          check_out_office_id: matchedOffice?.office.id ?? null,
 
-        registered_office_id:
-          attendance.registered_office_id ?? user.registered_office_id,
+          registered_office_id:
+            attendance.registered_office_id ?? user.registered_office_id,
 
-        work_minutes: workMinutes,
-        early_leave_minutes: earlyLeaveMinutes,
-        check_out_status: checkOutStatus,
-      },
+          work_minutes: workMinutes,
+          early_leave_minutes: earlyLeaveMinutes,
+          check_out_status: checkOutStatus,
+        },
+      });
+
+      if (isVisitMode) {
+        await tx.employeeVisit.updateMany({
+          where: {
+            attendance_id: attendance.id,
+            user_id: userId,
+            status: {
+              not: "cancelled",
+            },
+          },
+          data: {
+            end_time: now,
+            status: "completed",
+          },
+        });
+      }
+
+      if (isFlexibleMode) {
+        const modeLabel = getWorkModeLabel(workMode);
+        const employeeName = user.name || "Karyawan";
+        const coordinateText = `${latitude}, ${longitude}`;
+
+        await tx.adminNotification.create({
+          data: {
+            attendance_id: savedAttendance.id,
+            user_id: userId,
+            type: workMode,
+            title:
+              workMode === "visit"
+                ? "Karyawan selesai kunjungan"
+                : `Karyawan selesai ${modeLabel}`,
+            message:
+              workMode === "visit"
+                ? `${employeeName} melakukan check-out kunjungan. GPS check-out: ${coordinateText}.`
+                : `${employeeName} melakukan check-out mode ${modeLabel}. GPS check-out: ${coordinateText}.`,
+            status: "unread",
+            is_read: false,
+          },
+        });
+      }
+
+      return savedAttendance;
     });
 
     return NextResponse.json({
@@ -495,12 +577,19 @@ export async function POST(req: NextRequest) {
           ? `Check-out berhasil. Kamu pulang lebih awal ${earlyLeaveMinutes} menit.`
           : "Check-out berhasil.",
       attendanceId: updatedAttendance.id,
-      office: {
-        id: matchedOffice.office.id,
-        name: matchedOffice.office.name,
-        distance: Math.round(matchedOffice.distance),
-        radius: matchedOffice.office.radius_meters,
-      },
+      workMode,
+      workModeLabel: getWorkModeLabel(workMode),
+      isWfh: isWfhMode,
+      isWfc: isWfcMode,
+      isVisit: isVisitMode,
+      office: matchedOffice
+        ? {
+            id: matchedOffice.office.id,
+            name: matchedOffice.office.name,
+            distance: Math.round(matchedOffice.distance),
+            radius: matchedOffice.office.radius_meters,
+          }
+        : null,
       gps: {
         latitude,
         longitude,
@@ -519,7 +608,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { error: "Gagal melakukan check-out." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

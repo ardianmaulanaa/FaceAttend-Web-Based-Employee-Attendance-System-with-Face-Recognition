@@ -109,6 +109,163 @@ function isPrismaForeignKeyError(error: unknown) {
   return getPrismaCode(error) === "P2003";
 }
 
+async function validateEmployeeStructure({
+  registeredOfficeId,
+  unitId,
+  departmentId,
+  positionId,
+  shiftId,
+}: {
+  registeredOfficeId: string;
+  unitId: string;
+  departmentId: string;
+  positionId: string;
+  shiftId: string;
+}) {
+  const office = await prisma.officeLocation.findUnique({
+    where: {
+      id: registeredOfficeId,
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+    },
+  });
+
+  if (!office || office.status !== "active") {
+    return {
+      ok: false,
+      status: 404,
+      message: "Kantor terdaftar tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  const unit = await prisma.unit.findUnique({
+    where: {
+      id: unitId,
+    },
+    select: {
+      id: true,
+      name: true,
+      office_id: true,
+      status: true,
+      office: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!unit || unit.status !== "active") {
+    return {
+      ok: false,
+      status: 404,
+      message: "Unit tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  if (!unit.office_id) {
+    return {
+      ok: false,
+      status: 400,
+      message:
+        "Unit ini belum terhubung ke kantor. Edit data unit terlebih dahulu dan pilih kantor pemilik unit.",
+    };
+  }
+
+  if (unit.office_id !== registeredOfficeId) {
+    return {
+      ok: false,
+      status: 400,
+      message: `Unit "${unit.name}" tidak sesuai dengan kantor "${office.name}".`,
+    };
+  }
+
+  const department = await prisma.department.findUnique({
+    where: {
+      id: departmentId,
+    },
+    select: {
+      id: true,
+      name: true,
+      unit_id: true,
+      status: true,
+    },
+  });
+
+  if (!department || department.status !== "active") {
+    return {
+      ok: false,
+      status: 404,
+      message: "Divisi tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  if (department.unit_id !== unitId) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Divisi tidak sesuai dengan unit yang dipilih.",
+    };
+  }
+
+  const position = await prisma.position.findUnique({
+    where: {
+      id: positionId,
+    },
+    select: {
+      id: true,
+      name: true,
+      department_id: true,
+      status: true,
+    },
+  });
+
+  if (!position || position.status !== "active") {
+    return {
+      ok: false,
+      status: 404,
+      message: "Jabatan tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  if (position.department_id !== departmentId) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Jabatan tidak sesuai dengan divisi yang dipilih.",
+    };
+  }
+
+  const shift = await prisma.shift.findUnique({
+    where: {
+      id: shiftId,
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+    },
+  });
+
+  if (!shift || shift.status !== "active") {
+    return {
+      ok: false,
+      status: 404,
+      message: "Shift tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    message: "Valid.",
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser(req);
@@ -121,7 +278,7 @@ export async function GET(req: NextRequest) {
         {
           message: "Akses ditolak.",
         },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -145,6 +302,13 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             name: true,
+            office_id: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
 
@@ -157,6 +321,13 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                office_id: true,
+                office: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -171,6 +342,20 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                unit_id: true,
+                unit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    office_id: true,
+                    office: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -207,6 +392,13 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         status: true,
+        office_id: true,
+        office: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
@@ -223,6 +415,13 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             name: true,
+            office_id: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -246,6 +445,13 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                office_id: true,
+                office: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -309,7 +515,7 @@ export async function GET(req: NextRequest) {
             ? error.message
             : "Gagal mengambil data karyawan.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -327,7 +533,7 @@ export async function POST(req: NextRequest) {
           message:
             "Akses ditolak. Hanya owner atau admin yang dapat register employee.",
         },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -349,18 +555,18 @@ export async function POST(req: NextRequest) {
       !name ||
       !email ||
       !temporaryPassword ||
+      !registeredOfficeId ||
       !unitId ||
       !departmentId ||
       !positionId ||
-      !shiftId ||
-      !registeredOfficeId
+      !shiftId
     ) {
       return NextResponse.json(
         {
           message:
-            "Nama, email, password, unit, divisi, jabatan, shift, dan kantor terdaftar wajib diisi.",
+            "Nama, email, password, kantor, unit, divisi, jabatan, dan shift wajib diisi.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -369,7 +575,7 @@ export async function POST(req: NextRequest) {
         {
           message: "Status tidak valid.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -378,7 +584,7 @@ export async function POST(req: NextRequest) {
         {
           message: "Temporary password minimal 8 karakter.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -396,122 +602,24 @@ export async function POST(req: NextRequest) {
         {
           message: "Email sudah digunakan.",
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
-    const unit = await prisma.unit.findUnique({
-      where: {
-        id: unitId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
+    const structureValidation = await validateEmployeeStructure({
+      registeredOfficeId,
+      unitId,
+      departmentId,
+      positionId,
+      shiftId,
     });
 
-    if (!unit || unit.status !== "active") {
+    if (!structureValidation.ok) {
       return NextResponse.json(
         {
-          message: "Unit tidak ditemukan atau tidak aktif.",
+          message: structureValidation.message,
         },
-        { status: 404 },
-      );
-    }
-
-    const department = await prisma.department.findUnique({
-      where: {
-        id: departmentId,
-      },
-      select: {
-        id: true,
-        unit_id: true,
-        status: true,
-      },
-    });
-
-    if (!department || department.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Divisi tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (department.unit_id !== unitId) {
-      return NextResponse.json(
-        {
-          message: "Divisi tidak sesuai dengan unit yang dipilih.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const position = await prisma.position.findUnique({
-      where: {
-        id: positionId,
-      },
-      select: {
-        id: true,
-        department_id: true,
-        status: true,
-      },
-    });
-
-    if (!position || position.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Jabatan tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (position.department_id !== departmentId) {
-      return NextResponse.json(
-        {
-          message: "Jabatan tidak sesuai dengan divisi yang dipilih.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const shift = await prisma.shift.findUnique({
-      where: {
-        id: shiftId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!shift || shift.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Shift tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    const office = await prisma.officeLocation.findUnique({
-      where: {
-        id: registeredOfficeId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!office || office.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Kantor terdaftar tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
+        { status: structureValidation.status }
       );
     }
 
@@ -545,6 +653,13 @@ export async function POST(req: NextRequest) {
           select: {
             id: true,
             name: true,
+            office_id: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
 
@@ -553,6 +668,19 @@ export async function POST(req: NextRequest) {
             id: true,
             name: true,
             unit_id: true,
+            unit: {
+              select: {
+                id: true,
+                name: true,
+                office_id: true,
+                office: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
 
@@ -565,6 +693,20 @@ export async function POST(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                unit_id: true,
+                unit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    office_id: true,
+                    office: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -607,7 +749,7 @@ export async function POST(req: NextRequest) {
             ? error.message
             : "Gagal menambahkan karyawan.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -625,7 +767,7 @@ export async function PATCH(req: NextRequest) {
           message:
             "Akses ditolak. Hanya owner atau admin yang dapat mengubah employee.",
         },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -636,6 +778,7 @@ export async function PATCH(req: NextRequest) {
     const id = String(body.id || "").trim();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
+    const temporaryPassword = String(body.temporaryPassword || "");
     const unitId = String(body.unit_id || "").trim();
     const departmentId = String(body.department_id || "").trim();
     const positionId = String(body.position_id || "").trim();
@@ -648,24 +791,24 @@ export async function PATCH(req: NextRequest) {
         {
           message: "ID employee wajib dikirim.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (
       !name ||
       !email ||
+      !registeredOfficeId ||
       !unitId ||
       !departmentId ||
       !positionId ||
-      !shiftId ||
-      !registeredOfficeId
+      !shiftId
     ) {
       return NextResponse.json(
         {
-          message: "Nama, email, unit, divisi, jabatan, shift, dan kantor terdaftar wajib diisi.",
+          message: "Nama, email, kantor, unit, divisi, jabatan, dan shift wajib diisi.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -674,7 +817,16 @@ export async function PATCH(req: NextRequest) {
         {
           message: "Status tidak valid.",
         },
-        { status: 400 },
+        { status: 400 }
+      );
+    }
+
+    if (temporaryPassword && temporaryPassword.length < 8) {
+      return NextResponse.json(
+        {
+          message: "Temporary password minimal 8 karakter.",
+        },
+        { status: 400 }
       );
     }
 
@@ -693,7 +845,7 @@ export async function PATCH(req: NextRequest) {
         {
           message: "Employee tidak ditemukan.",
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -702,7 +854,7 @@ export async function PATCH(req: NextRequest) {
         {
           message: "Data ini bukan employee.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -723,124 +875,32 @@ export async function PATCH(req: NextRequest) {
         {
           message: "Email sudah digunakan oleh user lain.",
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
-    const unit = await prisma.unit.findUnique({
-      where: {
-        id: unitId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
+    const structureValidation = await validateEmployeeStructure({
+      registeredOfficeId,
+      unitId,
+      departmentId,
+      positionId,
+      shiftId,
     });
 
-    if (!unit || unit.status !== "active") {
+    if (!structureValidation.ok) {
       return NextResponse.json(
         {
-          message: "Unit tidak ditemukan atau tidak aktif.",
+          message: structureValidation.message,
         },
-        { status: 404 },
+        { status: structureValidation.status }
       );
     }
 
-    const department = await prisma.department.findUnique({
-      where: {
-        id: departmentId,
-      },
-      select: {
-        id: true,
-        unit_id: true,
-        status: true,
-      },
-    });
-
-    if (!department || department.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Divisi tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (department.unit_id !== unitId) {
-      return NextResponse.json(
-        {
-          message: "Divisi tidak sesuai dengan unit yang dipilih.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const position = await prisma.position.findUnique({
-      where: {
-        id: positionId,
-      },
-      select: {
-        id: true,
-        department_id: true,
-        status: true,
-      },
-    });
-
-    if (!position || position.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Jabatan tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    if (position.department_id !== departmentId) {
-      return NextResponse.json(
-        {
-          message: "Jabatan tidak sesuai dengan divisi yang dipilih.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const shift = await prisma.shift.findUnique({
-      where: {
-        id: shiftId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!shift || shift.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Shift tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
-
-    const office = await prisma.officeLocation.findUnique({
-      where: {
-        id: registeredOfficeId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!office || office.status !== "active") {
-      return NextResponse.json(
-        {
-          message: "Kantor terdaftar tidak ditemukan atau tidak aktif.",
-        },
-        { status: 404 },
-      );
-    }
+    const passwordData = temporaryPassword
+      ? {
+          password_hash: await bcrypt.hash(temporaryPassword, 10),
+        }
+      : {};
 
     const updatedEmployee = await prisma.user.update({
       where: {
@@ -855,6 +915,7 @@ export async function PATCH(req: NextRequest) {
         position_id: positionId,
         shift_id: shiftId,
         registered_office_id: registeredOfficeId,
+        ...passwordData,
       },
       select: {
         id: true,
@@ -870,6 +931,13 @@ export async function PATCH(req: NextRequest) {
           select: {
             id: true,
             name: true,
+            office_id: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
 
@@ -878,6 +946,19 @@ export async function PATCH(req: NextRequest) {
             id: true,
             name: true,
             unit_id: true,
+            unit: {
+              select: {
+                id: true,
+                name: true,
+                office_id: true,
+                office: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
 
@@ -890,6 +971,20 @@ export async function PATCH(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                unit_id: true,
+                unit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    office_id: true,
+                    office: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -932,7 +1027,7 @@ export async function PATCH(req: NextRequest) {
             ? error.message
             : "Gagal memperbarui employee.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -950,7 +1045,7 @@ export async function DELETE(req: NextRequest) {
           message:
             "Akses ditolak. Hanya owner atau admin yang dapat menghapus employee.",
         },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -961,7 +1056,7 @@ export async function DELETE(req: NextRequest) {
         {
           message: "ID employee wajib dikirim.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -970,7 +1065,7 @@ export async function DELETE(req: NextRequest) {
         {
           message: "Tidak bisa menghapus akun sendiri.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -990,7 +1085,7 @@ export async function DELETE(req: NextRequest) {
         {
           message: "Employee tidak ditemukan.",
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -999,7 +1094,7 @@ export async function DELETE(req: NextRequest) {
         {
           message: "Data ini bukan employee.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -1021,7 +1116,7 @@ export async function DELETE(req: NextRequest) {
           message:
             "Employee tidak bisa dihapus karena sudah memiliki data relasi seperti absensi/cuti. Ubah status menjadi Inactive.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -1030,7 +1125,7 @@ export async function DELETE(req: NextRequest) {
         message:
           error instanceof Error ? error.message : "Gagal menghapus employee.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
