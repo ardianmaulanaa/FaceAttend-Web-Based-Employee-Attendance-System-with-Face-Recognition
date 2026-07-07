@@ -7,7 +7,9 @@ import { AlertCircle, Loader2, LogIn, ShieldCheck, X } from "lucide-react";
 import MobileShell from "@/components/MobileShell";
 import { AppButton, AppCard, AppInput } from "@/components/ui/AppUI";
 
-const ALLOWED_EMAIL_DOMAIN = "@creativemu.com";
+const ADMIN_DEMO_EMAIL = "admin@creativemu.co.id";
+const ADMIN_DEMO_PASSWORD = "123456";
+const ALLOWED_EMAIL_DOMAIN = "@creativemu.co.id";
 
 type LoginResponse = {
   success?: boolean;
@@ -159,6 +161,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdminDemoLoading, setIsAdminDemoLoading] = useState(false);
 
   const [alert, setAlert] = useState<AlertState>({
     open: false,
@@ -184,7 +187,8 @@ export default function LoginPage() {
 
   async function loginUser(
     loginEmail: string,
-    loginPassword: string
+    loginPassword: string,
+    mode: "manual" | "admin-demo" = "manual"
   ) {
     const normalizedEmail = loginEmail.trim().toLowerCase();
 
@@ -210,7 +214,11 @@ export default function LoginPage() {
     }
 
     try {
-      setIsLoading(true);
+      if (mode === "admin-demo") {
+        setIsAdminDemoLoading(true);
+      } else {
+        setIsLoading(true);
+      }
 
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -242,16 +250,24 @@ export default function LoginPage() {
           : "Terjadi kesalahan saat login."
       );
     } finally {
-      setIsLoading(false);
+      if (mode === "admin-demo") {
+        setIsAdminDemoLoading(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await loginUser(email, password);
+    await loginUser(email, password, "manual");
   }
 
-  const formIsBusy = isLoading;
+  async function handleAdminDemoLogin() {
+    await loginUser(ADMIN_DEMO_EMAIL, ADMIN_DEMO_PASSWORD, "admin-demo");
+  }
+
+  const formIsBusy = isLoading || isAdminDemoLoading;
 
   return (
     <MobileShell variant="auth" withBottomPadding={false}>
@@ -398,7 +414,25 @@ export default function LoginPage() {
                     {isLoading ? "Signing In..." : "Sign In"}
                   </AppButton>
 
-
+                  <AppButton
+                    type="button"
+                    full
+                    variant="soft"
+                    disabled={formIsBusy}
+                    onClick={handleAdminDemoLogin}
+                    className="bg-[#fff4e6] text-[#ff8a00] ring-orange-100 hover:bg-[#ffe8cc]"
+                    leftIcon={
+                      isAdminDemoLoading ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <ShieldCheck size={18} strokeWidth={2.6} />
+                      )
+                    }
+                  >
+                    {isAdminDemoLoading
+                      ? "Masuk sebagai Admin..."
+                      : "Masuk sebagai Admin Demo"}
+                  </AppButton>
                 </div>
               </form>
             </AppCard>

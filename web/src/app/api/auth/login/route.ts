@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createToken, verifyPassword } from "@/lib/auth";
 
-const ALLOWED_EMAIL_DOMAIN = "@creativemu.com";
+const ALLOWED_EMAIL_DOMAIN = "@creativemu.co.id";
 
 function isCreativemuEmail(email: string) {
   return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);

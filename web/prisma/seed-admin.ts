@@ -25,7 +25,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: {
-      email: "owner@creativemu.com",
+      email: "owner@creativemu.co.id",
     },
     update: {
       name: "Owner Creativemu",
@@ -35,7 +35,7 @@ async function main() {
     },
     create: {
       name: "Owner Creativemu",
-      email: "owner@creativemu.com",
+      email: "owner@creativemu.co.id",
       password_hash,
       role: "owner",
       status: "active",
@@ -44,7 +44,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: {
-      email: "admin@creativemu.com",
+      email: "admin@creativemu.co.id",
     },
     update: {
       name: "Admin Creativemu",
@@ -54,7 +54,7 @@ async function main() {
     },
     create: {
       name: "Admin Creativemu",
-      email: "admin@creativemu.com",
+      email: "admin@creativemu.co.id",
       password_hash,
       role: "admin",
       status: "active",
@@ -63,7 +63,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: {
-      email: "cs@creativemu.com",
+      email: "cs@creativemu.co.id",
     },
     update: {
       name: "CS Creativemu",
@@ -73,7 +73,7 @@ async function main() {
     },
     create: {
       name: "CS Creativemu",
-      email: "cs@creativemu.com",
+      email: "cs@creativemu.co.id",
       password_hash,
       role: "cs",
       status: "active",
