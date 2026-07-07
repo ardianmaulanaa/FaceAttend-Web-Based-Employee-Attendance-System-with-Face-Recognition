@@ -114,32 +114,120 @@ async function main() {
     create: { id: "dept-it-creativemu", name: "IT", unit_id: "unit-2", shift_id: "shift-1" },
   });
 
-  // Seeds for Web Dev Position under Alfabank IT
+  // Seeds for Digital Marketing Agency under Alfabank
+  await prisma.department.upsert({
+    where: { id: "dept-dm-alfabank" },
+    update: { name: "DIGITAL MARKETING AGENCY", unit_id: "unit-1", shift_id: "shift-1" },
+    create: { id: "dept-dm-alfabank", name: "DIGITAL MARKETING AGENCY", unit_id: "unit-1", shift_id: "shift-1" },
+  });
+
+  // Seeds for Digital Marketing Agency under Creativemu Academy
+  await prisma.department.upsert({
+    where: { id: "dept-dm-creativemu" },
+    update: { name: "DIGITAL MARKETING AGENCY", unit_id: "unit-2", shift_id: "shift-1" },
+    create: { id: "dept-dm-creativemu", name: "DIGITAL MARKETING AGENCY", unit_id: "unit-2", shift_id: "shift-1" },
+  });
+
+  // Seeds for Magang-Digital Marketing Agency under Creativemu Academy
+  await prisma.department.upsert({
+    where: { id: "dept-magang-dm-creativemu" },
+    update: { name: "MAGANG-DIGITAL MARKETING AGENCY", unit_id: "unit-2", shift_id: "shift-1" },
+    create: { id: "dept-magang-dm-creativemu", name: "MAGANG-DIGITAL MARKETING AGENCY", unit_id: "unit-2", shift_id: "shift-1" },
+  });
+
+  // Seeds for Manajemen under Alfabank
+  await prisma.department.upsert({
+    where: { id: "dept-mgt-alfabank" },
+    update: { name: "MANAJEMEN", unit_id: "unit-1", shift_id: "shift-1" },
+    create: { id: "dept-mgt-alfabank", name: "MANAJEMEN", unit_id: "unit-1", shift_id: "shift-1" },
+  });
+
+  // Seeds for Manajemen under Creativemu Academy
+  await prisma.department.upsert({
+    where: { id: "dept-mgt-creativemu" },
+    update: { name: "MANAJEMEN", unit_id: "unit-2", shift_id: "shift-1" },
+    create: { id: "dept-mgt-creativemu", name: "MANAJEMEN", unit_id: "unit-2", shift_id: "shift-1" },
+  });
+
+  // --- POSITIONS ---
+
+  // Positions under Alfabank IT
   await prisma.position.upsert({
     where: { id: "pos-webdev-alfabank" },
     update: { name: "Web Dev", department_id: "dept-it-alfabank", status: "active" },
     create: { id: "pos-webdev-alfabank", name: "Web Dev", department_id: "dept-it-alfabank", status: "active" },
   });
-
-  // Seeds for Software Position under Alfabank IT
   await prisma.position.upsert({
     where: { id: "pos-software-alfabank" },
     update: { name: "Software", department_id: "dept-it-alfabank", status: "active" },
     create: { id: "pos-software-alfabank", name: "Software", department_id: "dept-it-alfabank", status: "active" },
   });
 
-  // Seeds for Web Dev Position under Creativemu IT
+  // Positions under Creativemu IT
   await prisma.position.upsert({
     where: { id: "pos-webdev-creativemu" },
     update: { name: "Web Dev", department_id: "dept-it-creativemu", status: "active" },
     create: { id: "pos-webdev-creativemu", name: "Web Dev", department_id: "dept-it-creativemu", status: "active" },
   });
-
-  // Seeds for Software Position under Creativemu IT
   await prisma.position.upsert({
     where: { id: "pos-software-creativemu" },
     update: { name: "Software", department_id: "dept-it-creativemu", status: "active" },
     create: { id: "pos-software-creativemu", name: "Software", department_id: "dept-it-creativemu", status: "active" },
+  });
+
+  // Positions under Alfabank DM
+  await prisma.position.upsert({
+    where: { id: "pos-seo-alfabank" },
+    update: { name: "SEO Specialist", department_id: "dept-dm-alfabank", status: "active" },
+    create: { id: "pos-seo-alfabank", name: "SEO Specialist", department_id: "dept-dm-alfabank", status: "active" },
+  });
+  await prisma.position.upsert({
+    where: { id: "pos-cw-alfabank" },
+    update: { name: "Content Writer", department_id: "dept-dm-alfabank", status: "active" },
+    create: { id: "pos-cw-alfabank", name: "Content Writer", department_id: "dept-dm-alfabank", status: "active" },
+  });
+
+  // Positions under Creativemu DM
+  await prisma.position.upsert({
+    where: { id: "pos-seo-creativemu" },
+    update: { name: "SEO Specialist", department_id: "dept-dm-creativemu", status: "active" },
+    create: { id: "pos-seo-creativemu", name: "SEO Specialist", department_id: "dept-dm-creativemu", status: "active" },
+  });
+  await prisma.position.upsert({
+    where: { id: "pos-cw-creativemu" },
+    update: { name: "Content Writer", department_id: "dept-dm-creativemu", status: "active" },
+    create: { id: "pos-cw-creativemu", name: "Content Writer", department_id: "dept-dm-creativemu", status: "active" },
+  });
+
+  // Positions under Creativemu Magang DM
+  await prisma.position.upsert({
+    where: { id: "pos-intern-dm-creativemu" },
+    update: { name: "Intern DM", department_id: "dept-magang-dm-creativemu", status: "active" },
+    create: { id: "pos-intern-dm-creativemu", name: "Intern DM", department_id: "dept-magang-dm-creativemu", status: "active" },
+  });
+
+  // Positions under Alfabank Manajemen
+  await prisma.position.upsert({
+    where: { id: "pos-mgr-alfabank" },
+    update: { name: "Manager", department_id: "dept-mgt-alfabank", status: "active" },
+    create: { id: "pos-mgr-alfabank", name: "Manager", department_id: "dept-mgt-alfabank", status: "active" },
+  });
+  await prisma.position.upsert({
+    where: { id: "pos-staff-alfabank" },
+    update: { name: "Staff", department_id: "dept-mgt-alfabank", status: "active" },
+    create: { id: "pos-staff-alfabank", name: "Staff", department_id: "dept-mgt-alfabank", status: "active" },
+  });
+
+  // Positions under Creativemu Manajemen
+  await prisma.position.upsert({
+    where: { id: "pos-mgr-creativemu" },
+    update: { name: "Manager", department_id: "dept-mgt-creativemu", status: "active" },
+    create: { id: "pos-mgr-creativemu", name: "Manager", department_id: "dept-mgt-creativemu", status: "active" },
+  });
+  await prisma.position.upsert({
+    where: { id: "pos-staff-creativemu" },
+    update: { name: "Staff", department_id: "dept-mgt-creativemu", status: "active" },
+    create: { id: "pos-staff-creativemu", name: "Staff", department_id: "dept-mgt-creativemu", status: "active" },
   });
 
   console.log("Akun owner, admin, CS, serta data Shift, Unit (Alfabank, Creativemu Academy), Divisi, dan Jabatan berhasil dibuat");
