@@ -5,12 +5,7 @@ import { createToken, verifyPassword } from "@/lib/auth";
 const ALLOWED_EMAIL_DOMAIN = "@creativemu.com";
 
 function isCreativemuEmail(email: string) {
-  const normalized = email.trim().toLowerCase();
-  return (
-    normalized.endsWith("@creativemu.com") ||
-    normalized.endsWith("@creativemu.co.id") ||
-    normalized.endsWith("@company.com")
-  );
+  return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
 }
 
 export async function POST(req: Request) {
