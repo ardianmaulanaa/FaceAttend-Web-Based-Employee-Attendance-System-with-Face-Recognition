@@ -13,7 +13,8 @@ type NotificationType =
   | "check-out"
   | "absent"
   | "complaint"
-  | "call";
+  | "call"
+  | "leave-request";
 
 type DbNotificationRow = {
   id: string;
@@ -154,9 +155,39 @@ export async function GET() {
           LIMIT 30
         `;
 
+    const leaveRequests = canViewAdminPanel(payload.role)
+      ? await prisma.leaveRequest.findMany({
+          where: { status: "pending" },
+          include: { user: { select: { name: true } } },
+          orderBy: { created_at: "desc" },
+          take: 15,
+        })
+      : [];
+
+    const attendanceNotifications = mapDbRowsToNotifications(rows, payload.role);
+    const leaveNotifications = leaveRequests.map((req) => ({
+      id: req.id,
+      type: "leave-request" as const,
+      employeeName: req.user.name,
+      happenedAt: req.created_at.toISOString(),
+      message: `${req.user.name} mengajukan ${
+        req.leave_type === "annual"
+          ? "cuti tahunan"
+          : req.leave_type === "sick"
+            ? "izin sakit"
+            : req.leave_type === "permission"
+              ? "izin kerja"
+              : req.leave_type
+      } (${req.total_days} hari) baru. Klik untuk meninjau.`,
+    }));
+
+    const allNotifications = [...leaveNotifications, ...attendanceNotifications]
+      .sort((a, b) => b.happenedAt.localeCompare(a.happenedAt))
+      .slice(0, 20);
+
     return NextResponse.json({
       success: true,
-      data: mapDbRowsToNotifications(rows, payload.role),
+      data: allNotifications,
     });
   } catch (error) {
     console.error(error);

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -127,19 +128,60 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [isBellMenuOpen, setIsBellMenuOpen] = useState(false);
+  const [attendanceNotifications, setAttendanceNotifications] = useState<any[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const bellMenuRef = useRef<HTMLDivElement | null>(null);
 
   const resolvedVariant = useMemo(() => {
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
       return "admin";
     }
-
     return variant;
   }, [pathname, variant]);
 
   const isAdmin = resolvedVariant === "admin";
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    async function loadNotifications() {
+      try {
+        setIsLoadingNotifications(true);
+        const response = await fetch("/api/attendance/notifications", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const result = await response.json();
+        if (response.ok && Array.isArray(result.data)) {
+          setAttendanceNotifications(result.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    }
+
+    void loadNotifications();
+  }, [isAdmin, pathname]);
+
+  useEffect(() => {
+    function onClickOutside(event: MouseEvent) {
+      if (
+        bellMenuRef.current &&
+        !bellMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsBellMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -203,13 +245,82 @@ export default function AppHeader({
             </div>
           </div>
 
-          {rightLabel ? (
-            <div className="hidden items-center justify-end gap-3 md:flex">
-              <span className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100">
-                {rightLabel}
-              </span>
-            </div>
-          ) : null}
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <div ref={bellMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsBellMenuOpen(!isBellMenuOpen)}
+                  className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-lg shadow-slate-200/70 ring-1 ring-blue-100 transition hover:bg-blue-50 active:scale-[0.96]"
+                  aria-label="Notifications"
+                >
+                  <Bell size={22} strokeWidth={2.5} />
+                  {attendanceNotifications.length > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                      {attendanceNotifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {isBellMenuOpen && (
+                  <div className="absolute right-0 top-14 z-50 w-80 rounded-2xl border border-blue-100 bg-white p-4 shadow-2xl shadow-slate-300/40">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                      Pemberitahuan Admin
+                    </p>
+
+                    {isLoadingNotifications ? (
+                      <p className="mt-3 text-sm font-semibold text-slate-400">Memuat...</p>
+                    ) : attendanceNotifications.length === 0 ? (
+                      <p className="mt-3 text-sm font-semibold text-slate-400">Tidak ada notifikasi baru.</p>
+                    ) : (
+                      <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                        {attendanceNotifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => {
+                              if (notif.type === "leave-request") {
+                                setIsBellMenuOpen(false);
+                                handleNavigate("/admin/cuti");
+                              }
+                            }}
+                            className={`rounded-xl p-3 transition text-left ${
+                              notif.type === "leave-request"
+                                ? "bg-red-50 hover:bg-red-100/70 cursor-pointer border border-red-100"
+                                : "bg-[#f6f8ff]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-black text-[#123c8c]">{notif.employeeName}</p>
+                              {notif.type === "leave-request" && (
+                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-black text-red-600 uppercase">
+                                  Pengajuan
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs font-semibold text-slate-600 leading-snug">{notif.message}</p>
+                            <p className="mt-1 text-[10px] font-semibold text-slate-400">
+                              {new Date(notif.happenedAt).toLocaleTimeString("id-ID", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {rightLabel ? (
+              <div className="hidden items-center justify-end gap-3 md:flex">
+                <span className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100">
+                  {rightLabel}
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
