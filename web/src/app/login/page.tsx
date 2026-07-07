@@ -38,7 +38,8 @@ function isValidEmailFormat(email: string) {
 }
 
 function isCreativemuEmail(email: string) {
-  return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
+  const normalized = email.trim().toLowerCase();
+  return normalized.endsWith("@creativemu.co.id") || normalized.endsWith("@creativemu.com");
 }
 
 function FloatingAlert({
