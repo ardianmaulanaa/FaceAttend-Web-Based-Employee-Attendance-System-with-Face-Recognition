@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -31,6 +32,24 @@ type AppHeaderProps = {
   subtitle?: string;
   rightLabel?: string;
   variant?: "employee" | "admin";
+};
+
+type NotificationStats = {
+  total?: number;
+  unread?: number;
+  pending?: number;
+  sick?: number;
+  leave?: number;
+  permission?: number;
+  wfh?: number;
+  wfc?: number;
+  visit?: number;
+};
+
+type NotificationResponse = {
+  success?: boolean;
+  stats?: NotificationStats;
+  message?: string;
 };
 
 const employeeNav = [
@@ -72,9 +91,9 @@ const masterDataMenus = [
     icon: CalendarClock,
   },
   {
-  href: "/admin/kantor",
-  label: "Kantor",
-  icon: Building2,
+    href: "/admin/kantor",
+    label: "Kantor",
+    icon: Building2,
   },
   {
     href: "/admin/departments",
@@ -119,6 +138,38 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getAdminNotificationCount(stats?: NotificationStats) {
+  if (!stats) return 0;
+
+  const unread = Number(stats.unread || 0);
+  const pending = Number(stats.pending || 0);
+
+  return unread + pending;
+}
+
+function getEmployeeNotificationCount(stats?: NotificationStats) {
+  if (!stats) return 0;
+
+  return Number(stats.unread || 0);
+}
+
+function formatNotificationCount(count: number) {
+  if (count <= 0) return "";
+  if (count > 99) return "99+";
+
+  return String(count);
+}
+
 export default function AppHeader({
   title,
   subtitle,
@@ -130,6 +181,7 @@ export default function AppHeader({
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const resolvedVariant = useMemo(() => {
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
@@ -140,6 +192,9 @@ export default function AppHeader({
   }, [pathname, variant]);
 
   const isAdmin = resolvedVariant === "admin";
+  const notificationHref = isAdmin ? "/admin/notifikasi" : "/notifikasi";
+  const isNotificationPage = isActivePath(pathname, notificationHref);
+  const hasNewNotification = notificationCount > 0;
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -160,6 +215,53 @@ export default function AppHeader({
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadNotificationCount() {
+      try {
+        const endpoint = isAdmin
+          ? "/api/admin/notifications"
+          : "/api/notifications";
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (isMounted) setNotificationCount(0);
+          return;
+        }
+
+        const data = (await readJsonResponse(response)) as NotificationResponse;
+
+        const count = isAdmin
+          ? getAdminNotificationCount(data.stats)
+          : getEmployeeNotificationCount(data.stats);
+
+        if (isMounted) {
+          setNotificationCount(count);
+        }
+      } catch {
+        if (isMounted) {
+          setNotificationCount(0);
+        }
+      }
+    }
+
+    void loadNotificationCount();
+
+    const intervalId = window.setInterval(() => {
+      void loadNotificationCount();
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [isAdmin, pathname]);
 
   function handleNavigate(href: string) {
     setIsSidebarOpen(false);
@@ -203,13 +305,52 @@ export default function AppHeader({
             </div>
           </div>
 
-          {rightLabel ? (
-            <div className="hidden items-center justify-end gap-3 md:flex">
-              <span className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100">
+          <div className="flex shrink-0 items-center justify-end gap-3">
+            <Link
+              href={notificationHref}
+              className={`relative hidden h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm ring-1 transition active:scale-[0.96] sm:inline-flex ${
+                isNotificationPage
+                  ? "bg-[#123c8c] text-white ring-[#123c8c] shadow-lg shadow-blue-900/20"
+                  : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
+              }`}
+            >
+              <span className="relative">
+                <Bell size={20} strokeWidth={2.7} />
+
+                {hasNewNotification ? (
+                  <span className="absolute -right-2 -top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                    {formatNotificationCount(notificationCount)}
+                  </span>
+                ) : null}
+              </span>
+
+              <span className="hidden lg:inline">Notifikasi</span>
+            </Link>
+
+            <Link
+              href={notificationHref}
+              aria-label="Buka notifikasi"
+              className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition active:scale-[0.96] sm:hidden ${
+                isNotificationPage
+                  ? "bg-[#123c8c] text-white ring-[#123c8c]"
+                  : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
+              }`}
+            >
+              <Bell size={21} strokeWidth={2.7} />
+
+              {hasNewNotification ? (
+                <span className="absolute right-1.5 top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                  {formatNotificationCount(notificationCount)}
+                </span>
+              ) : null}
+            </Link>
+
+            {rightLabel ? (
+              <span className="hidden rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-blue-100 md:inline-flex">
                 {rightLabel}
               </span>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </header>
 

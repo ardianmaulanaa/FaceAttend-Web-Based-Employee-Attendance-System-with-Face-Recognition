@@ -66,6 +66,10 @@ function isPrismaForeignKeyError(error: unknown) {
   return getPrismaCode(error) === "P2003";
 }
 
+function isPrismaUniqueError(error: unknown) {
+  return getPrismaCode(error) === "P2002";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser(req);
@@ -76,15 +80,19 @@ export async function GET(req: NextRequest) {
     ) {
       return NextResponse.json(
         {
+          success: false,
           message: "Akses ditolak.",
         },
         { status: 403 }
       );
     }
 
-    const search = req.nextUrl.searchParams.get("search") || "";
-    const status = req.nextUrl.searchParams.get("status") || "all";
-    const office = req.nextUrl.searchParams.get("office") || "all";
+    const searchParams = req.nextUrl.searchParams;
+
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "all";
+    const officeId = searchParams.get("office_id") || "all";
+    const departmentId = searchParams.get("department_id") || "all";
 
     const units = await prisma.unit.findMany({
       where: {
@@ -98,16 +106,37 @@ export async function GET(req: NextRequest) {
                     },
                   },
                   {
-                    office: {
-                      name: {
-                        contains: search,
+                    department: {
+                      is: {
+                        name: {
+                          contains: search,
+                        },
                       },
                     },
                   },
                   {
-                    office: {
-                      address: {
-                        contains: search,
+                    department: {
+                      is: {
+                        office: {
+                          is: {
+                            name: {
+                              contains: search,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    department: {
+                      is: {
+                        office: {
+                          is: {
+                            address: {
+                              contains: search,
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -119,13 +148,30 @@ export async function GET(req: NextRequest) {
                 status,
               }
             : {},
-          office !== "all"
-            ? office === "none"
+          officeId !== "all"
+            ? officeId === "none"
               ? {
-                  office_id: null,
+                  department: {
+                    is: {
+                      office_id: null,
+                    },
+                  },
                 }
               : {
-                  office_id: office,
+                  department: {
+                    is: {
+                      office_id: officeId,
+                    },
+                  },
+                }
+            : {},
+          departmentId !== "all"
+            ? departmentId === "none"
+              ? {
+                  department_id: null,
+                }
+              : {
+                  department_id: departmentId,
                 }
             : {},
         ],
@@ -133,7 +179,51 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         name: true,
+        department_id: true,
+        status: true,
+        created_at: true,
+        updated_at: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            office_id: true,
+            status: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                status: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            users: true,
+            positions: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          department: {
+            name: "asc",
+          },
+        },
+        {
+          name: "asc",
+        },
+      ],
+    });
+
+    const departments = await prisma.department.findMany({
+      select: {
+        id: true,
+        name: true,
         office_id: true,
+        status: true,
         office: {
           select: {
             id: true,
@@ -142,19 +232,17 @@ export async function GET(req: NextRequest) {
             status: true,
           },
         },
-        status: true,
-        created_at: true,
-        updated_at: true,
-        _count: {
-          select: {
-            users: true,
-            departments: true,
+      },
+      orderBy: [
+        {
+          office: {
+            name: "asc",
           },
         },
-      },
-      orderBy: {
-        name: "asc",
-      },
+        {
+          name: "asc",
+        },
+      ],
     });
 
     const offices = await prisma.officeLocation.findMany({
@@ -172,6 +260,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       units,
+      departments,
       offices,
     });
   } catch (error) {
@@ -199,7 +288,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Akses ditolak. Hanya owner atau admin yang dapat menambah unit.",
+          message:
+            "Akses ditolak. Hanya owner atau admin yang dapat menambah unit.",
         },
         { status: 403 }
       );
@@ -209,13 +299,24 @@ export async function POST(req: NextRequest) {
 
     const name = String(body.name || "").trim();
     const officeId = String(body.office_id || "").trim();
+    const departmentId = String(body.department_id || "").trim();
     const status = String(body.status || "active").trim();
 
     if (!officeId) {
       return NextResponse.json(
         {
           success: false,
-          message: "Kantor unit wajib dipilih.",
+          message: "Kantor wajib dipilih.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!departmentId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi unit wajib dipilih.",
         },
         { status: 400 }
       );
@@ -241,29 +342,79 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const office = await prisma.officeLocation.findUnique({
+    const department = await prisma.department.findUnique({
       where: {
-        id: officeId,
+        id: departmentId,
       },
       select: {
         id: true,
+        name: true,
+        office_id: true,
         status: true,
+        office: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
       },
     });
 
-    if (!office || office.status !== "active") {
+    if (!department) {
       return NextResponse.json(
         {
           success: false,
-          message: "Kantor tidak ditemukan atau tidak aktif.",
+          message: "Divisi tidak ditemukan.",
         },
         { status: 404 }
       );
     }
 
+    if (department.status !== "active") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi tidak aktif. Pilih divisi aktif.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!department.office_id || !department.office) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Divisi ini belum terhubung ke kantor. Edit divisi terlebih dahulu.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (department.office_id !== officeId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi tidak sesuai dengan kantor yang dipilih.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (department.office.status !== "active") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Kantor dari divisi ini tidak aktif.",
+        },
+        { status: 400 }
+      );
+    }
+
     const duplicate = await prisma.unit.findFirst({
       where: {
-        office_id: officeId,
+        department_id: departmentId,
         name,
       },
       select: {
@@ -275,7 +426,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Nama unit sudah ada di kantor yang dipilih.",
+          message: "Nama unit sudah ada pada divisi yang dipilih.",
         },
         { status: 409 }
       );
@@ -284,28 +435,36 @@ export async function POST(req: NextRequest) {
     const unit = await prisma.unit.create({
       data: {
         name,
-        office_id: officeId,
+        department_id: departmentId,
         status,
       },
       select: {
         id: true,
         name: true,
-        office_id: true,
-        office: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            status: true,
-          },
-        },
+        department_id: true,
         status: true,
         created_at: true,
         updated_at: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            office_id: true,
+            status: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                status: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             users: true,
-            departments: true,
+            positions: true,
           },
         },
       },
@@ -318,6 +477,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("POST /api/admin/units error:", error);
+
+    if (isPrismaUniqueError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Nama unit sudah ada pada divisi yang dipilih.",
+        },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -341,7 +510,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Akses ditolak. Hanya owner atau admin yang dapat mengubah unit.",
+          message:
+            "Akses ditolak. Hanya owner atau admin yang dapat mengubah unit.",
         },
         { status: 403 }
       );
@@ -352,6 +522,7 @@ export async function PATCH(req: NextRequest) {
     const id = String(body.id || "").trim();
     const name = String(body.name || "").trim();
     const officeId = String(body.office_id || "").trim();
+    const departmentId = String(body.department_id || "").trim();
     const status = String(body.status || "active").trim();
 
     if (!id) {
@@ -368,7 +539,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Kantor unit wajib dipilih.",
+          message: "Kantor wajib dipilih.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!departmentId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi unit wajib dipilih.",
         },
         { status: 400 }
       );
@@ -413,29 +594,79 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const office = await prisma.officeLocation.findUnique({
+    const department = await prisma.department.findUnique({
       where: {
-        id: officeId,
+        id: departmentId,
       },
       select: {
         id: true,
+        name: true,
+        office_id: true,
         status: true,
+        office: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
       },
     });
 
-    if (!office || office.status !== "active") {
+    if (!department) {
       return NextResponse.json(
         {
           success: false,
-          message: "Kantor tidak ditemukan atau tidak aktif.",
+          message: "Divisi tidak ditemukan.",
         },
         { status: 404 }
       );
     }
 
+    if (department.status !== "active") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi tidak aktif. Pilih divisi aktif.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!department.office_id || !department.office) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Divisi ini belum terhubung ke kantor. Edit divisi terlebih dahulu.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (department.office_id !== officeId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Divisi tidak sesuai dengan kantor yang dipilih.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (department.office.status !== "active") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Kantor dari divisi ini tidak aktif.",
+        },
+        { status: 400 }
+      );
+    }
+
     const duplicate = await prisma.unit.findFirst({
       where: {
-        office_id: officeId,
+        department_id: departmentId,
         name,
         NOT: {
           id,
@@ -450,7 +681,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Nama unit sudah ada di kantor yang dipilih.",
+          message: "Nama unit sudah ada pada divisi yang dipilih.",
         },
         { status: 409 }
       );
@@ -462,28 +693,36 @@ export async function PATCH(req: NextRequest) {
       },
       data: {
         name,
-        office_id: officeId,
+        department_id: departmentId,
         status,
       },
       select: {
         id: true,
         name: true,
-        office_id: true,
-        office: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            status: true,
-          },
-        },
+        department_id: true,
         status: true,
         created_at: true,
         updated_at: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            office_id: true,
+            status: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                status: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             users: true,
-            departments: true,
+            positions: true,
           },
         },
       },
@@ -496,6 +735,16 @@ export async function PATCH(req: NextRequest) {
     });
   } catch (error) {
     console.error("PATCH /api/admin/units error:", error);
+
+    if (isPrismaUniqueError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Nama unit sudah ada pada divisi yang dipilih.",
+        },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -519,7 +768,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Akses ditolak. Hanya owner atau admin yang dapat menghapus unit.",
+          message:
+            "Akses ditolak. Hanya owner atau admin yang dapat menghapus unit.",
         },
         { status: 403 }
       );
@@ -547,7 +797,7 @@ export async function DELETE(req: NextRequest) {
         _count: {
           select: {
             users: true,
-            departments: true,
+            positions: true,
           },
         },
       },
@@ -563,12 +813,12 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    if (unit._count.users > 0 || unit._count.departments > 0) {
+    if (unit._count.users > 0 || unit._count.positions > 0) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Unit tidak bisa dihapus karena masih memiliki divisi atau karyawan. Ubah status menjadi Nonaktif.",
+            "Unit tidak bisa dihapus karena masih memiliki jabatan atau karyawan. Ubah status menjadi Nonaktif.",
         },
         { status: 400 }
       );
