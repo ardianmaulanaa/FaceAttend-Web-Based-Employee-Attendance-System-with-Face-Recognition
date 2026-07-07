@@ -24,6 +24,11 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 
+function getShortEmployeeId(id: string) {
+  if (!id) return "";
+  return id.substring(0, 8).toUpperCase();
+}
+
 type RelationItem = {
   id: string;
   name: string;
