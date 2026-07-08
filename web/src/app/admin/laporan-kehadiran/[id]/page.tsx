@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  Building2,
   CalendarDays,
   Clock3,
   ImageIcon,
@@ -30,6 +31,11 @@ type AttendanceReportDetail = {
   workMode: string;
   workModeLabel: string;
 
+  checkOutWorkMode?: string | null;
+  check_out_work_mode?: string | null;
+  checkoutWorkMode?: string | null;
+  checkOutWorkModeLabel?: string | null;
+
   checkInPhoto: string | null;
   checkOutPhoto: string | null;
   proofPhoto: string | null;
@@ -38,6 +44,9 @@ type AttendanceReportDetail = {
   officeAddress: string | null;
   officeLatitude: number | null;
   officeLongitude: number | null;
+
+  attendanceLatitude?: number | null;
+  attendanceLongitude?: number | null;
 
   checkInLatitude?: number | null;
   checkInLongitude?: number | null;
@@ -51,6 +60,11 @@ type AttendanceReportDetail = {
   visitClientName?: string | null;
   visitAddress?: string | null;
   visitNote?: string | null;
+
+  checkOutVisitTitle?: string | null;
+  checkOutVisitClientName?: string | null;
+  checkOutVisitAddress?: string | null;
+  checkOutVisitNote?: string | null;
 
   lateReason: string | null;
 };
@@ -104,6 +118,59 @@ function getStatusStyle(status: string) {
   return "bg-slate-100 text-slate-600 ring-slate-200";
 }
 
+function normalizeMode(value?: string | null) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .trim();
+
+  if (normalized === "office" || normalized === "kantor") return "office";
+  if (normalized === "wfh") return "wfh";
+  if (normalized === "wfc") return "wfc";
+  if (normalized === "visit" || normalized === "kunjungan") return "visit";
+
+  return normalized;
+}
+
+function formatModeLabel(value?: string | null) {
+  const mode = normalizeMode(value);
+
+  if (mode === "office") return "Kantor";
+  if (mode === "wfh") return "WFH";
+  if (mode === "wfc") return "WFC";
+  if (mode === "visit") return "Kunjungan";
+
+  return value || "Kantor";
+}
+
+function getCheckOutMode(report: AttendanceReportDetail) {
+  return (
+    report.checkOutWorkMode ||
+    report.check_out_work_mode ||
+    report.checkoutWorkMode ||
+    null
+  );
+}
+
+function hasText(value?: string | null) {
+  return Boolean(String(value || "").trim());
+}
+
+function getVisitTitle(report: AttendanceReportDetail) {
+  return report.checkOutVisitTitle || report.visitTitle || null;
+}
+
+function getVisitClientName(report: AttendanceReportDetail) {
+  return report.checkOutVisitClientName || report.visitClientName || null;
+}
+
+function getVisitAddress(report: AttendanceReportDetail) {
+  return report.checkOutVisitAddress || report.visitAddress || null;
+}
+
+function getVisitNote(report: AttendanceReportDetail) {
+  return report.checkOutVisitNote || report.visitNote || null;
+}
+
 function isLateReport(report: AttendanceReportDetail) {
   const status = String(report.status || "").toLowerCase();
   const label = String(report.statusLabel || "").toLowerCase();
@@ -113,19 +180,27 @@ function isLateReport(report: AttendanceReportDetail) {
     status.includes("terlambat") ||
     label.includes("late") ||
     label.includes("terlambat") ||
-    Boolean(report.lateReason?.trim())
+    hasText(report.lateReason)
   );
 }
 
-function isVisitReport(report: AttendanceReportDetail) {
-  const mode = String(report.workMode || "").toLowerCase();
+function isCheckOutVisitReport(report: AttendanceReportDetail) {
+  return normalizeMode(getCheckOutMode(report)) === "visit";
+}
+
+function hasVisitReport(report: AttendanceReportDetail) {
+  const mainMode = normalizeMode(report.workMode);
   const label = String(report.workModeLabel || "").toLowerCase();
 
   return (
-    mode.includes("visit") ||
-    mode.includes("kunjungan") ||
+    mainMode === "visit" ||
+    isCheckOutVisitReport(report) ||
     label.includes("visit") ||
-    label.includes("kunjungan")
+    label.includes("kunjungan") ||
+    hasText(getVisitTitle(report)) ||
+    hasText(getVisitClientName(report)) ||
+    hasText(getVisitAddress(report)) ||
+    hasText(getVisitNote(report))
   );
 }
 
@@ -204,7 +279,7 @@ function normalizeReverseGeocode(data: ReverseGeocodeResponse) {
 
 async function reverseGeocode(
   latitude?: number | null,
-  longitude?: number | null
+  longitude?: number | null,
 ): Promise<ReverseGeocodeResult | null> {
   if (latitude === null || latitude === undefined) return null;
   if (longitude === null || longitude === undefined) return null;
@@ -212,12 +287,12 @@ async function reverseGeocode(
   try {
     const response = await fetch(
       `/api/geocode/reverse?lat=${encodeURIComponent(
-        latitude
+        latitude,
       )}&lon=${encodeURIComponent(longitude)}`,
       {
         method: "GET",
         cache: "no-store",
-      }
+      },
     );
 
     const data = (await readJsonResponse(response)) as ReverseGeocodeResponse;
@@ -230,7 +305,10 @@ async function reverseGeocode(
 
     return normalized;
   } catch (error) {
-    console.error("REVERSE_GEOCODE_ERROR:", error);
+    console.warn(
+      "REVERSE_GEOCODE_WARNING:",
+      error instanceof Error ? error.message : error,
+    );
     return null;
   }
 }
@@ -279,88 +357,128 @@ function PhotoCard({
   );
 }
 
-function LateReasonCard({ report }: { report: AttendanceReportDetail }) {
-  if (!isLateReport(report)) return null;
-
+function EmptyNoteCard({ message }: { message: string }) {
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-amber-100 bg-white shadow-xl shadow-slate-200/60">
-      <div className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between md:p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-            <Clock3 size={24} strokeWidth={2.7} />
-          </div>
-
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-              Pesan Alasan Terlambat
-            </p>
-
-            <h3 className="mt-2 text-xl font-black text-slate-950">
-              Keterangan dari karyawan
-            </h3>
-
-            <p className="mt-2 max-w-4xl text-sm font-semibold leading-7 text-slate-500">
-              {report.lateReason?.trim()
-                ? report.lateReason
-                : "Belum ada alasan terlambat yang tersimpan pada laporan ini."}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-full bg-amber-50 px-4 py-2 text-xs font-black text-amber-700 ring-1 ring-amber-100">
-          {report.statusLabel}
-        </div>
-      </div>
+    <div className="rounded-[1.6rem] border border-slate-100 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-500">
+      {message}
     </div>
   );
 }
 
-function VisitInfoCard({ report }: { report: AttendanceReportDetail }) {
-  if (!isVisitReport(report)) return null;
+function EmployeeNotesSection({ report }: { report: AttendanceReportDetail }) {
+  const shouldShowLate = isLateReport(report);
+  const shouldShowVisit = hasVisitReport(report);
+
+  if (!shouldShowLate && !shouldShowVisit) return null;
+
+  const visitTitle = getVisitTitle(report);
+  const visitClientName = getVisitClientName(report);
+  const visitAddress = getVisitAddress(report);
+  const visitNote = getVisitNote(report);
+  const isCheckoutVisit = isCheckOutVisitReport(report);
+  const visitModeLabel = isCheckoutVisit
+    ? "Kunjungan saat check-out"
+    : "Kunjungan";
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-orange-100 bg-white shadow-xl shadow-slate-200/60">
-      <div className="flex flex-col gap-4 p-5 md:p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100">
-            <BriefcaseBusiness size={24} strokeWidth={2.7} />
-          </div>
+    <section className="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-slate-200/60">
+      <div className="border-b border-blue-50 bg-[#f8fbff] px-5 py-5 md:px-6">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+          Keterangan Karyawan
+        </p>
+        <h3 className="mt-2 text-2xl font-black text-slate-950">
+          Terlambat & Kunjungan
+        </h3>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+          Bagian ini menampilkan alasan datang terlambat dan detail kunjungan
+          yang dikirim oleh karyawan.
+        </p>
+      </div>
 
-          <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
-              Keterangan Kunjungan
-            </p>
+      <div className="grid gap-4 p-5 md:grid-cols-2 md:p-6">
+        {shouldShowLate ? (
+          <div className="rounded-[1.7rem] border border-amber-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                <Clock3 size={24} strokeWidth={2.7} />
+              </div>
 
-            <h3 className="mt-2 text-xl font-black text-slate-950">
-              {report.visitTitle || "Kunjungan"}
-            </h3>
-
-            {report.visitClientName ? (
-              <p className="mt-1 text-sm font-black text-slate-600">
-                Client / PIC: {report.visitClientName}
-              </p>
-            ) : null}
-
-            <p className="mt-3 text-sm font-semibold leading-7 text-slate-500">
-              {report.visitNote ||
-                "Belum ada keperluan kunjungan yang tersimpan."}
-            </p>
-
-            {report.visitAddress ? (
-              <div className="mt-4 rounded-3xl border border-orange-100 bg-orange-50/70 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
-                  Alamat Tujuan Kunjungan
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                  Keterangan Datang Terlambat
                 </p>
-
-                <p className="mt-2 text-sm font-semibold leading-6 text-orange-800">
-                  {report.visitAddress}
+                <h4 className="mt-2 text-lg font-black text-slate-950">
+                  Alasan dari karyawan
+                </h4>
+                <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">
+                  {report.lateReason?.trim() ||
+                    "Belum ada alasan terlambat yang tersimpan."}
                 </p>
               </div>
-            ) : null}
+            </div>
           </div>
-        </div>
+        ) : (
+          <EmptyNoteCard message="Tidak ada keterangan datang terlambat pada laporan ini." />
+        )}
+
+        {shouldShowVisit ? (
+          <div className="rounded-[1.7rem] border border-orange-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                <BriefcaseBusiness size={24} strokeWidth={2.7} />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+                    Keterangan Kunjungan
+                  </p>
+
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-black text-orange-700 ring-1 ring-orange-100">
+                    {visitModeLabel}
+                  </span>
+                </div>
+
+                <h4 className="mt-2 text-lg font-black text-slate-950">
+                  {visitTitle || "Tujuan kunjungan belum diisi"}
+                </h4>
+
+                <div className="mt-4 grid gap-3 text-sm font-semibold leading-6 text-slate-600">
+                  <div className="rounded-2xl bg-orange-50/70 p-4 ring-1 ring-orange-100">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">
+                      PIC / Client / Perusahaan
+                    </p>
+                    <p className="mt-1 text-slate-800">
+                      {visitClientName || "Belum diisi"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-orange-50/70 p-4 ring-1 ring-orange-100">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">
+                      Alamat Kunjungan
+                    </p>
+                    <p className="mt-1 text-slate-800">
+                      {visitAddress || "Belum diisi"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-orange-50/70 p-4 ring-1 ring-orange-100">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">
+                      Keperluan / Catatan
+                    </p>
+                    <p className="mt-1 text-slate-800">
+                      {visitNote || "Belum diisi"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EmptyNoteCard message="Tidak ada keterangan kunjungan pada laporan ini." />
+        )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -379,7 +497,27 @@ function GpsLocationCard({
   accuracy?: number | null;
   reverseResult: ReverseGeocodeResult | null;
 }) {
-  const hasGps = latitude !== null && latitude !== undefined && longitude !== null && longitude !== undefined;
+  const hasGps =
+    latitude !== null &&
+    latitude !== undefined &&
+    longitude !== null &&
+    longitude !== undefined;
+
+  const mainTitle = reverseResult?.placeName
+    ? reverseResult.placeName
+    : reverseResult?.shortName
+      ? reverseResult.shortName
+      : hasGps
+        ? "Koordinat GPS terbaca"
+        : "GPS belum tersedia";
+
+  const description = reverseResult?.displayName
+    ? reverseResult.displayName
+    : reverseResult?.shortName
+      ? reverseResult.shortName
+      : hasGps
+        ? "Koordinat berhasil disimpan. Alamat belum bisa diterjemahkan otomatis oleh reverse geocode."
+        : subtitle;
 
   return (
     <div className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-xl shadow-slate-200/60">
@@ -390,20 +528,28 @@ function GpsLocationCard({
           </div>
 
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
-              {title}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                {title}
+              </p>
+
+              {hasGps ? (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-100">
+                  GPS Terbaca
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
+                  GPS Kosong
+                </span>
+              )}
+            </div>
 
             <p className="mt-2 text-base font-black text-slate-950">
-              {reverseResult?.placeName ||
-                reverseResult?.shortName ||
-                "Alamat GPS belum terbaca"}
+              {mainTitle}
             </p>
 
             <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-              {reverseResult?.displayName ||
-                reverseResult?.shortName ||
-                subtitle}
+              {description}
             </p>
 
             {hasGps ? (
@@ -507,14 +653,15 @@ export default function AdminAttendanceReportDetailPage() {
     useState<ReverseGeocodeResult | null>(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
 
-  const primaryCheckInPhoto = report?.checkInPhoto || report?.proofPhoto || null;
+  const primaryCheckInPhoto =
+    report?.checkInPhoto || report?.proofPhoto || null;
 
   const shouldShowOfficeLocation = useMemo(() => {
     if (!report) return false;
 
-    const mode = String(report.workMode || "").toLowerCase();
+    const mode = normalizeMode(report.workMode);
 
-    return mode === "office" || mode === "kantor" || Boolean(report.officeName);
+    return mode === "office" || Boolean(report.officeName);
   }, [report]);
 
   async function getAttendanceDetail() {
@@ -529,12 +676,11 @@ export default function AdminAttendanceReportDetailPage() {
         {
           method: "GET",
           cache: "no-store",
-        }
+        },
       );
 
-      const data: AttendanceReportDetailResponse = await readJsonResponse(
-        response
-      );
+      const data: AttendanceReportDetailResponse =
+        await readJsonResponse(response);
 
       if (!response.ok || !data.success || !data.report) {
         setReport(null);
@@ -550,7 +696,7 @@ export default function AdminAttendanceReportDetailPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Gagal mengambil detail laporan."
+          : "Gagal mengambil detail laporan.",
       );
     } finally {
       setIsLoading(false);
@@ -646,15 +792,21 @@ export default function AdminAttendanceReportDetailPage() {
                     <div className="mt-5 flex flex-wrap gap-2">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusStyle(
-                          report.status
+                          report.status,
                         )}`}
                       >
                         {report.statusLabel}
                       </span>
 
                       <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black text-white ring-1 ring-white/20">
-                        {report.workModeLabel}
+                        Check-in: {formatModeLabel(report.workMode)}
                       </span>
+
+                      {getCheckOutMode(report) ? (
+                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black text-white ring-1 ring-white/20">
+                          Check-out: {formatModeLabel(getCheckOutMode(report))}
+                        </span>
+                      ) : null}
 
                       {isAddressLoading ? (
                         <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-white ring-1 ring-white/20">
@@ -709,23 +861,23 @@ export default function AdminAttendanceReportDetailPage() {
                 </div>
               </div>
 
-              <VisitInfoCard report={report} />
-
-              <LateReasonCard report={report} />
+              <EmployeeNotesSection report={report} />
 
               <div className="grid gap-6 lg:grid-cols-2">
                 <GpsLocationCard
                   title="Lokasi GPS Check-in"
-                  subtitle="Alamat check-in belum bisa diterjemahkan. Pastikan API reverse geocode aktif."
-                  latitude={report.checkInLatitude}
-                  longitude={report.checkInLongitude}
+                  subtitle="GPS check-in belum tersedia pada laporan ini."
+                  latitude={report.checkInLatitude ?? report.attendanceLatitude}
+                  longitude={
+                    report.checkInLongitude ?? report.attendanceLongitude
+                  }
                   accuracy={report.checkInAccuracy}
                   reverseResult={checkInAddress}
                 />
 
                 <GpsLocationCard
                   title="Lokasi GPS Check-out"
-                  subtitle="Alamat check-out belum bisa diterjemahkan. Pastikan API reverse geocode aktif."
+                  subtitle="GPS check-out belum tersedia pada laporan ini."
                   latitude={report.checkOutLatitude}
                   longitude={report.checkOutLongitude}
                   accuracy={report.checkOutAccuracy}
