@@ -330,11 +330,10 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${
-          hasScrolled
-            ? "border-blue-100/80 bg-white/95 shadow-lg shadow-slate-300/30"
-            : "border-white/60 bg-white/90 shadow-sm shadow-slate-200/40"
-        }`}
+        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
+          ? "border-blue-100/80 bg-white/95 shadow-lg shadow-slate-300/30"
+          : "border-white/60 bg-white/90 shadow-sm shadow-slate-200/40"
+          }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
@@ -414,11 +413,10 @@ export default function AppHeader({
                                     router.push("/admin/cuti");
                                   }
                                 }}
-                                className={`relative rounded-xl p-3 transition text-left ${
-                                  notif.type === "leave-request"
-                                    ? "bg-red-50 hover:bg-red-100/70 cursor-pointer border border-red-100"
-                                    : "bg-[#f6f8ff]"
-                                }`}
+                                className={`relative rounded-xl p-3 transition text-left ${notif.type === "leave-request"
+                                  ? "bg-red-50 hover:bg-red-100/70 cursor-pointer border border-red-100"
+                                  : "bg-[#f6f8ff]"
+                                  }`}
                               >
                                 <div className="flex items-center justify-between">
                                   <p className="text-xs font-black text-[#123c8c]">{notif.employeeName}</p>
@@ -468,18 +466,17 @@ export default function AppHeader({
                   className="relative inline-flex h-12 w-12 lg:w-auto items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-white shadow-lg shadow-green-900/10 hover:bg-[#20ba56] transition active:scale-[0.96] lg:px-4"
                 >
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 001.33 4.982L2 22l5.164-1.354a9.959 9.959 0 004.845 1.252h.004c5.507 0 9.99-4.478 9.99-9.985 0-2.67-1.037-5.18-2.92-7.065A9.925 9.925 0 0012.012 2zm5.727 14.047c-.245.69-1.22 1.262-1.688 1.348-.46.085-.92.146-2.96-.677-2.607-1.05-4.27-3.705-4.4-3.88-.13-.176-1.052-1.4-1.052-2.67 0-1.27.665-1.894.902-2.147.237-.253.52-.317.693-.317.172 0 .345.002.495.01.155.007.363-.058.57.443.208.508.71 1.73.772 1.857.063.128.105.277.02.447-.085.17-.127.277-.255.426-.127.15-.268.334-.383.45-.128.127-.26.265-.11.52.15.255.666 1.1 1.43 1.78.983.876 1.81 1.147 2.07 1.276.26.13.413.11.566-.064.153-.176.666-.777.844-1.04.177-.264.356-.22.597-.13.24.09 1.527.72 1.79.85.263.13.438.196.502.307.064.11.064.646-.18 1.336z"/>
+                    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 001.33 4.982L2 22l5.164-1.354a9.959 9.959 0 004.845 1.252h.004c5.507 0 9.99-4.478 9.99-9.985 0-2.67-1.037-5.18-2.92-7.065A9.925 9.925 0 0012.012 2zm5.727 14.047c-.245.69-1.22 1.262-1.688 1.348-.46.085-.92.146-2.96-.677-2.607-1.05-4.27-3.705-4.4-3.88-.13-.176-1.052-1.4-1.052-2.67 0-1.27.665-1.894.902-2.147.237-.253.52-.317.693-.317.172 0 .345.002.495.01.155.007.363-.058.57.443.208.508.71 1.73.772 1.857.063.128.105.277.02.447-.085.17-.127.277-.255.426-.127.15-.268.334-.383.45-.128.127-.26.265-.11.52.15.255.666 1.1 1.43 1.78.983.876 1.81 1.147 2.07 1.276.26.13.413.11.566-.064.153-.176.666-.777.844-1.04.177-.264.356-.22.597-.13.24.09 1.527.72 1.79.85.263.13.438.196.502.307.064.11.064.646-.18 1.336z" />
                   </svg>
                   <span className="hidden lg:inline font-bold text-xs">CS Creativemu</span>
                 </a>
 
                 <Link
                   href={notificationHref}
-                  className={`relative hidden h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm ring-1 transition active:scale-[0.96] sm:inline-flex ${
-                    isNotificationPage
-                      ? "bg-[#123c8c] text-white ring-[#123c8c] shadow-lg shadow-blue-900/20"
-                      : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
-                  }`}
+                  className={`relative hidden h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm ring-1 transition active:scale-[0.96] sm:inline-flex ${isNotificationPage
+                    ? "bg-[#123c8c] text-white ring-[#123c8c] shadow-lg shadow-blue-900/20"
+                    : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
+                    }`}
                 >
                   <span className="relative">
                     <Bell size={20} strokeWidth={2.7} />
@@ -497,11 +494,10 @@ export default function AppHeader({
                 <Link
                   href={notificationHref}
                   aria-label="Buka notifikasi"
-                  className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition active:scale-[0.96] sm:hidden ${
-                    isNotificationPage
-                      ? "bg-[#123c8c] text-white ring-[#123c8c]"
-                      : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
-                  }`}
+                  className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition active:scale-[0.96] sm:hidden ${isNotificationPage
+                    ? "bg-[#123c8c] text-white ring-[#123c8c]"
+                    : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
+                    }`}
                 >
                   <Bell size={21} strokeWidth={2.7} />
 
@@ -535,9 +531,8 @@ export default function AppHeader({
       ) : null}
 
       <aside
-        className={`fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-blue-100 bg-white shadow-2xl shadow-slate-950/20 transition-transform duration-300 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-blue-100 bg-white shadow-2xl shadow-slate-950/20 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-blue-50 px-5 py-5">
@@ -591,11 +586,10 @@ export default function AppHeader({
                         key={menu.href}
                         type="button"
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
-                          active
-                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                        }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
+                          ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                          : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                          }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
@@ -620,11 +614,10 @@ export default function AppHeader({
                           key={menu.href}
                           type="button"
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
-                            active
-                              ? "bg-[#eaf1ff] text-[#123c8c]"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
-                          }`}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${active
+                            ? "bg-[#eaf1ff] text-[#123c8c]"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
+                            }`}
                         >
                           <Icon size={15} strokeWidth={2.5} />
                           {menu.label}
@@ -649,11 +642,10 @@ export default function AppHeader({
                           key={menu.href}
                           type="button"
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
-                            active
-                              ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                              : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                          }`}
+                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
+                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                            }`}
                         >
                           <Icon size={18} strokeWidth={2.5} />
                           {menu.label}
@@ -679,11 +671,10 @@ export default function AppHeader({
                         key={menu.href}
                         type="button"
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
-                          active
-                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                        }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
+                          ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                          : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                          }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
