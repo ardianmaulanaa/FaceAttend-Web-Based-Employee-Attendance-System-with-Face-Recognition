@@ -441,6 +441,7 @@ export async function POST(req: NextRequest) {
         : null;
 
     if (!name) return jsonError("Nama karyawan wajib diisi.");
+    if (/\d/.test(name)) return jsonError("Nama lengkap tidak boleh mengandung angka.");
     if (!email) return jsonError("Email karyawan wajib diisi.");
     if (!password) return jsonError("Password karyawan wajib diisi.");
 
@@ -583,6 +584,7 @@ export async function PATCH(req: NextRequest) {
 
     if (!id) return jsonError("ID karyawan wajib dikirim.");
     if (!name) return jsonError("Nama karyawan wajib diisi.");
+    if (/\d/.test(name)) return jsonError("Nama lengkap tidak boleh mengandung angka.");
     if (!email) return jsonError("Email karyawan wajib diisi.");
 
     if (

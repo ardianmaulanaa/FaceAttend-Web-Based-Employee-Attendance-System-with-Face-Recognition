@@ -411,6 +411,11 @@ export default function ProfilePage() {
       return;
     }
 
+    if (phone && (phone.length !== 12 || !/^\d+$/.test(phone))) {
+      alert("Nomor telepon harus terdiri dari tepat 12 digit angka.");
+      return;
+    }
+
     try {
       setIsUpdatingProfile(true);
 

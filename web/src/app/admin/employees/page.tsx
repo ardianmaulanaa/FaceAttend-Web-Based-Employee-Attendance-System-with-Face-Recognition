@@ -548,9 +548,19 @@ export default function AdminEmployeesPage() {
 
     const isEditing = Boolean(editingEmployee);
     const email = form.email.trim().toLowerCase();
+    const nameTrimmed = form.name.trim();
+
+    if (/\d/.test(nameTrimmed)) {
+      showEmployeeAlert(
+        "Nama tidak valid",
+        "Nama lengkap tidak boleh mengandung angka.",
+        "warning"
+      );
+      return;
+    }
 
     if (
-      !form.name.trim() ||
+      !nameTrimmed ||
       !email ||
       !form.registered_office_id ||
       !form.department_id ||

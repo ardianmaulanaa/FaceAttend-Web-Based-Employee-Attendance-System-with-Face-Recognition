@@ -331,6 +331,18 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     );
   }
 
+  if (phone !== undefined && phone) {
+    if (phone.length !== 12 || !/^\d+$/.test(phone)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Nomor telepon harus terdiri dari tepat 12 digit angka.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   if (email !== undefined && !email) {
     return NextResponse.json(
       {
