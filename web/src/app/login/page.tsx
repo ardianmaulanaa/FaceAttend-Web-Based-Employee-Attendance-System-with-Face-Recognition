@@ -188,7 +188,7 @@ export default function LoginPage() {
   async function loginUser(
     loginEmail: string,
     loginPassword: string,
-    mode: "manual" | "admin-demo" = "manual"
+    mode: "manual" | "admin-demo" = "manual",
   ) {
     const normalizedEmail = loginEmail.trim().toLowerCase();
 
@@ -200,7 +200,7 @@ export default function LoginPage() {
     if (!isValidEmailFormat(normalizedEmail)) {
       showAlert(
         "Format email salah",
-        "Masukkan email dengan format yang benar, contoh: nama@creativemu.com."
+        "Masukkan email dengan format yang benar, contoh: nama@creativemu.com.",
       );
       return;
     }
@@ -208,7 +208,7 @@ export default function LoginPage() {
     if (!isCreativemuEmail(normalizedEmail)) {
       showAlert(
         "Email tidak valid",
-        "Login hanya dapat menggunakan email resmi @creativemu.com."
+        "Login hanya dapat menggunakan email resmi @creativemu.com.",
       );
       return;
     }
@@ -247,7 +247,7 @@ export default function LoginPage() {
         "Terjadi kesalahan",
         error instanceof Error
           ? error.message
-          : "Terjadi kesalahan saat login."
+          : "Terjadi kesalahan saat login.",
       );
     } finally {
       if (mode === "admin-demo") {
@@ -324,9 +324,7 @@ export default function LoginPage() {
                 </p>
 
                 <h2 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight text-slate-950 md:mt-5 md:text-6xl">
-                  <span className="typewriter-title">
-                    Creativemu Presence
-                  </span>
+                  <span className="typewriter-title">Creativemu Presence</span>
                 </h2>
 
                 <p className="mt-5 max-w-xl text-sm leading-7 text-slate-600 md:mt-6 md:text-base md:leading-8">
@@ -402,16 +400,17 @@ export default function LoginPage() {
                   <AppButton
                     type="submit"
                     full
-                    disabled={formIsBusy}
-                    leftIcon={
-                      isLoading ? (
-                        <Loader2 size={18} className="animate-spin" />
-                      ) : (
-                        <LogIn size={18} strokeWidth={2.6} />
-                      )
-                    }
+                    disabled={isLoading || isAdminDemoLoading}
+                    leftIcon={<LogIn size={18} />}
                   >
-                    {isLoading ? "Signing In..." : "Sign In"}
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Memproses...
+                      </>
+                    ) : (
+                      "Masuk"
+                    )}
                   </AppButton>
 
                   <AppButton

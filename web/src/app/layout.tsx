@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "FaceAttend",
   description: "Employee Attendance System for Creativemu",
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -25,11 +28,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="id"
+      translate="no"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} notranslate h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-full flex flex-col">
+      <body
+        suppressHydrationWarning
+        className="notranslate min-h-full flex flex-col"
+      >
         {children}
       </body>
     </html>

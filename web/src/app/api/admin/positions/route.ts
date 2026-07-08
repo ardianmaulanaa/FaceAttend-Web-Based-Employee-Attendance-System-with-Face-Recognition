@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 
@@ -50,50 +49,15 @@ const positionSelect = {
   name: true,
   unit_id: true,
   status: true,
-  unit: {
-    select: unitSelect,
-  },
-} as const;
-
-const employeeSelect = {
-  id: true,
-  employee_code: true,
-  name: true,
-  email: true,
-  role: true,
-  employee_type: true,
-  phone: true,
-  status: true,
-  profile_photo: true,
-  unit_id: true,
-  department_id: true,
-  position_id: true,
-  shift_id: true,
-  registered_office_id: true,
-  npwp_number: true,
-  ptkp_status: true,
-  base_salary: true,
   created_at: true,
   updated_at: true,
   unit: {
     select: unitSelect,
   },
-  department: {
-    select: departmentSelect,
-  },
-  position: {
-    select: positionSelect,
-  },
-  shift: {
+  _count: {
     select: {
-      id: true,
-      name: true,
-      tolerance_minutes: true,
-      status: true,
+      users: true,
     },
-  },
-  registered_office: {
-    select: officeSelect,
   },
 } as const;
 
@@ -148,7 +112,7 @@ function jsonError(message: string, status = 400) {
       success: false,
       message,
     },
-    { status }
+    { status },
   );
 }
 
@@ -168,76 +132,16 @@ function isPrismaForeignKeyError(error: unknown) {
   return getPrismaCode(error) === "P2003";
 }
 
-async function ensureDefaultShifts() {
-  const totalShifts = await prisma.shift.count();
-
-  if (totalShifts > 0) return;
-
-  await prisma.shift.createMany({
-    data: [
-      {
-        name: "Utama",
-        tolerance_minutes: 15,
-        status: "active",
-      },
-      {
-        name: "Magang",
-        tolerance_minutes: 15,
-        status: "active",
-      },
-      {
-        name: "Shift A",
-        tolerance_minutes: 10,
-        status: "active",
-      },
-      {
-        name: "Shift B",
-        tolerance_minutes: 10,
-        status: "active",
-      },
-    ],
-    skipDuplicates: true,
-  });
-}
-
-async function generateEmployeeCode() {
-  const totalEmployees = await prisma.user.count({
-    where: {
-      role: "employee",
-    },
-  });
-
-  for (let index = totalEmployees + 1; index < totalEmployees + 1000; index++) {
-    const code = `EMP${String(index).padStart(4, "0")}`;
-
-    const existing = await prisma.user.findUnique({
-      where: {
-        employee_code: code,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!existing) return code;
-  }
-
-  return `EMP${Date.now()}`;
-}
-
-async function validateEmployeeHierarchy(params: {
-  registeredOfficeId: string;
+async function validatePositionHierarchy(params: {
+  officeId: string;
   departmentId: string;
   unitId: string;
-  positionId: string;
-  shiftId: string;
 }) {
-  const { registeredOfficeId, departmentId, unitId, positionId, shiftId } =
-    params;
+  const { officeId, departmentId, unitId } = params;
 
   const office = await prisma.officeLocation.findUnique({
     where: {
-      id: registeredOfficeId,
+      id: officeId,
     },
     select: {
       id: true,
@@ -264,7 +168,7 @@ async function validateEmployeeHierarchy(params: {
     throw new Error("Divisi tidak ditemukan atau tidak aktif.");
   }
 
-  if (department.office_id !== registeredOfficeId) {
+  if (department.office_id !== officeId) {
     throw new Error("Divisi tidak sesuai dengan kantor yang dipilih.");
   }
 
@@ -286,39 +190,6 @@ async function validateEmployeeHierarchy(params: {
   if (unit.department_id !== departmentId) {
     throw new Error("Unit tidak sesuai dengan divisi yang dipilih.");
   }
-
-  const position = await prisma.position.findUnique({
-    where: {
-      id: positionId,
-    },
-    select: {
-      id: true,
-      unit_id: true,
-      status: true,
-    },
-  });
-
-  if (!position || position.status !== "active") {
-    throw new Error("Jabatan tidak ditemukan atau tidak aktif.");
-  }
-
-  if (position.unit_id !== unitId) {
-    throw new Error("Jabatan tidak sesuai dengan unit yang dipilih.");
-  }
-
-  const shift = await prisma.shift.findUnique({
-    where: {
-      id: shiftId,
-    },
-    select: {
-      id: true,
-      status: true,
-    },
-  });
-
-  if (!shift || shift.status !== "active") {
-    throw new Error("Shift tidak ditemukan atau tidak aktif.");
-  }
 }
 
 export async function GET(req: NextRequest) {
@@ -332,13 +203,8 @@ export async function GET(req: NextRequest) {
       return jsonError("Akses ditolak.", 403);
     }
 
-    await ensureDefaultShifts();
-
-    const employees = await prisma.user.findMany({
-      where: {
-        role: "employee",
-      },
-      select: employeeSelect,
+    const positions = await prisma.position.findMany({
+      select: positionSelect,
       orderBy: {
         created_at: "desc",
       },
@@ -365,37 +231,16 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const positions = await prisma.position.findMany({
-      select: positionSelect,
-      orderBy: {
-        name: "asc",
-      },
-    });
-
-    const shifts = await prisma.shift.findMany({
-      select: {
-        id: true,
-        name: true,
-        tolerance_minutes: true,
-        status: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
     return NextResponse.json({
       success: true,
-      employees,
+      positions,
+      data: positions,
       offices,
-      officeLocations: offices,
       departments,
       units,
-      positions,
-      shifts,
     });
   } catch (error) {
-    console.error("GET /api/employees error:", error);
+    console.error("GET /api/admin/positions error:", error);
 
     return NextResponse.json(
       {
@@ -403,9 +248,9 @@ export async function GET(req: NextRequest) {
         message:
           error instanceof Error
             ? error.message
-            : "Gagal mengambil data karyawan.",
+            : "Gagal mengambil data jabatan.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -419,151 +264,83 @@ export async function POST(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner atau admin yang dapat menambah karyawan.",
-        403
+        "Akses ditolak. Hanya owner atau admin yang dapat menambah jabatan.",
+        403,
       );
     }
 
     const body = await req.json();
 
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
-    const password = String(
-      body.password || body.temporaryPassword || body.temp_password || ""
-    ).trim();
-
-    const employeeCode = String(body.employee_code || "").trim();
-    const employeeType = String(body.employee_type || "utama").trim();
-    const status = String(body.status || "active").trim();
-
-    const registeredOfficeId = String(
-      body.registered_office_id || body.office_id || ""
-    ).trim();
+    const officeId = String(body.office_id || "").trim();
     const departmentId = String(body.department_id || "").trim();
     const unitId = String(body.unit_id || "").trim();
-    const positionId = String(body.position_id || "").trim();
-    const shiftId = String(body.shift_id || "").trim();
+    const status = String(body.status || "active").trim();
 
-    const npwpNumber = body.npwp_number
-      ? String(body.npwp_number).trim()
-      : null;
-    const ptkpStatus = body.ptkp_status
-      ? String(body.ptkp_status).trim()
-      : null;
-    const baseSalary =
-      body.base_salary !== undefined &&
-      body.base_salary !== null &&
-      String(body.base_salary).trim() !== ""
-        ? Number(body.base_salary)
-        : null;
-
-    if (!name) return jsonError("Nama karyawan wajib diisi.");
-    if (!email) return jsonError("Email karyawan wajib diisi.");
-    if (!password) return jsonError("Password karyawan wajib diisi.");
-
-    if (
-      !registeredOfficeId ||
-      !departmentId ||
-      !unitId ||
-      !positionId ||
-      !shiftId
-    ) {
-      return jsonError(
-        "Kantor, divisi, unit, jabatan, dan shift wajib dipilih."
-      );
-    }
-
-    if (!["utama", "magang"].includes(employeeType)) {
-      return jsonError("Tipe karyawan tidak valid.");
-    }
+    if (!officeId) return jsonError("Kantor wajib dipilih.");
+    if (!departmentId) return jsonError("Divisi wajib dipilih.");
+    if (!unitId) return jsonError("Unit wajib dipilih.");
+    if (!name) return jsonError("Nama jabatan wajib diisi.");
 
     if (!["active", "inactive"].includes(status)) {
-      return jsonError("Status karyawan tidak valid.");
+      return jsonError("Status jabatan tidak valid.");
     }
 
-    await validateEmployeeHierarchy({
-      registeredOfficeId,
+    await validatePositionHierarchy({
+      officeId,
       departmentId,
       unitId,
-      positionId,
-      shiftId,
     });
 
-    const existingEmail = await prisma.user.findUnique({
+    const existingPosition = await prisma.position.findFirst({
       where: {
-        email,
+        name,
+        unit_id: unitId,
       },
       select: {
         id: true,
       },
     });
 
-    if (existingEmail) {
-      return jsonError("Email sudah digunakan.", 409);
+    if (existingPosition) {
+      return jsonError("Nama jabatan sudah digunakan pada unit ini.", 409);
     }
 
-    if (employeeCode) {
-      const existingCode = await prisma.user.findUnique({
-        where: {
-          employee_code: employeeCode,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existingCode) {
-        return jsonError("Kode karyawan sudah digunakan.", 409);
-      }
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const finalEmployeeCode = employeeCode || (await generateEmployeeCode());
-
-    const employee = await prisma.user.create({
+    const position = await prisma.position.create({
       data: {
-        employee_code: finalEmployeeCode,
         name,
-        email,
-        password_hash: passwordHash,
-        role: "employee",
-        employee_type: employeeType,
-        phone: phone || null,
-        status,
-        registered_office_id: registeredOfficeId,
-        department_id: departmentId,
         unit_id: unitId,
-        position_id: positionId,
-        shift_id: shiftId,
-        npwp_number: npwpNumber,
-        ptkp_status: ptkpStatus,
-        base_salary: baseSalary,
+        status,
       },
-      select: employeeSelect,
+      select: positionSelect,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil ditambahkan.",
-      employee,
+      message: "Jabatan berhasil ditambahkan.",
+      position,
     });
   } catch (error) {
-    console.error("POST /api/employees error:", error);
+    console.error("POST /api/admin/positions error:", error);
 
     if (isPrismaUniqueError(error)) {
-      return jsonError("Email atau kode karyawan sudah digunakan.", 409);
+      return jsonError("Nama jabatan sudah digunakan.", 409);
+    }
+
+    if (isPrismaForeignKeyError(error)) {
+      return jsonError(
+        "Relasi kantor, divisi, atau unit tidak valid. Pilih ulang data jabatan.",
+        400,
+      );
     }
 
     return NextResponse.json(
       {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Gagal menambahkan karyawan.",
+          error instanceof Error ? error.message : "Gagal menambahkan jabatan.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -577,8 +354,8 @@ export async function PATCH(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner atau admin yang dapat mengubah karyawan.",
-        403
+        "Akses ditolak. Hanya owner atau admin yang dapat mengubah jabatan.",
+        403,
       );
     }
 
@@ -586,86 +363,44 @@ export async function PATCH(req: NextRequest) {
 
     const id = String(body.id || "").trim();
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
-    const password = String(
-      body.password || body.temporaryPassword || body.temp_password || ""
-    ).trim();
-
-    const employeeCode = String(body.employee_code || "").trim();
-    const employeeType = String(body.employee_type || "utama").trim();
-    const status = String(body.status || "active").trim();
-
-    const registeredOfficeId = String(
-      body.registered_office_id || body.office_id || ""
-    ).trim();
+    const officeId = String(body.office_id || "").trim();
     const departmentId = String(body.department_id || "").trim();
     const unitId = String(body.unit_id || "").trim();
-    const positionId = String(body.position_id || "").trim();
-    const shiftId = String(body.shift_id || "").trim();
+    const status = String(body.status || "active").trim();
 
-    const npwpNumber = body.npwp_number
-      ? String(body.npwp_number).trim()
-      : null;
-    const ptkpStatus = body.ptkp_status
-      ? String(body.ptkp_status).trim()
-      : null;
-    const baseSalary =
-      body.base_salary !== undefined &&
-      body.base_salary !== null &&
-      String(body.base_salary).trim() !== ""
-        ? Number(body.base_salary)
-        : null;
-
-    if (!id) return jsonError("ID karyawan wajib dikirim.");
-    if (!name) return jsonError("Nama karyawan wajib diisi.");
-    if (!email) return jsonError("Email karyawan wajib diisi.");
-
-    if (
-      !registeredOfficeId ||
-      !departmentId ||
-      !unitId ||
-      !positionId ||
-      !shiftId
-    ) {
-      return jsonError(
-        "Kantor, divisi, unit, jabatan, dan shift wajib dipilih."
-      );
-    }
-
-    if (!["utama", "magang"].includes(employeeType)) {
-      return jsonError("Tipe karyawan tidak valid.");
-    }
+    if (!id) return jsonError("ID jabatan wajib dikirim.");
+    if (!officeId) return jsonError("Kantor wajib dipilih.");
+    if (!departmentId) return jsonError("Divisi wajib dipilih.");
+    if (!unitId) return jsonError("Unit wajib dipilih.");
+    if (!name) return jsonError("Nama jabatan wajib diisi.");
 
     if (!["active", "inactive"].includes(status)) {
-      return jsonError("Status karyawan tidak valid.");
+      return jsonError("Status jabatan tidak valid.");
     }
 
-    const existingEmployee = await prisma.user.findUnique({
+    const existingPosition = await prisma.position.findUnique({
       where: {
         id,
       },
       select: {
         id: true,
-        role: true,
       },
     });
 
-    if (!existingEmployee || existingEmployee.role !== "employee") {
-      return jsonError("Karyawan tidak ditemukan.", 404);
+    if (!existingPosition) {
+      return jsonError("Jabatan tidak ditemukan.", 404);
     }
 
-    await validateEmployeeHierarchy({
-      registeredOfficeId,
+    await validatePositionHierarchy({
+      officeId,
       departmentId,
       unitId,
-      positionId,
-      shiftId,
     });
 
-    const existingEmail = await prisma.user.findFirst({
+    const duplicatePosition = await prisma.position.findFirst({
       where: {
-        email,
+        name,
+        unit_id: unitId,
         NOT: {
           id,
         },
@@ -675,94 +410,48 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    if (existingEmail) {
-      return jsonError("Email sudah digunakan oleh user lain.", 409);
+    if (duplicatePosition) {
+      return jsonError("Nama jabatan sudah digunakan pada unit ini.", 409);
     }
 
-    if (employeeCode) {
-      const existingCode = await prisma.user.findFirst({
-        where: {
-          employee_code: employeeCode,
-          NOT: {
-            id,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existingCode) {
-        return jsonError("Kode karyawan sudah digunakan oleh user lain.", 409);
-      }
-    }
-
-    const updateData: {
-      employee_code?: string | null;
-      name: string;
-      email: string;
-      phone: string | null;
-      employee_type: string;
-      status: string;
-      registered_office_id: string;
-      department_id: string;
-      unit_id: string;
-      position_id: string;
-      shift_id: string;
-      npwp_number: string | null;
-      ptkp_status: string | null;
-      base_salary: number | null;
-      password_hash?: string;
-    } = {
-      employee_code: employeeCode || null,
-      name,
-      email,
-      phone: phone || null,
-      employee_type: employeeType,
-      status,
-      registered_office_id: registeredOfficeId,
-      department_id: departmentId,
-      unit_id: unitId,
-      position_id: positionId,
-      shift_id: shiftId,
-      npwp_number: npwpNumber,
-      ptkp_status: ptkpStatus,
-      base_salary: baseSalary,
-    };
-
-    if (password) {
-      updateData.password_hash = await bcrypt.hash(password, 10);
-    }
-
-    const employee = await prisma.user.update({
+    const position = await prisma.position.update({
       where: {
         id,
       },
-      data: updateData,
-      select: employeeSelect,
+      data: {
+        name,
+        unit_id: unitId,
+        status,
+      },
+      select: positionSelect,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil diperbarui.",
-      employee,
+      message: "Jabatan berhasil diperbarui.",
+      position,
     });
   } catch (error) {
-    console.error("PATCH /api/employees error:", error);
+    console.error("PATCH /api/admin/positions error:", error);
 
     if (isPrismaUniqueError(error)) {
-      return jsonError("Email atau kode karyawan sudah digunakan.", 409);
+      return jsonError("Nama jabatan sudah digunakan.", 409);
+    }
+
+    if (isPrismaForeignKeyError(error)) {
+      return jsonError(
+        "Relasi kantor, divisi, atau unit tidak valid. Pilih ulang data jabatan.",
+        400,
+      );
     }
 
     return NextResponse.json(
       {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Gagal memperbarui karyawan.",
+          error instanceof Error ? error.message : "Gagal memperbarui jabatan.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -776,54 +465,44 @@ export async function DELETE(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner atau admin yang dapat menghapus karyawan.",
-        403
+        "Akses ditolak. Hanya owner atau admin yang dapat menghapus jabatan.",
+        403,
       );
     }
 
     const id = req.nextUrl.searchParams.get("id") || "";
 
     if (!id) {
-      return jsonError("ID karyawan wajib dikirim.");
+      return jsonError("ID jabatan wajib dikirim.");
     }
 
-    const employee = await prisma.user.findUnique({
+    const position = await prisma.position.findUnique({
       where: {
         id,
       },
       select: {
         id: true,
-        role: true,
         name: true,
         _count: {
           select: {
-            attendances: true,
-            leave_requests: true,
-            visits: true,
-            payrolls: true,
+            users: true,
           },
         },
       },
     });
 
-    if (!employee || employee.role !== "employee") {
-      return jsonError("Karyawan tidak ditemukan.", 404);
+    if (!position) {
+      return jsonError("Jabatan tidak ditemukan.", 404);
     }
 
-    const hasRelations =
-      employee._count.attendances > 0 ||
-      employee._count.leave_requests > 0 ||
-      employee._count.visits > 0 ||
-      employee._count.payrolls > 0;
-
-    if (hasRelations) {
+    if ((position._count?.users || 0) > 0) {
       return jsonError(
-        "Karyawan tidak bisa dihapus karena sudah memiliki data absensi, cuti, kunjungan, atau payroll. Ubah status menjadi Nonaktif.",
-        400
+        "Jabatan ini masih digunakan oleh karyawan. Ubah status menjadi Nonaktif jika tidak ingin digunakan.",
+        400,
       );
     }
 
-    await prisma.user.delete({
+    await prisma.position.delete({
       where: {
         id,
       },
@@ -831,15 +510,15 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil dihapus.",
+      message: "Jabatan berhasil dihapus.",
     });
   } catch (error) {
-    console.error("DELETE /api/employees error:", error);
+    console.error("DELETE /api/admin/positions error:", error);
 
     if (isPrismaForeignKeyError(error)) {
       return jsonError(
-        "Karyawan tidak bisa dihapus karena masih memiliki relasi data lain. Ubah status menjadi Nonaktif.",
-        400
+        "Jabatan tidak bisa dihapus karena masih memiliki relasi data lain. Ubah status menjadi Nonaktif.",
+        400,
       );
     }
 
@@ -847,9 +526,9 @@ export async function DELETE(req: NextRequest) {
       {
         success: false,
         message:
-          error instanceof Error ? error.message : "Gagal menghapus karyawan.",
+          error instanceof Error ? error.message : "Gagal menghapus jabatan.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

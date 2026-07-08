@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
 
       if (!response.ok) {
         throw new Error(
-          result?.message || "Gagal mengambil data dashboard admin."
+          result?.message || "Gagal mengambil data dashboard admin.",
         );
       }
 
@@ -164,7 +164,7 @@ export default function AdminDashboardPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Terjadi kesalahan saat mengambil data dashboard."
+          : "Terjadi kesalahan saat mengambil data dashboard.",
       );
     } finally {
       setIsLoading(false);
@@ -233,12 +233,6 @@ export default function AdminDashboardPage() {
                   </h2>
                 </div>
               </div>
-
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-blue-100">
-                Pantau data check-in, check-out, keterlambatan, dan status
-                absensi karyawan hari ini berdasarkan data presensi dari
-                database.
-              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 p-5 md:p-6">
@@ -297,11 +291,6 @@ export default function AdminDashboardPage() {
                 Recent Attendance
               </h2>
             </div>
-
-            <p className="max-w-md text-sm leading-6 text-slate-500">
-              Data check-in dan check-out terbaru dari tabel attendance hari
-              ini.
-            </p>
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
@@ -364,13 +353,13 @@ export default function AdminDashboardPage() {
                       </span>
                       {formatMinutes(
                         item.workMinutes,
-                        Boolean(item.checkOutTime)
+                        Boolean(item.checkOutTime),
                       )}
                     </p>
 
                     <span
                       className={`w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
-                        item
+                        item,
                       )}`}
                     >
                       {getStatusLabel(item)}

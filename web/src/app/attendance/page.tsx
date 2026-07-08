@@ -40,6 +40,13 @@ type CustomAlert = {
   type: AlertType;
 };
 
+type EarlyCheckoutConfirm = {
+  open: boolean;
+  earlyMinutes: number;
+  earlyLabel: string;
+  endLabel: string;
+};
+
 type VisitForm = {
   visitTitle: string;
   visitClientName: string;
@@ -91,6 +98,13 @@ const emptyAlert: CustomAlert = {
   title: "",
   message: "",
   type: "warning",
+};
+
+const emptyEarlyCheckoutConfirm: EarlyCheckoutConfirm = {
+  open: false,
+  earlyMinutes: 0,
+  earlyLabel: "",
+  endLabel: "",
 };
 
 const emptyVisitForm: VisitForm = {
@@ -270,6 +284,32 @@ function isLateCheckInNow(user: CurrentUser | null) {
   const lateLimitMinutes = getLateLimitMinutes(user);
 
   return nowMinutes > lateLimitMinutes;
+}
+
+function getShiftEndTime(shiftName?: string | null) {
+  const name = String(shiftName || "").toUpperCase();
+
+  if (name.includes("SHIFT SIANG") || name.includes("SIANG")) return "21:00";
+
+  return DEFAULT_SHIFT_END_TIME;
+}
+
+function getEarlyCheckoutMinutes(user: CurrentUser | null) {
+  const nowMinutes = getJakartaMinutesNow();
+  const endMinutes = timeToMinutes(getShiftEndTime(user?.shift?.name));
+
+  return nowMinutes < endMinutes ? endMinutes - nowMinutes : 0;
+}
+
+function formatDurationHoursMinutes(totalMinutes: number) {
+  const safeMinutes = Math.max(0, Math.floor(totalMinutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+
+  if (hours <= 0) return `${minutes} menit`;
+  if (minutes <= 0) return `${hours} jam`;
+
+  return `${hours} jam ${minutes} menit`;
 }
 
 function getWorkModeLabel(workMode: WorkMode) {
@@ -875,6 +915,130 @@ function CustomAttendanceAlert({
   );
 }
 
+function EarlyCheckoutConfirmModal({
+  confirm,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  confirm: EarlyCheckoutConfirm;
+  loading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!confirm.open) return null;
+
+  return (
+    <>
+      <style jsx global>{`
+        @keyframes earlyOverlayIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes earlyModalIn {
+          from {
+            opacity: 0;
+            transform: translateY(22px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+
+      <div className="fixed inset-0 z-[84] flex items-end justify-center bg-slate-950/45 px-4 pb-4 backdrop-blur-sm animate-[earlyOverlayIn_180ms_ease-out] md:items-center md:pb-0">
+        <AppCard className="relative w-full max-w-md overflow-hidden border-white/80 bg-white p-0 shadow-2xl shadow-slate-950/25 animate-[earlyModalIn_230ms_ease-out]">
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
+
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                  <Clock3 size={24} strokeWidth={2.7} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-700">
+                    Checkout Lebih Awal
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+                    Apakah kamu yakin akan checkout pekerjaan lebih awal?
+                  </h2>
+
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                    Jam kerja kamu berakhir pukul {confirm.endLabel}. Kamu masih
+                    lebih awal {confirm.earlyLabel} dari jam pulang yang
+                    ditentukan.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 active:scale-95 disabled:opacity-60"
+                aria-label="Tutup popup checkout lebih awal"
+              >
+                <X size={19} strokeWidth={2.7} />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-3xl border border-amber-100 bg-amber-50/70 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+                Sisa waktu kerja
+              </p>
+
+              <p className="mt-1 text-2xl font-black text-amber-900">
+                {confirm.earlyLabel}
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-amber-700/75">
+                Format waktu ditampilkan dalam jam dan menit.
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <AppButton
+                type="button"
+                variant="secondary"
+                onClick={onCancel}
+                disabled={loading}
+                full
+              >
+                Batal
+              </AppButton>
+
+              <AppButton
+                type="button"
+                disabled={loading}
+                onClick={onConfirm}
+                full
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Memproses
+                  </>
+                ) : (
+                  "Ya, Check-out"
+                )}
+              </AppButton>
+            </div>
+          </div>
+        </AppCard>
+      </div>
+    </>
+  );
+}
+
 function LateReasonModal({
   value,
   loading,
@@ -1062,6 +1226,8 @@ export default function AttendancePage() {
 
   const [lateReason, setLateReason] = useState("");
   const [isLateReasonOpen, setIsLateReasonOpen] = useState(false);
+  const [earlyCheckoutConfirm, setEarlyCheckoutConfirm] =
+    useState<EarlyCheckoutConfirm>(emptyEarlyCheckoutConfirm);
   const [customAlert, setCustomAlert] = useState<CustomAlert>(emptyAlert);
 
   const [statusTitle, setStatusTitle] = useState("Waiting for Camera");
@@ -1070,6 +1236,7 @@ export default function AttendancePage() {
   );
 
   const shiftStartTime = getShiftStartTime(currentUser?.shift?.name);
+  const shiftEndTime = getShiftEndTime(currentUser?.shift?.name);
   const shiftToleranceMinutes = getShiftToleranceMinutes(currentUser);
   const lateLimitLabel = getLateLimitLabel(currentUser);
 
@@ -1686,6 +1853,54 @@ export default function AttendancePage() {
     );
   }
 
+  async function requestCheckOut() {
+    if (isLaptopBlocked) {
+      showLaptopBlockedAlert();
+      return;
+    }
+
+    if (workMode === "visit" && !validateVisitForm()) return;
+
+    const user = currentUser || (await loadCurrentUser());
+
+    if (!user) {
+      showCustomAlert(
+        "Data shift belum terbaca",
+        "Refresh halaman lalu coba lagi.",
+        "warning",
+      );
+      return;
+    }
+
+    const earlyMinutes = getEarlyCheckoutMinutes(user);
+
+    if (earlyMinutes > 0) {
+      const endLabel = getShiftEndTime(user.shift?.name);
+      const earlyLabel = formatDurationHoursMinutes(earlyMinutes);
+
+      setEarlyCheckoutConfirm({
+        open: true,
+        earlyMinutes,
+        earlyLabel,
+        endLabel,
+      });
+
+      safeSetStatus(
+        "Checkout Lebih Awal",
+        `Kamu masih lebih awal ${earlyLabel} dari jam pulang ${endLabel}. Konfirmasi jika tetap ingin check-out.`,
+      );
+
+      return;
+    }
+
+    await handleAttendance("check-out");
+  }
+
+  async function confirmEarlyCheckout() {
+    setEarlyCheckoutConfirm(emptyEarlyCheckoutConfirm);
+    await handleAttendance("check-out");
+  }
+
   function handleSaveLateReason() {
     if (!lateReason.trim()) {
       showCustomAlert(
@@ -2118,7 +2333,7 @@ export default function AttendancePage() {
                 loading={checkOutProcessing}
                 disabled={loading || cameraStarting}
                 icon={<LogOut size={22} />}
-                onClick={() => handleAttendance("check-out")}
+                onClick={requestCheckOut}
               />
             </div>
 
@@ -2168,7 +2383,7 @@ export default function AttendancePage() {
                   ) : (
                     <div className="space-y-1">
                       <p>
-                        {shiftStartTime} - {DEFAULT_SHIFT_END_TIME}
+                        {shiftStartTime} - {shiftEndTime}
                       </p>
                       <p className="font-semibold text-slate-400">
                         Toleransi: {shiftToleranceMinutes} menit
@@ -2232,6 +2447,13 @@ export default function AttendancePage() {
             }}
           />
         ) : null}
+
+        <EarlyCheckoutConfirmModal
+          confirm={earlyCheckoutConfirm}
+          loading={loading}
+          onCancel={() => setEarlyCheckoutConfirm(emptyEarlyCheckoutConfirm)}
+          onConfirm={confirmEarlyCheckout}
+        />
 
         {isLateReasonOpen ? (
           <LateReasonModal
