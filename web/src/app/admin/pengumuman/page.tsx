@@ -69,7 +69,7 @@ export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | AnnouncementStatus>(
-    "all"
+    "all",
   );
 
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +105,7 @@ export default function AdminAnnouncementsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal mengambil pengumuman."
+          data.error || data.message || "Gagal mengambil pengumuman.",
         );
       }
 
@@ -116,7 +116,7 @@ export default function AdminAnnouncementsPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Gagal mengambil data pengumuman."
+          : "Gagal mengambil data pengumuman.",
       );
     } finally {
       setIsLoading(false);
@@ -148,15 +148,15 @@ export default function AdminAnnouncementsPage() {
   }, [announcements, filterStatus, search]);
 
   const publishedCount = announcements.filter(
-    (item) => item.status === "published"
+    (item) => item.status === "published",
   ).length;
 
   const draftCount = announcements.filter(
-    (item) => item.status === "draft"
+    (item) => item.status === "draft",
   ).length;
 
   const archivedCount = announcements.filter(
-    (item) => item.status === "archived"
+    (item) => item.status === "archived",
   ).length;
 
   function resetFilter() {
@@ -220,7 +220,7 @@ export default function AdminAnnouncementsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal menyimpan pengumuman."
+          data.error || data.message || "Gagal menyimpan pengumuman.",
         );
       }
 
@@ -230,9 +230,7 @@ export default function AdminAnnouncementsPage() {
       console.error("SAVE_ANNOUNCEMENT_ERROR:", error);
 
       alert(
-        error instanceof Error
-          ? error.message
-          : "Gagal menyimpan pengumuman."
+        error instanceof Error ? error.message : "Gagal menyimpan pengumuman.",
       );
     } finally {
       setIsSubmitting(false);
@@ -253,7 +251,7 @@ export default function AdminAnnouncementsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal menghapus pengumuman."
+          data.error || data.message || "Gagal menghapus pengumuman.",
         );
       }
 
@@ -262,9 +260,7 @@ export default function AdminAnnouncementsPage() {
       console.error("DELETE_ANNOUNCEMENT_ERROR:", error);
 
       alert(
-        error instanceof Error
-          ? error.message
-          : "Gagal menghapus pengumuman."
+        error instanceof Error ? error.message : "Gagal menghapus pengumuman.",
       );
     }
   }
@@ -287,7 +283,7 @@ export default function AdminAnnouncementsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal mengubah status pengumuman."
+          data.error || data.message || "Gagal mengubah status pengumuman.",
         );
       }
 
@@ -298,7 +294,7 @@ export default function AdminAnnouncementsPage() {
       alert(
         error instanceof Error
           ? error.message
-          : "Gagal mengubah status pengumuman."
+          : "Gagal mengubah status pengumuman.",
       );
     }
   }
@@ -328,8 +324,7 @@ export default function AdminAnnouncementsPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-100">
-                Buat dan kelola pemberitahuan untuk seluruh pengguna
-                FaceAttend.
+                Buat dan kelola pemberitahuan
               </p>
             </div>
 
@@ -397,7 +392,7 @@ export default function AdminAnnouncementsPage() {
                 value={filterStatus}
                 onChange={(event) =>
                   setFilterStatus(
-                    event.target.value as "all" | AnnouncementStatus
+                    event.target.value as "all" | AnnouncementStatus,
                   )
                 }
                 className="rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white"

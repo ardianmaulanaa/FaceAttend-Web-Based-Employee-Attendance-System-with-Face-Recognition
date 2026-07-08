@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   BarChart3,
   Building2,
   CalendarDays,
+  BriefcaseBusiness,
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Home,
   Loader2,
   TrendingUp,
 } from "lucide-react";
@@ -19,6 +21,9 @@ import { useAppData } from "@/context/AppDataContext";
 const metricOptions = [
   { value: "present", label: "Hadir" },
   { value: "late", label: "Terlambat" },
+  { value: "wfh", label: "WFH" },
+  { value: "wfc", label: "WFC" },
+  { value: "visit", label: "Kunjungan" },
   { value: "cuti", label: "Cuti" },
 ] as const;
 
@@ -37,6 +42,7 @@ type Summary = {
   present: number;
   late: number;
   wfh: number;
+  wfc?: number;
   visit: number;
   cuti: number;
   pending: number;
@@ -44,6 +50,7 @@ type Summary = {
   presentPercentage: number;
   latePercentage: number;
   wfhPercentage: number;
+  wfcPercentage?: number;
   visitPercentage: number;
   cutiPercentage: number;
   pendingPercentage: number;
@@ -58,6 +65,7 @@ type DailyChartPoint = {
   present: number;
   late: number;
   wfh: number;
+  wfc?: number;
   visit: number;
   cuti: number;
   pending: number;
@@ -135,6 +143,18 @@ type LeaveChartPoint = {
   value: number;
 };
 
+type FlexibleModeKey = "wfh" | "wfc" | "visit";
+
+type FlexibleModeTotals = Record<FlexibleModeKey, number>;
+
+type FlexibleModeCardItem = {
+  key: FlexibleModeKey;
+  label: string;
+  value: number;
+  percentage: number;
+  description: string;
+};
+
 const monthOptions = [
   { value: 1, label: "Januari" },
   { value: 2, label: "Februari" },
@@ -167,8 +187,9 @@ const indonesianMonthMap: Record<string, number> = {
 
 function getMetricValue(point: DailyChartPoint, metric: MetricValue) {
   if (metric === "cuti") return 0;
+  if (metric === "wfc") return Number(point.wfc || 0);
 
-  return point[metric];
+  return Number(point[metric] || 0);
 }
 
 function getMetricLabel(metric: MetricValue) {
@@ -179,6 +200,7 @@ function getMetricLabel(metric: MetricValue) {
 
 function formatWorkMode(mode: string) {
   if (mode === "wfh") return "WFH";
+  if (mode === "wfc") return "WFC";
   if (mode === "visit") return "Kunjungan";
   if (mode === "office") return "Kantor";
 
@@ -247,12 +269,12 @@ function getLeaveChartData(
   monitorData: MonitorResponse | null,
   leaveRequests: AdminLeaveRequest[],
   month: number,
-  year: number
+  year: number,
 ) {
   const fallbackPoints = monitorData?.dailyChart || [];
 
   const approvedRequests = leaveRequests.filter((item) =>
-    isApprovedLeave(item.status)
+    isApprovedLeave(item.status),
   );
 
   const approvedRequestsInMonth = approvedRequests.filter((request) => {
@@ -300,12 +322,325 @@ async function readJsonResponse(response: Response) {
   }
 }
 
+function toSafeNumber(value: unknown) {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function getDailyChartModeTotals(
+  dailyChart: DailyChartPoint[] = [],
+): FlexibleModeTotals {
+  return dailyChart.reduce<FlexibleModeTotals>(
+    (total, point) => {
+      total.wfh += toSafeNumber(point.wfh);
+      total.wfc += toSafeNumber(point.wfc);
+      total.visit += toSafeNumber(point.visit);
+
+      return total;
+    },
+    {
+      wfh: 0,
+      wfc: 0,
+      visit: 0,
+    },
+  );
+}
+
+function getSummaryModeValue(
+  summary: Summary,
+  key: FlexibleModeKey,
+  dailyTotals?: FlexibleModeTotals,
+) {
+  const summaryValue =
+    key === "wfh"
+      ? toSafeNumber(summary.wfh)
+      : key === "wfc"
+        ? toSafeNumber(summary.wfc)
+        : toSafeNumber(summary.visit);
+
+  const dailyValue = dailyTotals ? toSafeNumber(dailyTotals[key]) : 0;
+
+  return Math.max(summaryValue, dailyValue);
+}
+
+function getMonitoringBase(summary: Summary, dailyTotals?: FlexibleModeTotals) {
+  const todayRecords = toSafeNumber(summary.todayRecords);
+  const activeEmployees = toSafeNumber(summary.activeEmployees);
+  const flexibleSummaryTotal =
+    toSafeNumber(summary.wfh) +
+    toSafeNumber(summary.wfc) +
+    toSafeNumber(summary.visit);
+
+  const flexibleDailyTotal = dailyTotals
+    ? toSafeNumber(dailyTotals.wfh) +
+      toSafeNumber(dailyTotals.wfc) +
+      toSafeNumber(dailyTotals.visit)
+    : 0;
+
+  if (todayRecords > 0) return todayRecords;
+  if (activeEmployees > 0) return activeEmployees;
+  if (flexibleSummaryTotal > 0) return flexibleSummaryTotal;
+  if (flexibleDailyTotal > 0) return flexibleDailyTotal;
+
+  return 0;
+}
+
+function getSummaryModePercentage(
+  summary: Summary,
+  key: FlexibleModeKey,
+  dailyTotals?: FlexibleModeTotals,
+) {
+  const value = getSummaryModeValue(summary, key, dailyTotals);
+  const base = getMonitoringBase(summary, dailyTotals);
+
+  if (base <= 0 || value <= 0) return 0;
+
+  return Math.min(Number(((value / base) * 100).toFixed(1)), 100);
+}
+
+function AnimatedHistogram({
+  metricLabel,
+  unit,
+  points,
+  maxValue,
+}: {
+  metricLabel: string;
+  unit: string;
+  points: Array<{
+    label: string;
+    value: number;
+  }>;
+  maxValue: number;
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const safeMaxValue = Math.max(maxValue, 1);
+  const activePoint =
+    activeIndex !== null && points[activeIndex] ? points[activeIndex] : null;
+
+  return (
+    <>
+      <style jsx global>{`
+        @keyframes histogramTooltipIn {
+          from {
+            opacity: 0;
+            transform: translate(-50%, 8px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+          }
+        }
+
+        @keyframes histogramBarGlow {
+          0% {
+            box-shadow: 0 0 0 rgba(18, 60, 140, 0);
+          }
+          100% {
+            box-shadow: 0 14px 30px rgba(18, 60, 140, 0.22);
+          }
+        }
+      `}</style>
+
+      <div className="mt-6 overflow-x-auto overflow-y-visible rounded-[1.65rem] border border-blue-100 bg-[#123c8c] p-3 text-white shadow-xl shadow-blue-900/15 md:rounded-[2rem] md:p-5">
+        <div className="min-w-[760px] md:min-w-[900px]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100 md:text-xs">
+                Histogram Monitor
+              </p>
+
+              <h4 className="mt-1 truncate text-xl font-black tracking-tight text-white md:text-2xl">
+                {metricLabel} per Tanggal
+              </h4>
+
+              <p className="mt-1 max-w-xl text-xs font-semibold leading-5 text-blue-100/80 md:text-sm">
+                Hover / tap batang untuk melihat detail jumlah data.
+              </p>
+            </div>
+
+            <div className="w-fit rounded-2xl bg-white/10 px-3 py-2 text-xs font-black text-blue-50 ring-1 ring-white/10 md:px-4 md:py-3 md:text-sm">
+              Maksimum: {safeMaxValue} {unit}
+            </div>
+          </div>
+
+          <div className="relative mt-5 h-[255px] rounded-[1.35rem] border border-white/10 bg-[#0f3578] px-4 pb-9 pt-6 shadow-inner md:h-[300px] md:rounded-[1.6rem] md:px-5 md:pb-10 md:pt-8">
+            {Array.from({ length: 5 }).map((_, index) => {
+              const percent = index * 25;
+              const value = Math.round((safeMaxValue * percent) / 100);
+
+              return (
+                <div
+                  key={percent}
+                  className="pointer-events-none absolute left-4 right-4 border-t border-white/14 md:left-5 md:right-5"
+                  style={{ bottom: `${34 + percent * 1.92}px` }}
+                >
+                  <span className="absolute -top-2 right-0 rounded-full bg-[#0f3578] px-1.5 text-[9px] font-black text-blue-100/75 md:px-2 md:text-[10px]">
+                    {value}
+                  </span>
+                </div>
+              );
+            })}
+
+            <div className="relative z-10 flex h-[200px] items-end gap-1 md:h-[230px] md:gap-4">
+              {points.map((point, index) => {
+                const rawHeight = (point.value / safeMaxValue) * 190;
+                const height = Math.max(rawHeight, point.value > 0 ? 10 : 3);
+                const isActive = activeIndex === index;
+
+                return (
+                  <div
+                    key={`${metricLabel}-${point.label}`}
+                    className="relative flex w-3 shrink-0 flex-col items-center md:w-4"
+                  >
+                    <button
+                      type="button"
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseLeave={() => setActiveIndex(null)}
+                      onFocus={() => setActiveIndex(index)}
+                      onBlur={() => setActiveIndex(null)}
+                      onClick={() => setActiveIndex(index)}
+                      className={`relative w-full rounded-t-md outline-none transition duration-300 ease-out ${
+                        isActive
+                          ? "scale-x-110 bg-blue-200"
+                          : "bg-blue-300/95 hover:bg-blue-200"
+                      }`}
+                      style={{
+                        height,
+                        animation: isActive
+                          ? "histogramBarGlow 160ms ease-out forwards"
+                          : undefined,
+                      }}
+                      aria-label={`${metricLabel} tanggal ${point.label}: ${point.value} ${unit}`}
+                    >
+                      {isActive ? (
+                        <div
+                          className="absolute left-1/2 z-30 w-24 -translate-x-1/2 rounded-xl border border-white/40 bg-white/70 px-2 py-1.5 text-center shadow-lg shadow-blue-950/10 backdrop-blur-md"
+                          style={{
+                            bottom: height + 10,
+                            animation:
+                              "histogramTooltipIn 160ms ease-out forwards",
+                          }}
+                        >
+                          <p className="text-base font-black leading-none text-[#123c8c]">
+                            {point.value}
+                          </p>
+                          <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                            {unit}
+                          </p>
+                        </div>
+                      ) : null}
+                    </button>
+
+                    <p className="mt-2 text-[8px] font-bold text-blue-50/80 md:text-[9px]">
+                      {point.label}
+                    </p>
+
+                    <p className="text-[8px] font-black text-white md:text-[9px]">
+                      {point.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {activePoint ? (
+              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
+                {metricLabel} tanggal {activePoint.label}: {activePoint.value}{" "}
+                {unit}
+              </div>
+            ) : (
+              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50/80 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
+                Hover / tap batang untuk melihat info
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PieProgressCard({
+  label,
+  value,
+  percentage,
+  description,
+  icon,
+}: {
+  label: string;
+  value: number;
+  percentage: number;
+  description: string;
+  icon: ReactNode;
+}) {
+  const safePercentage = Math.max(0, Math.min(100, toSafeNumber(percentage)));
+  const visualPercentage =
+    value > 0 && safePercentage > 0
+      ? Math.max(safePercentage, 1.5)
+      : safePercentage;
+  const rest = 100 - safePercentage;
+
+  return (
+    <div className="rounded-3xl border border-blue-100 bg-white p-5 shadow-lg shadow-slate-200/60">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+            {label}
+          </p>
+          <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+          <p className="mt-1 text-xs font-bold text-slate-500">{description}</p>
+        </div>
+
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6f8ff] text-[#123c8c] ring-1 ring-blue-100">
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-4">
+        <div
+          className="relative h-24 w-24 rounded-full"
+          style={{
+            background: `conic-gradient(#123c8c 0% ${visualPercentage}%, #dbeafe ${visualPercentage}% 100%)`,
+          }}
+        >
+          <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-white">
+            <div className="text-center">
+              <p className="text-lg font-black text-slate-950">
+                {safePercentage.toFixed(1)}%
+              </p>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                Proporsi
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-center justify-between rounded-2xl bg-[#f8fbff] px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-blue-100">
+            <span>Terpakai</span>
+            <span className="font-black text-[#123c8c]">
+              {safePercentage.toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
+            <span>Sisa</span>
+            <span className="font-black text-slate-700">
+              {rest.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminCompanyMonitorPage() {
   const now = new Date();
 
   const [displayMode, setDisplayMode] = useState<DisplayMode>("chart");
-  const [selectedMetric, setSelectedMetric] =
-    useState<MetricValue>("present");
+  const [selectedMetric, setSelectedMetric] = useState<MetricValue>("present");
 
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -336,7 +671,7 @@ export default function AdminCompanyMonitorPage() {
 
       if (!monitorResponse.ok) {
         throw new Error(
-          monitorResult?.message || "Gagal mengambil data monitor perusahaan."
+          monitorResult?.message || "Gagal mengambil data monitor perusahaan.",
         );
       }
 
@@ -356,6 +691,53 @@ export default function AdminCompanyMonitorPage() {
 
       setData({
         ...monitorResult,
+        summary: {
+          ...monitorResult.summary,
+          activeEmployees: toSafeNumber(
+            monitorResult?.summary?.activeEmployees,
+          ),
+          todayRecords: toSafeNumber(monitorResult?.summary?.todayRecords),
+          present: toSafeNumber(monitorResult?.summary?.present),
+          late: toSafeNumber(monitorResult?.summary?.late),
+          wfh: toSafeNumber(monitorResult?.summary?.wfh),
+          wfc: toSafeNumber(monitorResult?.summary?.wfc),
+          visit: toSafeNumber(monitorResult?.summary?.visit),
+          cuti: toSafeNumber(monitorResult?.summary?.cuti),
+          pending: toSafeNumber(monitorResult?.summary?.pending),
+          presentPercentage: toSafeNumber(
+            monitorResult?.summary?.presentPercentage,
+          ),
+          latePercentage: toSafeNumber(monitorResult?.summary?.latePercentage),
+          wfhPercentage: toSafeNumber(monitorResult?.summary?.wfhPercentage),
+          wfcPercentage: toSafeNumber(monitorResult?.summary?.wfcPercentage),
+          visitPercentage: toSafeNumber(
+            monitorResult?.summary?.visitPercentage,
+          ),
+          cutiPercentage: toSafeNumber(monitorResult?.summary?.cutiPercentage),
+          pendingPercentage: toSafeNumber(
+            monitorResult?.summary?.pendingPercentage,
+          ),
+          totalLateMinutesMonth: toSafeNumber(
+            monitorResult?.summary?.totalLateMinutesMonth,
+          ),
+          totalWorkMinutesMonth: toSafeNumber(
+            monitorResult?.summary?.totalWorkMinutesMonth,
+          ),
+        },
+        dailyChart: Array.isArray(monitorResult?.dailyChart)
+          ? monitorResult.dailyChart.map((item: DailyChartPoint) => ({
+              ...item,
+              present: toSafeNumber(item?.present),
+              late: toSafeNumber(item?.late),
+              wfh: toSafeNumber(item?.wfh),
+              wfc: toSafeNumber(item?.wfc),
+              visit: toSafeNumber(item?.visit),
+              cuti: toSafeNumber(item?.cuti),
+              pending: toSafeNumber(item?.pending),
+              active: toSafeNumber(item?.active),
+              todayRecords: toSafeNumber(item?.todayRecords),
+            }))
+          : [],
         lateReasons: Array.isArray(monitorResult?.lateReasons)
           ? monitorResult.lateReasons
           : [],
@@ -366,7 +748,7 @@ export default function AdminCompanyMonitorPage() {
           leaveResult.success &&
           Array.isArray(leaveResult.requests)
           ? leaveResult.requests
-          : []
+          : [],
       );
     } catch (error) {
       setData(null);
@@ -374,7 +756,7 @@ export default function AdminCompanyMonitorPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Terjadi kesalahan saat mengambil data."
+          : "Terjadi kesalahan saat mengambil data.",
       );
     } finally {
       setIsLoading(false);
@@ -389,6 +771,10 @@ export default function AdminCompanyMonitorPage() {
   const leaveChartData = useMemo(() => {
     return getLeaveChartData(data, leaveRequests, month, year);
   }, [data, leaveRequests, month, year]);
+
+  const flexibleModeTotals = useMemo<FlexibleModeTotals>(() => {
+    return getDailyChartModeTotals(data?.dailyChart || []);
+  }, [data]);
 
   const metricChart = useMemo(() => {
     if (!data) {
@@ -436,18 +822,85 @@ export default function AdminCompanyMonitorPage() {
         note: `${data.summary.latePercentage}% dari total karyawan`,
       },
       {
+        label: "WFH",
+        value: getSummaryModeValue(data.summary, "wfh", flexibleModeTotals),
+        note: `${getSummaryModePercentage(
+          data.summary,
+          "wfh",
+          flexibleModeTotals,
+        )}% dari total data`,
+      },
+      {
+        label: "WFC",
+        value: getSummaryModeValue(data.summary, "wfc", flexibleModeTotals),
+        note: `${getSummaryModePercentage(
+          data.summary,
+          "wfc",
+          flexibleModeTotals,
+        )}% dari total data`,
+      },
+      {
+        label: "Kunjungan",
+        value: getSummaryModeValue(data.summary, "visit", flexibleModeTotals),
+        note: `${getSummaryModePercentage(
+          data.summary,
+          "visit",
+          flexibleModeTotals,
+        )}% dari total data`,
+      },
+      {
         label: "Cuti",
         value: leaveChartData.totalApprovedRequests,
         note: "pengajuan cuti disetujui bulan ini",
       },
     ];
-  }, [data, leaveChartData]);
+  }, [data, leaveChartData, flexibleModeTotals]);
+
+  const flexibleModeCards = useMemo<FlexibleModeCardItem[]>(() => {
+    if (!data) return [];
+
+    return [
+      {
+        key: "wfh",
+        label: "WFH",
+        value: getSummaryModeValue(data.summary, "wfh", flexibleModeTotals),
+        percentage: getSummaryModePercentage(
+          data.summary,
+          "wfh",
+          flexibleModeTotals,
+        ),
+        description: "Monitoring absensi kerja dari rumah.",
+      },
+      {
+        key: "wfc",
+        label: "WFC",
+        value: getSummaryModeValue(data.summary, "wfc", flexibleModeTotals),
+        percentage: getSummaryModePercentage(
+          data.summary,
+          "wfc",
+          flexibleModeTotals,
+        ),
+        description: "Monitoring absensi kerja dari luar kantor.",
+      },
+      {
+        key: "visit",
+        label: "Kunjungan",
+        value: getSummaryModeValue(data.summary, "visit", flexibleModeTotals),
+        percentage: getSummaryModePercentage(
+          data.summary,
+          "visit",
+          flexibleModeTotals,
+        ),
+        description: "Monitoring absensi kunjungan lapangan / client.",
+      },
+    ];
+  }, [data, flexibleModeTotals]);
 
   return (
     <MobileShell variant="admin" withBottomPadding={false}>
       <AppHeader
         title="Monitor Perusahaan"
-        subtitle="Pantau kehadiran, cuti, dan keterlambatan karyawan"
+        subtitle="Pantau kehadiran, cuti, keterlambatan, WFH, WFC, dan kunjungan"
         variant="admin"
       />
 
@@ -471,14 +924,6 @@ export default function AdminCompanyMonitorPage() {
                     </h2>
                   </div>
                 </div>
-
-                <p className="mt-5 max-w-2xl text-sm leading-7 text-blue-100">
-                  Pantau data hadir, cuti, total jam kerja, dan rekap
-                  keterlambatan berdasarkan data database. Grafik cuti dihitung
-                  dari tanggal karyawan mengajukan cuti.
-                </p>
-
-              
               </div>
 
               <div className="space-y-5 p-5 md:p-6">
@@ -553,7 +998,8 @@ export default function AdminCompanyMonitorPage() {
 
                   <p className="mt-1 text-sm font-semibold text-slate-500">
                     Untuk cuti, grafik menampilkan jumlah pengajuan yang dibuat
-                    pada tanggal tersebut.
+                    pada tanggal tersebut. Untuk WFH, WFC, dan kunjungan, grafik
+                    menampilkan intensitas absensi per hari.
                   </p>
                 </div>
               </div>
@@ -603,6 +1049,84 @@ export default function AdminCompanyMonitorPage() {
                 </div>
               </div>
 
+              <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#123c8c]">
+                      <BriefcaseBusiness size={18} />
+                      <p className="text-xs font-black uppercase tracking-[0.16em]">
+                        Monitoring Mode Kerja Fleksibel
+                      </p>
+                    </div>
+
+                    <h3 className="mt-2 text-2xl font-black text-slate-950">
+                      Ringkasan WFH, WFC, dan Kunjungan
+                    </h3>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Pantau jumlah absensi kerja fleksibel dalam periode yang
+                      dipilih.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-black text-[#123c8c] ring-1 ring-blue-100">
+                    Total data hari ini: {data.summary.todayRecords}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-3">
+                  {flexibleModeCards.map((item) => {
+                    const icon =
+                      item.key === "wfh" ? (
+                        <Home size={20} strokeWidth={2.5} />
+                      ) : item.key === "wfc" ? (
+                        <Building2 size={20} strokeWidth={2.5} />
+                      ) : (
+                        <BriefcaseBusiness size={20} strokeWidth={2.5} />
+                      );
+
+                    return (
+                      <div
+                        key={item.key}
+                        className="rounded-2xl border border-blue-100 bg-[#f8fbff] p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                              {item.label}
+                            </p>
+                            <p className="mt-2 text-3xl font-black text-slate-950">
+                              {item.value}
+                            </p>
+                          </div>
+
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#123c8c] ring-1 ring-blue-100">
+                            {icon}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-blue-100">
+                          <div
+                            className="h-full rounded-full bg-[#123c8c]"
+                            style={{
+                              width: `${Math.min(item.percentage, 100)}%`,
+                            }}
+                          />
+                        </div>
+
+                        <p className="mt-3 text-sm font-black text-[#123c8c]">
+                          {item.percentage.toFixed(1)}% dari total data
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                          {item.description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {displayMode === "chart" ? (
                 <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -628,9 +1152,8 @@ export default function AdminCompanyMonitorPage() {
 
                       {selectedMetric === "cuti" ? (
                         <p className="mt-1 text-xs font-bold text-slate-400">
-                          Cuti bulan ini:{" "}
-                          {leaveChartData.totalApprovedRequests} pengajuan
-                          disetujui.
+                          Cuti bulan ini: {leaveChartData.totalApprovedRequests}{" "}
+                          pengajuan disetujui.
                         </p>
                       ) : null}
                     </div>
@@ -668,42 +1191,15 @@ export default function AdminCompanyMonitorPage() {
                     })}
                   </div>
 
-                  <div className="mt-6 overflow-x-auto rounded-3xl border border-blue-100 bg-[#f8fbff] p-4">
-                    <div className="flex min-w-[820px] items-end gap-2">
-                      {metricChart.points.map((point) => {
-                        const height = Math.max(
-                          (point.value / metricChart.maxValue) * 220,
-                          point.value > 0 ? 8 : 2
-                        );
-
-                        return (
-                          <div
-                            key={`${selectedMetric}-${point.label}`}
-                            className="w-7 text-center"
-                          >
-                            <div className="mx-auto flex h-[230px] items-end">
-                              <div
-                                className="w-full rounded-t-md bg-[#123c8c]"
-                                style={{ height }}
-                                title={`${point.label}: ${point.value} ${metricChart.unit}`}
-                              />
-                            </div>
-
-                            <p className="mt-1 truncate text-[10px] font-bold text-slate-500">
-                              {point.label}
-                            </p>
-
-                            <p className="text-[10px] font-black text-slate-700">
-                              {point.value}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <AnimatedHistogram
+                    metricLabel={getMetricLabel(selectedMetric)}
+                    unit={metricChart.unit}
+                    points={metricChart.points}
+                    maxValue={metricChart.maxValue}
+                  />
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {summaryCards.map((item) => {
                     const isHadir = item.label === "Hadir";
                     const isLateOrCuti = item.label === "Terlambat" || item.label === "Cuti";
@@ -731,6 +1227,78 @@ export default function AdminCompanyMonitorPage() {
                   })}
                 </div>
               )}
+
+              <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#123c8c]">
+                      <TrendingUp size={18} />
+                      <p className="text-xs font-black uppercase tracking-[0.16em]">
+                        Pie Chart Monitoring
+                      </p>
+                    </div>
+
+                    <h3 className="mt-2 text-2xl font-black text-slate-950">
+                      Pie Chart Terpisah per Kategori
+                    </h3>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Setiap kategori dipisah agar admin lebih mudah membaca
+                      proporsi WFH, WFC, dan kunjungan.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <PieProgressCard
+                    label="WFH"
+                    value={getSummaryModeValue(
+                      data.summary,
+                      "wfh",
+                      flexibleModeTotals,
+                    )}
+                    percentage={getSummaryModePercentage(
+                      data.summary,
+                      "wfh",
+                      flexibleModeTotals,
+                    )}
+                    description="Proporsi absensi WFH pada periode monitor."
+                    icon={<Home size={20} strokeWidth={2.5} />}
+                  />
+
+                  <PieProgressCard
+                    label="WFC"
+                    value={getSummaryModeValue(
+                      data.summary,
+                      "wfc",
+                      flexibleModeTotals,
+                    )}
+                    percentage={getSummaryModePercentage(
+                      data.summary,
+                      "wfc",
+                      flexibleModeTotals,
+                    )}
+                    description="Proporsi absensi WFC pada periode monitor."
+                    icon={<Building2 size={20} strokeWidth={2.5} />}
+                  />
+
+                  <PieProgressCard
+                    label="Kunjungan"
+                    value={getSummaryModeValue(
+                      data.summary,
+                      "visit",
+                      flexibleModeTotals,
+                    )}
+                    percentage={getSummaryModePercentage(
+                      data.summary,
+                      "visit",
+                      flexibleModeTotals,
+                    )}
+                    description="Proporsi absensi kunjungan pada periode monitor."
+                    icon={<BriefcaseBusiness size={20} strokeWidth={2.5} />}
+                  />
+                </div>
+              </div>
 
               <div className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30">
                 <div className="flex items-center gap-2 text-amber-700">

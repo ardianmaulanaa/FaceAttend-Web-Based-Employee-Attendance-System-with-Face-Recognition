@@ -172,6 +172,11 @@ type Employee = {
   phone: string | null;
   status: "active" | "inactive";
   created_at: string;
+
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
+  photo_url?: string | null;
+  avatar_url?: string | null;
 };
 
 type EmployeeForm = {
@@ -183,6 +188,7 @@ type EmployeeForm = {
   shift_id: string;
   registered_office_id: string;
   temporaryPassword: string;
+  confirmTemporaryPassword: string;
   status: "active" | "inactive";
 };
 
@@ -201,6 +207,7 @@ const initialForm: EmployeeForm = {
   shift_id: "",
   registered_office_id: "",
   temporaryPassword: "",
+  confirmTemporaryPassword: "",
   status: "active",
 };
 
@@ -223,19 +230,80 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isCreativemuEmail(email: string) {
+  return email.toLowerCase().endsWith("@creativemu.com");
+}
+
+function normalizeProfilePhotoUrl(photo?: string | null) {
+  if (!photo) return "";
+
+  const cleanPhoto = photo.trim();
+
+  if (!cleanPhoto) return "";
+
+  if (
+    cleanPhoto.startsWith("http://") ||
+    cleanPhoto.startsWith("https://") ||
+    cleanPhoto.startsWith("data:") ||
+    cleanPhoto.startsWith("/")
+  ) {
+    return cleanPhoto;
+  }
+
+  if (cleanPhoto.startsWith("uploads/")) {
+    return `/${cleanPhoto}`;
+  }
+
+  return `/uploads/profiles/${cleanPhoto}`;
+}
+
+function getEmployeeProfilePhoto(employee: Employee) {
+  return normalizeProfilePhotoUrl(
+    employee.profile_photo ||
+      employee.profile_photo_url ||
+      employee.photo_url ||
+      employee.avatar_url ||
+      "",
+  );
+}
+
+function EmployeeAvatar({ employee }: { employee: Employee }) {
+  const [imageError, setImageError] = useState(false);
+  const profilePhoto = getEmployeeProfilePhoto(employee);
+
+  if (profilePhoto && !imageError) {
+    return (
+      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl bg-[#eaf1ff] ring-1 ring-blue-100">
+        <img
+          src={profilePhoto}
+          alt={`Foto profil ${employee.name}`}
+          className="h-full w-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
+      {getInitialName(employee.name)}
+    </div>
+  );
+}
+
 function getRelationName(
   item:
     | UnitRelation
     | DepartmentRelation
     | PositionRelation
     | ShiftRelation
-    | OfficeRelation
+    | OfficeRelation,
 ) {
   return item?.name || "-";
 }
 
 function getDepartmentOfficeId(
-  department?: DepartmentOption | DepartmentRelation
+  department?: DepartmentOption | DepartmentRelation,
 ) {
   return department?.office_id || department?.office?.id || "";
 }
@@ -338,14 +406,14 @@ export default function AdminEmployeesPage() {
   const [employeeAlert, setEmployeeAlert] = useState<EmployeeAlert>(null);
   const [isAlertClosing, setIsAlertClosing] = useState(false);
   const alertCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
 
   const showEmployeeAlert = useCallback(
     (
       title: string,
       message: string,
-      type: "warning" | "success" | "error" | "info" = "warning"
+      type: "warning" | "success" | "error" | "info" = "warning",
     ) => {
       if (alertCloseTimeoutRef.current) {
         clearTimeout(alertCloseTimeoutRef.current);
@@ -359,7 +427,7 @@ export default function AdminEmployeesPage() {
         message,
       });
     },
-    []
+    [],
   );
 
   const closeEmployeeAlert = useCallback(() => {
@@ -386,7 +454,7 @@ export default function AdminEmployeesPage() {
         showEmployeeAlert(
           "Gagal mengambil data employee",
           result.message || "Gagal mengambil data karyawan.",
-          "error"
+          "error",
         );
         return;
       }
@@ -403,7 +471,7 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Terjadi kesalahan",
         "Terjadi kesalahan saat mengambil data karyawan.",
-        "error"
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -433,8 +501,7 @@ export default function AdminEmployeesPage() {
       const officeId = getDepartmentOfficeId(department);
 
       return (
-        department.status === "active" &&
-        officeId === form.registered_office_id
+        department.status === "active" && officeId === form.registered_office_id
       );
     });
   }, [departments, form.registered_office_id]);
@@ -485,11 +552,11 @@ export default function AdminEmployeesPage() {
   }, [employees, keyword]);
 
   const activeEmployees = employees.filter(
-    (employee) => employee.status === "active"
+    (employee) => employee.status === "active",
   ).length;
 
   const inactiveEmployees = employees.filter(
-    (employee) => employee.status === "inactive"
+    (employee) => employee.status === "inactive",
   ).length;
 
   function openRegisterModal() {
@@ -532,6 +599,7 @@ export default function AdminEmployeesPage() {
       position_id: positionId,
       shift_id: employee.shift?.id || "",
       temporaryPassword: "",
+      confirmTemporaryPassword: "",
       status: employee.status,
     });
     setIsModalOpen(true);
@@ -568,6 +636,9 @@ export default function AdminEmployeesPage() {
       return;
     }
 
+    const temporaryPassword = form.temporaryPassword.trim();
+    const confirmTemporaryPassword = form.confirmTemporaryPassword.trim();
+
     if (
       !nameTrimmed ||
       !email ||
@@ -580,7 +651,7 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Data belum lengkap",
         "Nama, email, kantor, divisi, unit, jabatan, dan shift wajib diisi.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -589,25 +660,43 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Format email tidak valid",
         "Masukkan email yang benar, contohnya employee@creativemu.com.",
-        "warning"
+        "warning",
       );
       return;
     }
 
-    if (!isEditing && !form.temporaryPassword) {
+    if (!isCreativemuEmail(email)) {
+      showEmployeeAlert(
+        "Email harus Creativemu",
+        "Email employee wajib menggunakan domain @creativemu.com.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isEditing && (!temporaryPassword || !confirmTemporaryPassword)) {
       showEmployeeAlert(
         "Data belum lengkap",
-        "Temporary password wajib diisi untuk employee baru.",
-        "warning"
+        "Password dan konfirmasi password wajib diisi untuk employee baru.",
+        "warning",
       );
       return;
     }
 
-    if (!isEditing && form.temporaryPassword.length < 8) {
+    if (!isEditing && temporaryPassword.length < 8) {
       showEmployeeAlert(
         "Password terlalu pendek",
-        "Temporary password minimal 8 karakter agar akun employee lebih aman.",
-        "warning"
+        "Password minimal 8 karakter agar akun employee lebih aman.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isEditing && temporaryPassword !== confirmTemporaryPassword) {
+      showEmployeeAlert(
+        "Konfirmasi password tidak sama",
+        "Password dan konfirmasi password harus sama sebelum employee dibuat.",
+        "warning",
       );
       return;
     }
@@ -624,7 +713,9 @@ export default function AdminEmployeesPage() {
           id: editingEmployee?.id,
           name: form.name.trim(),
           email,
-          temporaryPassword: form.temporaryPassword,
+          temporaryPassword: isEditing
+            ? form.temporaryPassword
+            : temporaryPassword,
           registered_office_id: form.registered_office_id,
           department_id: form.department_id,
           unit_id: form.unit_id,
@@ -643,7 +734,7 @@ export default function AdminEmployeesPage() {
             (isEditing
               ? "Gagal memperbarui karyawan."
               : "Gagal menambahkan karyawan."),
-          "error"
+          "error",
         );
         return;
       }
@@ -656,7 +747,7 @@ export default function AdminEmployeesPage() {
         isEditing
           ? "Data employee berhasil diperbarui dan sudah tersimpan di database."
           : "Akun employee baru berhasil dibuat dan siap digunakan untuk login.",
-        "success"
+        "success",
       );
     } catch (error) {
       console.error("SAVE_EMPLOYEE_ERROR:", error);
@@ -664,7 +755,7 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Terjadi kesalahan",
         "Terjadi kesalahan saat menyimpan karyawan.",
-        "error"
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -673,7 +764,7 @@ export default function AdminEmployeesPage() {
 
   async function handleDeleteEmployee(employee: Employee) {
     const confirmDelete = window.confirm(
-      `Yakin ingin menghapus employee "${employee.name}"? Data yang dihapus tidak bisa dikembalikan.`
+      `Yakin ingin menghapus employee "${employee.name}"? Data yang dihapus tidak bisa dikembalikan.`,
     );
 
     if (!confirmDelete) return;
@@ -691,7 +782,7 @@ export default function AdminEmployeesPage() {
         showEmployeeAlert(
           "Gagal menghapus employee",
           result.message || "Gagal menghapus employee.",
-          "error"
+          "error",
         );
         return;
       }
@@ -701,7 +792,7 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Employee berhasil dihapus",
         "Data employee berhasil dihapus dari database.",
-        "success"
+        "success",
       );
     } catch (error) {
       console.error("DELETE_EMPLOYEE_ERROR:", error);
@@ -709,7 +800,7 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         "Terjadi kesalahan",
         "Terjadi kesalahan saat menghapus employee.",
-        "error"
+        "error",
       );
     } finally {
       setDeletingId("");
@@ -859,121 +950,123 @@ export default function AdminEmployeesPage() {
             </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-3xl border border-blue-100">
-            <div className="hidden grid-cols-[1fr_1.05fr_0.75fr_0.65fr_0.65fr_0.7fr_0.65fr_0.6fr_0.85fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
-              <p>Employee</p>
-              <p>Email</p>
-              <p>Kantor</p>
-              <p>Divisi</p>
-              <p>Unit</p>
-              <p>Jabatan</p>
-              <p>Shift</p>
-              <p>Status</p>
-              <p className="text-center">Aksi</p>
-            </div>
+          <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
+            <div className="md:min-w-[1180px]">
+              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_1.05fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
+                <p>Employee</p>
+                <p>Email</p>
+                <p>Kantor</p>
+                <p>Divisi</p>
+                <p>Unit</p>
+                <p>Jabatan</p>
+                <p>Shift</p>
+                <p>Status</p>
+                <p className="text-center">Aksi</p>
+              </div>
 
-            <div className="divide-y divide-blue-50">
-              {isLoading && (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-black text-slate-700">
-                    Loading employee data...
-                  </p>
-                </div>
-              )}
-
-              {!isLoading &&
-                filteredEmployees.map((employee) => (
-                  <div
-                    key={employee.id}
-                    className="grid gap-4 px-5 py-5 transition hover:bg-[#f8fbff] md:grid-cols-[1fr_1.05fr_0.75fr_0.65fr_0.65fr_0.7fr_0.65fr_0.6fr_0.85fr] md:items-center"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
-                        {getInitialName(employee.name)}
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-black text-slate-950">
-                          {employee.name}
-                        </p>
-                        <p className="mt-1 text-xs font-bold text-slate-400">
-                          ID: {getShortEmployeeId(employee.id)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {employee.email}
+              <div className="divide-y divide-blue-50">
+                {isLoading && (
+                  <div className="px-5 py-10 text-center">
+                    <p className="font-black text-slate-700">
+                      Loading employee data...
                     </p>
-
-                    <div className="text-sm font-semibold text-slate-600">
-                      <p>{getRelationName(employee.registered_office)}</p>
-                      <p className="mt-1 line-clamp-1 text-xs text-slate-400">
-                        {employee.registered_office?.address || "-"}
-                      </p>
-                    </div>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {getRelationName(employee.department)}
-                    </p>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {getRelationName(employee.unit)}
-                    </p>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {getRelationName(employee.position)}
-                    </p>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {getRelationName(employee.shift)}
-                    </p>
-
-                    <div>
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                          employee.status === "active"
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {formatStatus(employee.status)}
-                      </span>
-                    </div>
-
-                    <div className="grid gap-2 md:flex md:justify-center">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(employee)}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-auto md:rounded-xl md:border md:border-blue-100 md:bg-white md:py-2 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
-                      >
-                        <Edit size={15} />
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEmployee(employee)}
-                        disabled={deletingId === employee.id}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-auto md:rounded-xl md:py-2"
-                      >
-                        <Trash2 size={15} />
-                        {deletingId === employee.id ? "..." : "Hapus"}
-                      </button>
-                    </div>
                   </div>
-                ))}
+                )}
 
-              {!isLoading && filteredEmployees.length === 0 && (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-black text-slate-700">
-                    Data tidak ditemukan
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Coba gunakan keyword pencarian lain.
-                  </p>
-                </div>
-              )}
+                {!isLoading &&
+                  filteredEmployees.map((employee) => (
+                    <div
+                      key={employee.id}
+                      className="grid gap-4 px-5 py-4 transition hover:bg-[#f8fbff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_1.05fr] md:items-center md:gap-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <EmployeeAvatar employee={employee} />
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-slate-950">
+                            {employee.name}
+                          </p>
+                          <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+                            ID: {getShortEmployeeId(employee.id)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {employee.email}
+                      </p>
+
+                      <div className="min-w-0 text-sm font-semibold text-slate-600">
+                        <p className="truncate">
+                          {getRelationName(employee.registered_office)}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+                          {employee.registered_office?.address || "-"}
+                        </p>
+                      </div>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.department)}
+                      </p>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.unit)}
+                      </p>
+
+                      <p className="min-w-0 line-clamp-2 text-sm font-semibold leading-5 text-slate-600">
+                        {getRelationName(employee.position)}
+                      </p>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.shift)}
+                      </p>
+
+                      <div className="flex md:justify-start">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                            employee.status === "active"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {formatStatus(employee.status)}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2 md:flex md:justify-center">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(employee)}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-10 md:rounded-xl md:border md:border-blue-100 md:bg-white md:px-3 md:py-0 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
+                        >
+                          <Edit size={15} />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEmployee(employee)}
+                          disabled={deletingId === employee.id}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:rounded-xl md:px-3 md:py-0"
+                        >
+                          <Trash2 size={15} />
+                          {deletingId === employee.id ? "..." : "Hapus"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                {!isLoading && filteredEmployees.length === 0 && (
+                  <div className="px-5 py-10 text-center">
+                    <p className="font-black text-slate-700">
+                      Data tidak ditemukan
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Coba gunakan keyword pencarian lain.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -1011,7 +1104,11 @@ export default function AdminEmployeesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate className="mt-6 grid gap-4">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="mt-6 grid gap-4"
+            >
               <div>
                 <label className="mb-2 block text-sm font-black text-slate-700">
                   Full Name
@@ -1219,8 +1316,8 @@ export default function AdminEmployeesPage() {
                       <option value="">Pilih Shift</option>
                       {activeShifts.map((shift) => (
                         <option key={shift.id} value={shift.id}>
-                          {shift.name} - Toleransi{" "}
-                          {shift.tolerance_minutes} menit
+                          {shift.name} - Toleransi {shift.tolerance_minutes}{" "}
+                          menit
                         </option>
                       ))}
                     </select>
@@ -1266,7 +1363,7 @@ export default function AdminEmployeesPage() {
                 {!editingEmployee ? (
                   <div>
                     <label className="mb-2 block text-sm font-black text-slate-700">
-                      Temporary Password
+                      Password
                     </label>
                     <div className="relative">
                       <KeyRound
@@ -1283,6 +1380,32 @@ export default function AdminEmployeesPage() {
                           }))
                         }
                         placeholder="Minimal 8 karakter"
+                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {!editingEmployee ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Konfirmasi Password
+                    </label>
+                    <div className="relative">
+                      <KeyRound
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                      <input
+                        type="password"
+                        value={form.confirmTemporaryPassword}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            confirmTemporaryPassword: event.target.value,
+                          }))
+                        }
+                        placeholder="Ulangi password"
                         className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
                       />
                     </div>
@@ -1356,7 +1479,9 @@ export default function AdminEmployeesPage() {
         >
           <div
             className={`overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-br ${alertTheme.shell} shadow-2xl shadow-slate-900/20 backdrop-blur-xl transition-all duration-300 ease-out ${
-              isAlertClosing ? "translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+              isAlertClosing
+                ? "translate-y-2 opacity-0"
+                : "translate-y-0 opacity-100"
             }`}
           >
             <div className="relative p-5">

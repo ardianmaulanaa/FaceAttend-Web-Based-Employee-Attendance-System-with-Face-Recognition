@@ -70,6 +70,15 @@ const emptyStats: LeaveStats = {
   rejected: 0,
 };
 
+function getTodayDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 async function readJsonResponse(response: Response): Promise<LeaveResponse> {
   const text = await response.text();
 
@@ -179,6 +188,10 @@ export default function LeaveRequestPage() {
 
   const [pageAlert, setPageAlert] = useState<PageAlert>(null);
 
+  const todayDate = useMemo(() => {
+    return getTodayDateInputValue();
+  }, []);
+
   const totalDays = useMemo(() => {
     return countDays(startDate, endDate);
   }, [startDate, endDate]);
@@ -234,6 +247,15 @@ export default function LeaveRequestPage() {
         title: "Data belum lengkap",
         message:
           "Jenis pengajuan, tanggal mulai, tanggal selesai, dan alasan wajib diisi.",
+      });
+      return;
+    }
+
+    if (startDate < todayDate) {
+      setPageAlert({
+        type: "warning",
+        title: "Tanggal mulai tidak valid",
+        message: "Tanggal mulai tidak boleh kurang dari tanggal hari ini.",
       });
       return;
     }
@@ -352,7 +374,7 @@ export default function LeaveRequestPage() {
           {pageAlert ? (
             <div
               className={`mt-5 flex items-start justify-between gap-3 rounded-2xl border p-4 ${getAlertClass(
-                pageAlert.type
+                pageAlert.type,
               )}`}
             >
               <div className="flex gap-3">
@@ -396,7 +418,7 @@ export default function LeaveRequestPage() {
                 suppressHydrationWarning
                 value={leaveType}
                 onChange={(event) => setLeaveType(event.target.value)}
-                className="mt-2 min-h-[52px] w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                className="mt-2 min-h-[52px] w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px- py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
               >
                 <option value="annual">Cuti Tahunan</option>
                 <option value="permission">Izin</option>
@@ -489,6 +511,7 @@ export default function LeaveRequestPage() {
                 <input
                   type="date"
                   value={startDate}
+                  min={todayDate}
                   onChange={(event) => {
                     const nextStartDate = event.target.value;
 
@@ -498,7 +521,7 @@ export default function LeaveRequestPage() {
                       setEndDate(nextStartDate);
                     }
                   }}
-                  className="mt-2 min-h-[52px] w-[320px] rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-[52px] w-full min-w-0 rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
@@ -510,9 +533,9 @@ export default function LeaveRequestPage() {
                 <input
                   type="date"
                   value={endDate}
-                  min={startDate || undefined}
+                  min={startDate || todayDate}
                   onChange={(event) => setEndDate(event.target.value)}
-                  className="mt-2 min-h-[52px] w-[320px] rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-[52px] w-full min-w-0 rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />
               </div>
             </div>
@@ -644,7 +667,7 @@ export default function LeaveRequestPage() {
 
                       <div
                         className={`inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-xs font-black ring-1 ${getStatusStyle(
-                          item.status
+                          item.status,
                         )}`}
                       >
                         <StatusIcon size={16} strokeWidth={2.6} />

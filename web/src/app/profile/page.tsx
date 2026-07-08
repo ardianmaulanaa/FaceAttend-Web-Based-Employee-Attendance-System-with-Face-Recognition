@@ -12,7 +12,6 @@ import {
   Clock3,
   Eye,
   EyeOff,
-  IdCard,
   Image as ImageIcon,
   Loader2,
   LockKeyhole,
@@ -46,7 +45,6 @@ type ShiftWorkSchedule = {
 
 type ProfileUser = {
   id: string;
-  employee_code: string | null;
   name: string;
   email: string;
   role: string;
@@ -165,14 +163,64 @@ function formatDay(day: string) {
   return dayLabels[day] || day;
 }
 
+function normalizePhoneInput(value: string) {
+  return value.replace(/\D/g, "").slice(0, 12);
+}
+
+function isValidPhoneNumber(value: string) {
+  return /^\d{10,12}$/.test(value);
+}
+
+function getProfileAlertTheme(type: NonNullable<ProfileAlert>["type"]) {
+  if (type === "success") {
+    return {
+      shell: "from-emerald-50 via-white to-blue-50",
+      iconWrap: "bg-emerald-100 text-emerald-600",
+      badge: "text-emerald-600 bg-white/70",
+      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20",
+      icon: CheckCircle2,
+      label: "BERHASIL",
+    };
+  }
+
+  if (type === "error") {
+    return {
+      shell: "from-red-50 via-white to-blue-50",
+      iconWrap: "bg-red-100 text-red-600",
+      badge: "text-red-600 bg-white/70",
+      button: "bg-red-600 hover:bg-red-700 shadow-red-900/20",
+      icon: AlertTriangle,
+      label: "GAGAL",
+    };
+  }
+
+  if (type === "info") {
+    return {
+      shell: "from-blue-50 via-white to-blue-50",
+      iconWrap: "bg-blue-100 text-[#123c8c]",
+      badge: "text-[#123c8c] bg-white/70",
+      button: "bg-[#123c8c] hover:bg-[#0f3274] shadow-blue-900/20",
+      icon: ShieldCheck,
+      label: "INFO",
+    };
+  }
+
+  return {
+    shell: "from-orange-50 via-white to-blue-50",
+    iconWrap: "bg-orange-100 text-orange-600",
+    badge: "text-orange-600 bg-white/70",
+    button: "bg-[#526fae] hover:bg-[#46629d] shadow-blue-900/20",
+    icon: AlertTriangle,
+    label: "PERHATIAN",
+  };
+}
+
 function getActiveScheduleText(schedules?: ShiftWorkSchedule[]) {
   if (!schedules || schedules.length === 0) return "";
 
   const activeSchedules = schedules.filter(
     (schedule) =>
-      schedule.is_work_day &&
-      schedule.check_in_time &&
-      schedule.check_out_time
+      schedule.is_work_day && schedule.check_in_time && schedule.check_out_time,
   );
 
   if (activeSchedules.length === 0) return "";
@@ -390,12 +438,19 @@ export default function ProfilePage() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [profileAlert, setProfileAlert] = useState<ProfileAlert>(null);
+  const [isProfileAlertClosing, setIsProfileAlertClosing] = useState(false);
+  const profileAlertCloseTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [editProfileForm, setEditProfileForm] =
-    useState<EditProfileForm>(initialEditProfileForm);
+  const [editProfileForm, setEditProfileForm] = useState<EditProfileForm>(
+    initialEditProfileForm,
+  );
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -406,39 +461,48 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [profileAlert, setProfileAlert] = useState<ProfileAlert>(null);
-  const [isAlertClosing, setIsAlertClosing] = useState(false);
-  const alertCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showProfileAlert(
+    title: string,
+    message: string,
+    type: "success" | "error" | "warning" | "info" = "warning",
+  ) {
+    if (profileAlertCloseTimeoutRef.current) {
+      clearTimeout(profileAlertCloseTimeoutRef.current);
+    }
 
-  const showProfileAlert = useCallback(
-    (
-      title: string,
-      message: string,
-      type: "warning" | "success" | "error" | "info" = "warning"
-    ) => {
-      if (alertCloseTimeoutRef.current) {
-        clearTimeout(alertCloseTimeoutRef.current);
-      }
+    setIsProfileAlertClosing(false);
+    setProfileAlert({
+      type,
+      title,
+      message,
+    });
+  }
 
-      setIsAlertClosing(false);
+  function closeProfileAlert() {
+    setIsProfileAlertClosing(true);
 
-      setProfileAlert({
-        type,
-        title,
-        message,
-      });
-    },
-    []
-  );
-
-  const closeProfileAlert = useCallback(() => {
-    setIsAlertClosing(true);
-
-    alertCloseTimeoutRef.current = setTimeout(() => {
+    profileAlertCloseTimeoutRef.current = setTimeout(() => {
       setProfileAlert(null);
-      setIsAlertClosing(false);
-    }, 200);
-  }, []);
+      setIsProfileAlertClosing(false);
+    }, 240);
+  }
+
+  function handlePhoneInputChange(value: string) {
+    const normalizedPhone = normalizePhoneInput(value);
+
+    if (value !== normalizedPhone) {
+      showProfileAlert(
+        "Nomor telepon tidak valid",
+        "Nomor telepon hanya boleh menggunakan angka tanpa spasi atau simbol, maksimal 12 digit.",
+        "warning",
+      );
+    }
+
+    setEditProfileForm((prev) => ({
+      ...prev,
+      phone: normalizedPhone,
+    }));
+  }
 
   async function loadProfile() {
     try {
@@ -454,7 +518,7 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal mengambil profil."
+          data.error || data.message || "Gagal mengambil profil.",
         );
       }
 
@@ -463,7 +527,7 @@ export default function ProfilePage() {
       console.error("PROFILE_ERROR:", error);
 
       setErrorMessage(
-        error instanceof Error ? error.message : "Gagal mengambil profil."
+        error instanceof Error ? error.message : "Gagal mengambil profil.",
       );
     } finally {
       setLoading(false);
@@ -493,17 +557,38 @@ export default function ProfilePage() {
     const phone = editProfileForm.phone.trim();
 
     if (!name) {
-      showProfileAlert("Data belum lengkap", "Nama lengkap wajib diisi.", "warning");
+      showProfileAlert(
+        "Nama wajib diisi",
+        "Nama lengkap tidak boleh kosong.",
+        "warning",
+      );
       return;
     }
 
     if (name.split(/\s+/).filter(Boolean).length < 2) {
-      showProfileAlert("Nama tidak lengkap", "Nama lengkap harus terdiri dari minimal 2 kata.", "warning");
+      showProfileAlert(
+        "Nama tidak lengkap",
+        "Nama lengkap harus terdiri dari minimal 2 kata.",
+        "warning",
+      );
       return;
     }
 
-    if (phone && (phone.length !== 12 || !/^\d+$/.test(phone))) {
-      showProfileAlert("Nomor telepon tidak valid", "Nomor telepon harus terdiri dari tepat 12 digit angka dan tidak ada spasi.", "warning");
+    if (!phone) {
+      showProfileAlert(
+        "Nomor telepon wajib diisi",
+        "Nomor telepon harus berisi angka dengan panjang 10 sampai 12 digit.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isValidPhoneNumber(phone)) {
+      showProfileAlert(
+        "Nomor telepon tidak valid",
+        "Nomor telepon hanya boleh berisi angka tanpa spasi, dengan panjang 10 sampai 12 digit.",
+        "warning",
+      );
       return;
     }
 
@@ -524,25 +609,37 @@ export default function ProfilePage() {
       const data = await readJsonResponse(response);
 
       if (!response.ok || !data.success) {
-        showProfileAlert("Gagal", data.message || data.error || "Gagal memperbarui profil.", "error");
+        showProfileAlert(
+          "Gagal memperbarui profil",
+          data.message || data.error || "Gagal memperbarui profil.",
+          "error",
+        );
         return;
       }
 
       setUser((currentUser) =>
         currentUser
           ? {
-            ...currentUser,
-            name: data.user?.name || name,
-            phone: data.user?.phone || phone || null,
-          }
-          : currentUser
+              ...currentUser,
+              name: data.user?.name || name,
+              phone: data.user?.phone || phone || null,
+            }
+          : currentUser,
       );
 
-      showProfileAlert("Sukses", "Profil berhasil diperbarui.", "success");
+      showProfileAlert(
+        "Profil berhasil diperbarui",
+        "Nama dan nomor telepon berhasil disimpan.",
+        "success",
+      );
       closeEditProfileModal();
     } catch (error) {
       console.error("UPDATE_PROFILE_ERROR:", error);
-      showProfileAlert("Gagal", "Gagal memperbarui profil.", "error");
+      showProfileAlert(
+        "Gagal memperbarui profil",
+        "Terjadi kesalahan saat menyimpan perubahan profil.",
+        "error",
+      );
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -583,12 +680,20 @@ export default function ProfilePage() {
   async function handleUploadProfilePhoto(file: File) {
     try {
       if (!file.type.startsWith("image/")) {
-        showProfileAlert("Format file salah", "File harus berupa gambar.", "warning");
+        showProfileAlert(
+          "File tidak valid",
+          "File harus berupa gambar.",
+          "warning",
+        );
         return;
       }
 
       if (file.size > 2 * 1024 * 1024) {
-        showProfileAlert("File terlalu besar", "Ukuran foto maksimal 2MB.", "warning");
+        showProfileAlert(
+          "Foto terlalu besar",
+          "Ukuran foto maksimal 2MB.",
+          "warning",
+        );
         return;
       }
 
@@ -605,7 +710,11 @@ export default function ProfilePage() {
       const data = await readJsonResponse(response);
 
       if (!response.ok) {
-        showProfileAlert("Gagal", data.error || data.message || "Gagal upload foto profil.", "error");
+        showProfileAlert(
+          "Gagal upload foto",
+          data.error || data.message || "Gagal upload foto profil.",
+          "error",
+        );
         return;
       }
 
@@ -613,17 +722,25 @@ export default function ProfilePage() {
         setUser((currentUser) =>
           currentUser
             ? {
-              ...currentUser,
-              profile_photo: data.user.profile_photo,
-            }
-            : currentUser
+                ...currentUser,
+                profile_photo: data.user.profile_photo,
+              }
+            : currentUser,
         );
       }
 
-      showProfileAlert("Sukses", "Foto profil berhasil diperbarui.", "success");
+      showProfileAlert(
+        "Foto profil berhasil diperbarui",
+        "Foto profil baru sudah tersimpan.",
+        "success",
+      );
     } catch (error) {
       console.error("UPLOAD_PROFILE_PHOTO_ERROR:", error);
-      showProfileAlert("Gagal", "Gagal upload foto profil.", "error");
+      showProfileAlert(
+        "Gagal upload foto",
+        "Gagal upload foto profil.",
+        "error",
+      );
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -650,17 +767,29 @@ export default function ProfilePage() {
       !passwordForm.new_password ||
       !passwordForm.confirm_password
     ) {
-      showProfileAlert("Data belum lengkap", "Semua field password wajib diisi.", "warning");
+      showProfileAlert(
+        "Password belum lengkap",
+        "Semua field password wajib diisi.",
+        "warning",
+      );
       return;
     }
 
     if (passwordForm.new_password.length < 8) {
-      showProfileAlert("Password terlalu pendek", "Password baru minimal 8 karakter.", "warning");
+      showProfileAlert(
+        "Password terlalu pendek",
+        "Password baru minimal 8 karakter.",
+        "warning",
+      );
       return;
     }
 
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      showProfileAlert("Password tidak cocok", "Konfirmasi password tidak sama.", "warning");
+      showProfileAlert(
+        "Konfirmasi password tidak sama",
+        "Password baru and konfirmasi password harus sama.",
+        "warning",
+      );
       return;
     }
 
@@ -679,16 +808,24 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || "Gagal mengubah password."
+          data.error || data.message || "Gagal mengubah password.",
         );
       }
 
-      showProfileAlert("Sukses", "Password berhasil diperbarui.", "success");
+      showProfileAlert(
+        "Password berhasil diperbarui",
+        "Gunakan password baru untuk login berikutnya.",
+        "success",
+      );
       closePasswordModal();
     } catch (error) {
       console.error("CHANGE_PASSWORD_ERROR:", error);
 
-      showProfileAlert("Gagal", error instanceof Error ? error.message : "Gagal mengubah password.", "error");
+      showProfileAlert(
+        "Gagal mengubah password",
+        error instanceof Error ? error.message : "Gagal mengubah password.",
+        "error",
+      );
     } finally {
       setIsChangingPassword(false);
     }
@@ -696,6 +833,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadProfile();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (profileAlertCloseTimeoutRef.current) {
+        clearTimeout(profileAlertCloseTimeoutRef.current);
+      }
+    };
   }, []);
 
   const initials = useMemo(() => {
@@ -719,7 +864,7 @@ export default function ProfilePage() {
     return getActiveScheduleText(user?.shift?.work_schedules);
   }, [user?.shift?.work_schedules]);
 
-  const headerRightLabel = user?.employee_code || user?.shift?.name || undefined;
+  const headerRightLabel = user?.shift?.name || undefined;
 
   const detailItems = useMemo(() => {
     if (!user) return [];
@@ -739,11 +884,6 @@ export default function ProfilePage() {
         label: "Nomor Telepon",
         value: user.phone || "-",
         icon: Phone,
-      },
-      {
-        label: "Kode Karyawan",
-        value: user.employee_code || "-",
-        icon: IdCard,
       },
       {
         label: "Status Akun",
@@ -793,11 +933,18 @@ export default function ProfilePage() {
     ];
   }, [user, workSchedule]);
 
+  const profileAlertTheme = profileAlert
+    ? getProfileAlertTheme(profileAlert.type)
+    : null;
+  const ProfileAlertIcon = profileAlertTheme?.icon || AlertTriangle;
+
   return (
     <MobileShell variant="employee" withBottomPadding={false}>
       <div className="hidden md:block">
         <AppHeader
-          title={activeView === "personal-detail" ? "Detail Personal" : "Profile"}
+          title={
+            activeView === "personal-detail" ? "Detail Personal" : "Profile"
+          }
           subtitle={
             activeView === "personal-detail"
               ? "Informasi lengkap data karyawan"
@@ -1089,11 +1236,22 @@ export default function ProfilePage() {
                     <input
                       value={editProfileForm.phone}
                       onChange={(event) =>
-                        setEditProfileForm((prev) => ({
-                          ...prev,
-                          phone: event.target.value,
-                        }))
+                        handlePhoneInputChange(event.target.value)
                       }
+                      onPaste={(event) => {
+                        const pastedText = event.clipboardData.getData("text");
+
+                        if (/\D/.test(pastedText) || pastedText.length > 12) {
+                          showProfileAlert(
+                            "Nomor telepon tidak valid",
+                            "Nomor telepon hanya boleh menggunakan angka tanpa spasi atau simbol, maksimal 12 digit.",
+                            "warning",
+                          );
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={12}
                       placeholder="Contoh: 081234567890"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
@@ -1101,8 +1259,8 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500">
-                  Email, kode karyawan, status, role, unit, divisi, jabatan,
-                  shift, dan kantor terdaftar hanya dapat diubah oleh admin.
+                  Email, status, role, unit, divisi, jabatan, shift, dan kantor
+                  terdaftar hanya dapat diubah oleh admin.
                 </div>
 
                 <div className="flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end">
@@ -1247,23 +1405,23 @@ export default function ProfilePage() {
       {profileAlert ? (
         <div
           className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300 ${
-            isAlertClosing ? "animate-fadeOut" : "animate-fadeIn"
+            isProfileAlertClosing ? "animate-fadeOut" : "animate-fadeIn"
           }`}
         >
           <div
             className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg ${
-              isAlertClosing ? "scale-95 opacity-0" : "scale-100 opacity-100"
-            } ${getAlertTheme(profileAlert.type).shell}`}
+              isProfileAlertClosing ? "scale-95 opacity-0" : "scale-100 opacity-100"
+            } ${getProfileAlertTheme(profileAlert.type).shell}`}
           >
             <div className="p-6 md:p-8">
               <div className="flex items-start gap-4">
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                    getAlertTheme(profileAlert.type).iconWrap
+                    getProfileAlertTheme(profileAlert.type).iconWrap
                   }`}
                 >
                   {(() => {
-                    const AlertIcon = getAlertTheme(profileAlert.type).icon;
+                    const AlertIcon = getProfileAlertTheme(profileAlert.type).icon;
                     return <AlertIcon size={32} strokeWidth={3} />;
                   })()}
                 </div>
@@ -1271,10 +1429,10 @@ export default function ProfilePage() {
                 <div className="min-w-0 flex-1 pt-1">
                   <div
                     className={`inline-flex rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] ${
-                      getAlertTheme(profileAlert.type).badge
+                      getProfileAlertTheme(profileAlert.type).badge
                     }`}
                   >
-                    {getAlertTheme(profileAlert.type).label}
+                    {getProfileAlertTheme(profileAlert.type).label}
                   </div>
 
                   <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950">
@@ -1301,7 +1459,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={closeProfileAlert}
                 className={`w-full rounded-2xl px-6 py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] ${
-                  getAlertTheme(profileAlert.type).button
+                  getProfileAlertTheme(profileAlert.type).button
                 }`}
               >
                 Mengerti
