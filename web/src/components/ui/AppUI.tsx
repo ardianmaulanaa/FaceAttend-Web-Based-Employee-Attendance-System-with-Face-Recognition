@@ -184,6 +184,9 @@ export function AppSelect({
       ) : null}
 
       <select
+      suppressHydrationWarning
+      {...props}
+      value={props.value ?? ""}
         className={cn(
           "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60",
           error && "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100",

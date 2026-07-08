@@ -65,6 +65,24 @@ type AuthMeResponse = {
   currentUser?: CurrentUser;
 };
 
+type TodayAttendance = {
+  id?: string;
+  checkInTime?: string | null;
+  check_in_time?: string | null;
+  checkOutTime?: string | null;
+  check_out_time?: string | null;
+  workMode?: WorkMode | string | null;
+  work_mode?: WorkMode | string | null;
+  workModeLabel?: string | null;
+};
+
+type TodayAttendanceResponse = {
+  success?: boolean;
+  attendance?: TodayAttendance | null;
+  todayAttendance?: TodayAttendance | null;
+  data?: TodayAttendance | { attendance?: TodayAttendance | null } | null;
+};
+
 const DEFAULT_SHIFT_START_TIME = "08:00";
 const DEFAULT_SHIFT_END_TIME = "17:00";
 
@@ -101,6 +119,20 @@ function createAbortError(message: string) {
   return error;
 }
 
+function getBrowserErrorName(error: unknown) {
+  return error instanceof Error ? error.name : "";
+}
+
+function isPermissionDeniedError(error: unknown) {
+  const name = getBrowserErrorName(error);
+
+  return (
+    name === "NotAllowedError" ||
+    name === "PermissionDeniedError" ||
+    name === "SecurityError"
+  );
+}
+
 function isMobileAttendanceDevice() {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return false;
@@ -109,7 +141,7 @@ function isMobileAttendanceDevice() {
   const userAgent = navigator.userAgent.toLowerCase();
   const mobileUserAgent =
     /android|iphone|ipad|ipod|mobile|blackberry|iemobile|opera mini/.test(
-      userAgent
+      userAgent,
     );
 
   const hasTouch = navigator.maxTouchPoints > 0;
@@ -120,7 +152,7 @@ function isMobileAttendanceDevice() {
 }
 
 function normalizeCurrentUser(
-  data: AuthMeResponse | CurrentUser
+  data: AuthMeResponse | CurrentUser,
 ): CurrentUser | null {
   const maybeData = data as AuthMeResponse;
 
@@ -134,6 +166,41 @@ function normalizeCurrentUser(
   if (!user || typeof user !== "object") return null;
 
   return user as CurrentUser;
+}
+
+function normalizeTodayAttendance(
+  data: TodayAttendanceResponse,
+): TodayAttendance | null {
+  if (!data || typeof data !== "object") return null;
+
+  if (data.attendance) return data.attendance;
+  if (data.todayAttendance) return data.todayAttendance;
+
+  if (data.data && typeof data.data === "object") {
+    if ("attendance" in data.data) {
+      return data.data.attendance || null;
+    }
+
+    return data.data as TodayAttendance;
+  }
+
+  return null;
+}
+
+function hasAttendanceCheckIn(attendance: TodayAttendance | null) {
+  return Boolean(attendance?.checkInTime || attendance?.check_in_time);
+}
+
+function hasAttendanceCheckOut(attendance: TodayAttendance | null) {
+  return Boolean(attendance?.checkOutTime || attendance?.check_out_time);
+}
+
+function getAttendanceWorkMode(attendance: TodayAttendance | null): WorkMode {
+  const mode = attendance?.workMode || attendance?.work_mode;
+
+  if (mode === "wfh" || mode === "wfc" || mode === "visit") return mode;
+
+  return "office";
 }
 
 function getShiftStartTime(shiftName?: string | null) {
@@ -181,7 +248,7 @@ function getJakartaMinutesNow() {
 
   const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
   const minute = Number(
-    parts.find((part) => part.type === "minute")?.value || 0
+    parts.find((part) => part.type === "minute")?.value || 0,
   );
 
   return hour * 60 + minute;
@@ -242,7 +309,7 @@ function CameraStatusIcon({
         !laptopBlocked &&
           !cameraReady &&
           !cameraStarting &&
-          "bg-white text-slate-400 ring-blue-100"
+          "bg-white text-slate-400 ring-blue-100",
       )}
     >
       {cameraStarting ? (
@@ -275,7 +342,7 @@ function StatusPill({
         !laptopBlocked &&
           !cameraReady &&
           !cameraStarting &&
-          "bg-slate-100 text-slate-500"
+          "bg-slate-100 text-slate-500",
       )}
     >
       {laptopBlocked
@@ -365,7 +432,7 @@ function CameraControlButton({
       full
       className={cn(
         "min-h-11 rounded-2xl px-3 text-xs shadow-lg backdrop-blur-md md:min-h-12 md:text-sm",
-        danger ? "bg-red-500/95 text-white" : "bg-white text-[#123c8c]"
+        danger ? "bg-red-500/95 text-white" : "bg-white text-[#123c8c]",
       )}
     >
       {children}
@@ -401,7 +468,7 @@ function ActionButton({
         "min-h-[4.5rem] rounded-[1.45rem] px-3 shadow-xl md:min-h-[70px] md:rounded-2xl md:px-5",
         primary
           ? "bg-[#123c8c] text-white shadow-blue-900/25"
-          : "border border-blue-200 bg-white text-[#123c8c] shadow-slate-200/70 md:bg-[#f8fbff]"
+          : "border border-blue-200 bg-white text-[#123c8c] shadow-slate-200/70 md:bg-[#f8fbff]",
       )}
     >
       <span className="flex w-full items-center justify-center gap-2 md:gap-3">
@@ -411,7 +478,7 @@ function ActionButton({
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-              primary ? "bg-white/15" : "bg-blue-50"
+              primary ? "bg-white/15" : "bg-blue-50",
             )}
           >
             {icon}
@@ -422,7 +489,7 @@ function ActionButton({
           <span
             className={cn(
               "block text-[9px] font-black uppercase tracking-[0.18em] md:text-[11px] md:tracking-[0.22em]",
-              primary ? "text-blue-100" : "text-slate-400"
+              primary ? "text-blue-100" : "text-slate-400",
             )}
           >
             {subtitle}
@@ -620,7 +687,7 @@ function VisitDataModal({
 
                   <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
                     Khusus mode kunjungan, tempat, alamat, dan keperluan wajib
-                    diisi sebelum check-in.
+                    diisi sebelum absensi dikirim.
                   </p>
                 </div>
               </div>
@@ -741,7 +808,7 @@ function CustomAttendanceAlert({
                 "bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.20),transparent_48%)]",
               !isSuccess &&
                 !isError &&
-                "bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_48%)]"
+                "bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_48%)]",
             )}
           />
 
@@ -762,7 +829,7 @@ function CustomAttendanceAlert({
                 isError && "bg-red-50 text-red-600 ring-red-100",
                 !isSuccess &&
                   !isError &&
-                  "bg-orange-50 text-orange-600 ring-orange-100"
+                  "bg-orange-50 text-orange-600 ring-orange-100",
               )}
             >
               {isSuccess ? (
@@ -778,7 +845,7 @@ function CustomAttendanceAlert({
                   "inline-flex rounded-full bg-white/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ring-1 ring-white/70",
                   isSuccess && "text-emerald-700",
                   isError && "text-red-700",
-                  !isSuccess && !isError && "text-orange-700"
+                  !isSuccess && !isError && "text-orange-700",
                 )}
               >
                 {isSuccess ? "Berhasil" : isError ? "Gagal" : "Perhatian"}
@@ -948,7 +1015,7 @@ function LateReasonModal({
                     Memproses
                   </>
                 ) : (
-                  "Lanjut Absen"
+                  "Simpan Alasan"
                 )}
               </AppButton>
             </div>
@@ -970,6 +1037,11 @@ export default function AttendancePage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(false);
 
+  const [todayAttendance, setTodayAttendance] =
+    useState<TodayAttendance | null>(null);
+  const [isTodayAttendanceLoading, setIsTodayAttendanceLoading] =
+    useState(false);
+
   const [isLaptopBlocked, setIsLaptopBlocked] = useState(false);
 
   const [workMode, setWorkMode] = useState<WorkMode>("office");
@@ -980,7 +1052,7 @@ export default function AttendancePage() {
   const [cameraStarting, setCameraStarting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<AttendanceAction | null>(
-    null
+    null,
   );
 
   const [lastPhotoUrl, setLastPhotoUrl] = useState<string | null>(null);
@@ -994,12 +1066,16 @@ export default function AttendancePage() {
 
   const [statusTitle, setStatusTitle] = useState("Waiting for Camera");
   const [statusText, setStatusText] = useState(
-    "Pilih mode attendance, aktifkan kamera, lalu izinkan lokasi GPS sebelum melakukan absensi."
+    "Pilih mode attendance, aktifkan kamera, lalu izinkan lokasi GPS sebelum melakukan absensi.",
   );
 
   const shiftStartTime = getShiftStartTime(currentUser?.shift?.name);
   const shiftToleranceMinutes = getShiftToleranceMinutes(currentUser);
   const lateLimitLabel = getLateLimitLabel(currentUser);
+
+  const hasCheckedInToday = hasAttendanceCheckIn(todayAttendance);
+  const hasCheckedOutToday = hasAttendanceCheckOut(todayAttendance);
+  const lockedWorkMode = getAttendanceWorkMode(todayAttendance);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -1008,11 +1084,12 @@ export default function AttendancePage() {
     setIsLaptopBlocked(blocked);
 
     void loadCurrentUser();
+    void loadTodayAttendance();
 
     if (blocked) {
       safeSetStatus(
         "Absensi hanya lewat HP",
-        "Check-in dan check-out tidak dapat dilakukan melalui laptop atau desktop."
+        "Check-in dan check-out tidak dapat dilakukan melalui laptop atau desktop.",
       );
 
       showLaptopBlockedAlert();
@@ -1066,13 +1143,13 @@ export default function AttendancePage() {
     showCustomAlert(
       "Absensi hanya lewat HP",
       "Untuk menjaga validasi kamera dan lokasi, check-in/check-out tidak dapat dilakukan melalui laptop atau desktop. Silakan buka FaceAttend melalui browser HP.",
-      "warning"
+      "warning",
     );
   }
 
   function updateVisitForm<K extends keyof VisitForm>(
     key: K,
-    value: VisitForm[K]
+    value: VisitForm[K],
   ) {
     setVisitForm((current) => ({
       ...current,
@@ -1081,9 +1158,72 @@ export default function AttendancePage() {
   }
 
   function handleWorkModeChange(value: WorkMode) {
+    if (hasCheckedInToday) {
+      const mode = lockedWorkMode;
+      const modeLabel = getWorkModeLabel(mode);
+
+      if (hasCheckedOutToday) {
+        setWorkMode(mode);
+        setIsVisitModalOpen(false);
+        setVisitForm(emptyVisitForm);
+
+        showCustomAlert(
+          "Absensi hari ini sudah selesai",
+          `Kamu sudah check-in dan check-out hari ini dengan mode ${modeLabel}. Mode attendance tidak bisa diubah lagi.`,
+          "warning",
+        );
+
+        safeSetStatus(
+          "Absensi Selesai",
+          `Absensi hari ini sudah selesai dengan mode ${modeLabel}.`,
+        );
+
+        return;
+      }
+
+      if (value === "visit") {
+        setWorkMode("visit");
+        setIsVisitModalOpen(true);
+        setLateReason("");
+
+        showCustomAlert(
+          "Mode kunjungan untuk check-out",
+          mode === "office"
+            ? "Kamu sudah check-in dari kantor. Jika ada kunjungan di tengah pekerjaan, isi data kunjungan lalu tekan Check-out. Kamu tetap tidak bisa check-in ulang."
+            : `Kamu sudah check-in dengan mode ${modeLabel}. Jika ada kunjungan tambahan, isi data kunjungan lalu tekan Check-out.`,
+          "warning",
+        );
+
+        safeSetStatus(
+          "Kunjungan untuk Check-out",
+          "Data kunjungan akan dikirim saat check-out sebagai catatan aktivitas, bukan sebagai check-in ulang.",
+        );
+
+        return;
+      }
+
+      setWorkMode(mode);
+      setIsVisitModalOpen(false);
+      setVisitForm(emptyVisitForm);
+
+      showCustomAlert(
+        "Mode attendance terkunci",
+        `Kamu sudah check-in hari ini dengan mode ${modeLabel}. Kamu tidak bisa mengganti mode check-in setelah absensi masuk.`,
+        "warning",
+      );
+
+      safeSetStatus(
+        "Mode Attendance Terkunci",
+        `Kamu sudah check-in hari ini dengan mode ${modeLabel}. Jika ada kunjungan di tengah pekerjaan, pilih mode Kunjungan lalu lakukan Check-out.`,
+      );
+
+      return;
+    }
+
     setWorkMode(value);
 
     if (value === "visit") {
+      setLateReason("");
       setIsVisitModalOpen(true);
     } else {
       setIsVisitModalOpen(false);
@@ -1092,7 +1232,7 @@ export default function AttendancePage() {
 
     safeSetStatus(
       `Mode ${getWorkModeLabel(value)}`,
-      getWorkModeDescription(value)
+      getWorkModeDescription(value),
     );
   }
 
@@ -1108,8 +1248,8 @@ export default function AttendancePage() {
 
       showCustomAlert(
         "Data kunjungan belum lengkap",
-        "Isi nama/tempat kunjungan, alamat kunjungan, dan keperluan kunjungan terlebih dahulu.",
-        "warning"
+        "Isi nama/tempat kunjungan, alamat kunjungan, dan keperluan kunjungan terlebih dahulu sebelum melanjutkan absensi.",
+        "warning",
       );
 
       return false;
@@ -1150,13 +1290,59 @@ export default function AttendancePage() {
         "Data Shift Belum Siap",
         error instanceof Error
           ? error.message
-          : "Gagal mengambil data shift karyawan."
+          : "Gagal mengambil data shift karyawan.",
       );
 
       return null;
     } finally {
       if (mountedRef.current) {
         setIsUserLoading(false);
+      }
+    }
+  }
+
+  async function loadTodayAttendance() {
+    try {
+      setIsTodayAttendanceLoading(true);
+
+      const response = await fetch("/api/attendance/today", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const data = (await response.json()) as TodayAttendanceResponse;
+
+      if (!response.ok) {
+        setTodayAttendance(null);
+        return null;
+      }
+
+      const attendance = normalizeTodayAttendance(data);
+
+      if (mountedRef.current) {
+        setTodayAttendance(attendance);
+
+        if (hasAttendanceCheckIn(attendance)) {
+          const mode = getAttendanceWorkMode(attendance);
+
+          setWorkMode(mode);
+
+          safeSetStatus(
+            "Mode Attendance Terkunci",
+            `Kamu sudah check-in hari ini dengan mode ${getWorkModeLabel(
+              mode,
+            )}. Mode tidak bisa diubah sampai check-out.`,
+          );
+        }
+      }
+
+      return attendance;
+    } catch {
+      setTodayAttendance(null);
+      return null;
+    } finally {
+      if (mountedRef.current) {
+        setIsTodayAttendanceLoading(false);
       }
     }
   }
@@ -1179,7 +1365,7 @@ export default function AttendancePage() {
     if (updateStatus) {
       safeSetStatus(
         "Camera Off",
-        "Kamera sudah dimatikan. Klik Aktifkan Kamera sebelum melakukan absensi."
+        "Kamera sudah dimatikan. Klik Aktifkan Kamera sebelum melakukan absensi.",
       );
     }
   }
@@ -1201,7 +1387,9 @@ export default function AttendancePage() {
 
         if (Date.now() - startTime > 4000) {
           reject(
-            new Error("Element video belum siap. Refresh halaman lalu coba lagi.")
+            new Error(
+              "Element video belum siap. Refresh halaman lalu coba lagi.",
+            ),
           );
           return;
         }
@@ -1251,7 +1439,9 @@ export default function AttendancePage() {
       const timeoutId = setTimeout(() => {
         cleanup();
         reject(
-          new Error("Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi.")
+          new Error(
+            "Kamera belum memuat gambar. Tunggu sebentar lalu coba lagi.",
+          ),
         );
       }, 7000);
 
@@ -1307,7 +1497,7 @@ export default function AttendancePage() {
 
       safeSetStatus(
         "Camera Ready",
-        "Kamera sudah aktif. Kamu bisa melakukan check-in atau check-out."
+        "Kamera sudah aktif. Kamu bisa melakukan check-in atau check-out.",
       );
     } catch (error) {
       if (isCameraAbortError(error)) {
@@ -1316,14 +1506,33 @@ export default function AttendancePage() {
         return;
       }
 
-      console.error("CAMERA_ERROR", error);
       releaseCamera(false, true);
+
+      if (isPermissionDeniedError(error)) {
+        safeSetStatus(
+          "Akses Kamera Ditolak",
+          "Akses kamera ditolak. Aktifkan izin kamera di browser untuk melakukan absensi.",
+        );
+
+        showCustomAlert(
+          "Akses Kamera Ditolak",
+          "Kamera belum bisa digunakan karena izin kamera ditolak. Buka pengaturan browser lalu izinkan kamera.",
+          "warning",
+        );
+
+        return;
+      }
 
       safeSetStatus(
         "Camera Permission Needed",
         error instanceof Error
           ? error.message
-          : "Aktifkan izin kamera di browser terlebih dahulu."
+          : "Aktifkan izin kamera di browser terlebih dahulu.",
+      );
+
+      console.warn(
+        "CAMERA_WARNING",
+        error instanceof Error ? error.message : error,
       );
     } finally {
       startingRef.current = false;
@@ -1398,11 +1607,11 @@ export default function AttendancePage() {
           resolve(
             new File([blob], `attendance-${Date.now()}.jpg`, {
               type: "image/jpeg",
-            })
+            }),
           );
         },
         "image/jpeg",
-        0.9
+        0.9,
       );
     });
   }
@@ -1413,7 +1622,45 @@ export default function AttendancePage() {
       return;
     }
 
+    const latestAttendance = await loadTodayAttendance();
+
+    if (hasAttendanceCheckIn(latestAttendance)) {
+      const mode = getAttendanceWorkMode(latestAttendance);
+
+      showCustomAlert(
+        "Sudah check-in",
+        mode === "office"
+          ? "Kamu sudah check-in hari ini melalui Kantor. Kamu tidak bisa check-in ulang sebagai Kunjungan. Jika ada kunjungan di tengah pekerjaan, pilih mode Kunjungan lalu tekan Check-out."
+          : `Kamu sudah check-in hari ini dengan mode ${getWorkModeLabel(
+              mode,
+            )}. Kamu tidak bisa check-in ulang.`,
+        "warning",
+      );
+
+      safeSetStatus(
+        "Check-in Ditolak",
+        `Kamu sudah check-in hari ini dengan mode ${getWorkModeLabel(
+          mode,
+        )}. Silakan lakukan check-out jika sudah selesai bekerja.`,
+      );
+
+      return;
+    }
+
     if (!validateVisitForm()) return;
+
+    if (workMode === "visit") {
+      setLateReason("");
+      setIsLateReasonOpen(false);
+
+      safeSetStatus(
+        "Kunjungan Bebas Toleransi",
+        "Mode kunjungan tidak terikat jam masuk, shift, atau batas keterlambatan. Absensi akan dikirim sebagai kunjungan.",
+      );
+
+      await handleAttendance("check-in", "");
+      return;
+    }
 
     const user = currentUser || (await loadCurrentUser());
 
@@ -1421,7 +1668,7 @@ export default function AttendancePage() {
       showCustomAlert(
         "Data shift belum terbaca",
         "Refresh halaman lalu coba lagi.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -1435,7 +1682,31 @@ export default function AttendancePage() {
 
     await handleAttendance(
       "check-in",
-      shouldAskLateReason ? lateReason.trim() : ""
+      shouldAskLateReason ? lateReason.trim() : "",
+    );
+  }
+
+  function handleSaveLateReason() {
+    if (!lateReason.trim()) {
+      showCustomAlert(
+        "Alasan belum diisi",
+        "Isi alasan keterlambatan terlebih dahulu.",
+        "warning",
+      );
+      return;
+    }
+
+    setIsLateReasonOpen(false);
+
+    safeSetStatus(
+      "Alasan Siap Dikirim",
+      "Alasan keterlambatan sudah tersimpan sementara. Silakan tekan tombol Check-in untuk mengirim absensi.",
+    );
+
+    showCustomAlert(
+      "Alasan siap dikirim",
+      "Alasan keterlambatan sudah tersimpan. Silakan tekan tombol Check-in untuk melanjutkan absensi.",
+      "success",
     );
   }
 
@@ -1445,14 +1716,14 @@ export default function AttendancePage() {
       return;
     }
 
-    if (action === "check-in" && !validateVisitForm()) return;
+    if (workMode === "visit" && !validateVisitForm()) return;
 
     try {
       setLoading(true);
       setActiveAction(action);
       safeSetStatus(
         "Processing",
-        "Menyiapkan kamera, mengambil foto, dan lokasi GPS..."
+        "Menyiapkan kamera, mengambil foto, dan lokasi GPS...",
       );
 
       if (!streamRef.current || !cameraReady) await startCamera();
@@ -1482,24 +1753,50 @@ export default function AttendancePage() {
       formData.append(`${prefix}Longitude`, String(longitude));
       formData.append(`${prefix}Accuracy`, String(accuracy));
 
-      if (action === "check-in") {
-        formData.append("workMode", workMode);
-        formData.append("work_mode", workMode);
-        formData.append("activityNote", getWorkModeLabel(workMode));
+      formData.append("workMode", workMode);
+      formData.append("work_mode", workMode);
+      formData.append("activityNote", getWorkModeLabel(workMode));
+      formData.append("attendanceAction", action);
 
-        if (reason.trim()) {
-          formData.append("lateReason", reason.trim());
-          formData.append("late_reason", reason.trim());
-        }
+      if (workMode === "visit") {
+        formData.append("skipLateValidation", "true");
+        formData.append("ignoreLateValidation", "true");
+        formData.append("isVisitAttendance", "true");
+        formData.append("lateReason", "");
+        formData.append("late_reason", "");
+      }
 
-        if (workMode === "visit") {
-          formData.append("visitTitle", visitForm.visitTitle.trim());
-          formData.append("visitPlaceName", visitForm.visitTitle.trim());
-          formData.append("visitClientName", visitForm.visitClientName.trim());
-          formData.append("visitAddress", visitForm.visitAddress.trim());
-          formData.append("visitNote", visitForm.visitNote.trim());
-          formData.append("visitPurpose", visitForm.visitNote.trim());
-        }
+      if (action === "check-out" && workMode === "visit") {
+        formData.append("checkOutWorkMode", "visit");
+        formData.append("check_out_work_mode", "visit");
+        formData.append("checkOutActivityNote", "Kunjungan");
+        formData.append("check_out_activity_note", "Kunjungan");
+      }
+
+      if (action === "check-in" && reason.trim()) {
+        formData.append("lateReason", reason.trim());
+        formData.append("late_reason", reason.trim());
+      }
+
+      if (workMode === "visit") {
+        const visitTitle = visitForm.visitTitle.trim();
+        const visitClientName = visitForm.visitClientName.trim();
+        const visitAddress = visitForm.visitAddress.trim();
+        const visitNote = visitForm.visitNote.trim();
+
+        formData.append("visitTitle", visitTitle);
+        formData.append("visitPlaceName", visitTitle);
+        formData.append("visitClientName", visitClientName);
+        formData.append("visitAddress", visitAddress);
+        formData.append("visitNote", visitNote);
+        formData.append("visitPurpose", visitNote);
+
+        formData.append(`${prefix}VisitTitle`, visitTitle);
+        formData.append(`${prefix}VisitPlaceName`, visitTitle);
+        formData.append(`${prefix}VisitClientName`, visitClientName);
+        formData.append(`${prefix}VisitAddress`, visitAddress);
+        formData.append(`${prefix}VisitNote`, visitNote);
+        formData.append(`${prefix}VisitPurpose`, visitNote);
       }
 
       const response = await fetch(`/api/attendance/${action}`, {
@@ -1512,17 +1809,17 @@ export default function AttendancePage() {
       if (!response.ok) {
         const message = data.error || data.message || "Absensi gagal.";
 
-        if (data.requiresLateReason) {
+        if (data.requiresLateReason && workMode !== "visit") {
           setIsLateReasonOpen(true);
-        } else {
-          showCustomAlert(
-            action === "check-out"
-              ? "Check-out belum bisa"
-              : "Absensi gagal",
-            message,
-            "warning"
-          );
+          safeSetStatus("Check-in Terlambat", message);
+          return;
         }
+
+        showCustomAlert(
+          action === "check-out" ? "Check-out belum bisa" : "Absensi gagal",
+          message,
+          "warning",
+        );
 
         safeSetStatus("Attendance Failed", message);
         return;
@@ -1537,37 +1834,45 @@ export default function AttendancePage() {
         "Attendance Success",
         officeName
           ? `${data.message} Mode ${modeLabel}. Lokasi valid di ${officeName}. Jarak ${distance} meter dari kantor, radius ${radius} meter. Akurasi GPS ±${Math.round(
-              accuracy
+              accuracy,
             )} meter.`
           : `${data.message || "Absensi berhasil."} Mode ${modeLabel}. GPS tersimpan dengan akurasi ±${Math.round(
-              accuracy
-            )} meter.`
+              accuracy,
+            )} meter.`,
       );
 
       setLateReason("");
       setIsLateReasonOpen(false);
 
-      if (action === "check-in" && workMode === "visit") {
+      if (workMode === "visit") {
         setVisitForm(emptyVisitForm);
       }
+
+      await loadTodayAttendance();
 
       showCustomAlert(
         action === "check-in" ? "Check-in berhasil" : "Check-out berhasil",
         action === "check-in"
           ? `${data.message || "Absensi berhasil."} Mode: ${modeLabel}.`
           : data.message || "Absensi berhasil.",
-        "success"
+        "success",
       );
     } catch (error) {
-      console.error("ATTENDANCE_ERROR", error);
-
-      const message =
-        error instanceof Error
+      const message = isPermissionDeniedError(error)
+        ? "Izin kamera atau lokasi ditolak. Aktifkan izin kamera dan GPS di browser terlebih dahulu."
+        : error instanceof Error
           ? error.message
           : "Gagal melakukan absensi. Pastikan kamera dan lokasi GPS diizinkan.";
 
       safeSetStatus("Attendance Failed", message);
-      showCustomAlert("Absensi gagal", message, "error");
+      showCustomAlert("Absensi gagal", message, "warning");
+
+      if (!isPermissionDeniedError(error)) {
+        console.warn(
+          "ATTENDANCE_WARNING",
+          error instanceof Error ? error.message : error,
+        );
+      }
     } finally {
       setLoading(false);
       setActiveAction(null);
@@ -1648,10 +1953,58 @@ export default function AttendancePage() {
 
             <WorkModeFilter
               value={workMode}
-              disabled={loading}
+              disabled={
+                loading || isTodayAttendanceLoading || hasCheckedOutToday
+              }
               onChange={handleWorkModeChange}
-              onOpenVisit={() => setIsVisitModalOpen(true)}
+              onOpenVisit={() => {
+                if (hasCheckedOutToday) {
+                  showCustomAlert(
+                    "Absensi hari ini sudah selesai",
+                    "Kamu sudah check-in dan check-out hari ini. Data kunjungan tidak bisa diubah lagi.",
+                    "warning",
+                  );
+
+                  return;
+                }
+
+                if (hasCheckedInToday) {
+                  setWorkMode("visit");
+                  setIsVisitModalOpen(true);
+
+                  showCustomAlert(
+                    "Data kunjungan untuk check-out",
+                    lockedWorkMode === "office"
+                      ? "Kamu sudah check-in dari kantor. Isi data kunjungan jika ada aktivitas kunjungan di tengah pekerjaan, lalu tekan Check-out."
+                      : `Kamu sudah check-in dengan mode ${getWorkModeLabel(
+                          lockedWorkMode,
+                        )}. Data kunjungan akan dikirim saat Check-out.`,
+                    "warning",
+                  );
+
+                  safeSetStatus(
+                    "Kunjungan untuk Check-out",
+                    "Isi data kunjungan, lalu tekan tombol Check-out. Sistem tidak akan membuat check-in ulang.",
+                  );
+
+                  return;
+                }
+
+                setIsVisitModalOpen(true);
+              }}
             />
+
+            {hasCheckedInToday ? (
+              <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-700">
+                {hasCheckedOutToday
+                  ? `Absensi hari ini sudah selesai dengan mode ${getWorkModeLabel(
+                      lockedWorkMode,
+                    )}. Mode attendance tidak bisa diubah lagi.`
+                  : `Check-in sudah masuk dengan mode ${getWorkModeLabel(
+                      lockedWorkMode,
+                    )}. Kamu tidak bisa check-in ulang. Jika ada kunjungan di tengah pekerjaan, pilih mode Kunjungan lalu tekan Check-out.`}
+              </div>
+            ) : null}
 
             <div className="mt-3 rounded-[1.9rem] bg-white p-2 shadow-[0_22px_55px_rgba(15,23,42,0.20)] ring-1 ring-slate-200/80">
               <div className="relative overflow-hidden rounded-[1.45rem] border border-slate-200 bg-slate-950 shadow-inner">
@@ -1689,7 +2042,7 @@ export default function AttendancePage() {
                     }}
                     className={cn(
                       "h-full w-full object-cover transition",
-                      cameraReady ? "opacity-100" : "opacity-0"
+                      cameraReady ? "opacity-100" : "opacity-0",
                     )}
                   />
 
@@ -1803,17 +2156,28 @@ export default function AttendancePage() {
                   title="Jam Kerja"
                   icon={<Clock3 size={22} className="text-[#123c8c]" />}
                 >
-                  <div className="space-y-1">
-                    <p>
-                      {shiftStartTime} - {DEFAULT_SHIFT_END_TIME}
-                    </p>
-                    <p className="font-semibold text-slate-400">
-                      Toleransi: {shiftToleranceMinutes} menit
-                    </p>
-                    <p className="font-semibold text-slate-400">
-                      Batas telat: {lateLimitLabel}
-                    </p>
-                  </div>
+                  {workMode === "visit" ? (
+                    <div className="space-y-1">
+                      <p className="font-black text-orange-600">
+                        Kunjungan bebas batas telat
+                      </p>
+                      <p className="font-semibold text-slate-400">
+                        Tidak mengikuti toleransi shift atau batas masuk.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p>
+                        {shiftStartTime} - {DEFAULT_SHIFT_END_TIME}
+                      </p>
+                      <p className="font-semibold text-slate-400">
+                        Toleransi: {shiftToleranceMinutes} menit
+                      </p>
+                      <p className="font-semibold text-slate-400">
+                        Batas telat: {lateLimitLabel}
+                      </p>
+                    </div>
+                  )}
                 </InfoTile>
 
                 <InfoTile
@@ -1853,8 +2217,17 @@ export default function AttendancePage() {
               setIsVisitModalOpen(false);
               showCustomAlert(
                 "Data kunjungan tersimpan",
-                "Data kunjungan siap dikirim saat check-in.",
-                "success"
+                hasCheckedInToday
+                  ? "Data kunjungan siap dikirim saat check-out."
+                  : "Data kunjungan siap dikirim saat check-in.",
+                "success",
+              );
+
+              safeSetStatus(
+                "Data Kunjungan Siap",
+                hasCheckedInToday
+                  ? "Tekan tombol Check-out untuk mengirim data kunjungan."
+                  : "Tekan tombol Check-in untuk mengirim data kunjungan.",
               );
             }}
           />
@@ -1871,7 +2244,7 @@ export default function AttendancePage() {
               setIsLateReasonOpen(false);
               setLateReason("");
             }}
-            onSubmit={() => handleAttendance("check-in", lateReason.trim())}
+            onSubmit={handleSaveLateReason}
           />
         ) : null}
 

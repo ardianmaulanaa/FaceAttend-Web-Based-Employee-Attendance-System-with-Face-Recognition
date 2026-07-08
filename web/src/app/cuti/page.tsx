@@ -303,6 +303,7 @@ export default function LeaveRequestPage() {
 
       <section className="mx-auto grid max-w-7xl items-start gap-6 px-5 py-6 pb-28 md:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:px-16">
         <form
+          suppressHydrationWarning
           onSubmit={handleSubmit}
           noValidate
           className="h-fit self-start rounded-[2rem] border border-blue-100 bg-white p-5 shadow-xl shadow-slate-200/60"
@@ -367,6 +368,7 @@ export default function LeaveRequestPage() {
               </label>
 
               <select
+                suppressHydrationWarning
                 value={leaveType}
                 onChange={(event) => setLeaveType(event.target.value)}
                 className="mt-2 min-h-[52px] w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
@@ -396,7 +398,7 @@ export default function LeaveRequestPage() {
                       setEndDate(nextStartDate);
                     }
                   }}
-                  className="mt-2 min-h-[52px] w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-[52px] w-[320px] rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
@@ -410,7 +412,7 @@ export default function LeaveRequestPage() {
                   value={endDate}
                   min={startDate || undefined}
                   onChange={(event) => setEndDate(event.target.value)}
-                  className="mt-2 min-h-[52px] w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                  className="mt-2 min-h-[52px] w-[320px] rounded-2xl border border-blue-100 bg-[#f8fbff] px-1 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />
               </div>
             </div>
@@ -428,6 +430,7 @@ export default function LeaveRequestPage() {
               </label>
 
               <textarea
+                suppressHydrationWarning
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Contoh: Mengajukan cuti karena keperluan keluarga."
