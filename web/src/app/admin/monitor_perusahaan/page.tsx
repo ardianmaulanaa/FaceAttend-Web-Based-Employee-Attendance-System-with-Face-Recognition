@@ -704,24 +704,31 @@ export default function AdminCompanyMonitorPage() {
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">
-                  {summaryCards.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60"
-                    >
-                      <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500">
-                        {item.label}
-                      </p>
+                  {summaryCards.map((item) => {
+                    const isHadir = item.label === "Hadir";
+                    const isLateOrCuti = item.label === "Terlambat" || item.label === "Cuti";
+                    const valueColor = isHadir ? "text-emerald-600" : isLateOrCuti ? "text-red-600" : "text-slate-950";
+                    const noteColor = isHadir ? "text-emerald-600" : isLateOrCuti ? "text-red-600" : "text-[#123c8c]";
 
-                      <p className="mt-2 text-3xl font-black text-slate-950">
-                        {item.value}
-                      </p>
+                    return (
+                      <div
+                        key={item.label}
+                        className="rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60"
+                      >
+                        <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500">
+                          {item.label}
+                        </p>
 
-                      <p className="mt-1 text-xs font-black text-[#123c8c]">
-                        {item.note}
-                      </p>
-                    </div>
-                  ))}
+                        <p className={`mt-2 text-3xl font-black ${valueColor}`}>
+                          {item.value}
+                        </p>
+
+                        <p className={`mt-1 text-xs font-black ${noteColor}`}>
+                          {item.note}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

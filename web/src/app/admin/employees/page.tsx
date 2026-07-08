@@ -559,6 +559,15 @@ export default function AdminEmployeesPage() {
       return;
     }
 
+    if (nameTrimmed.split(/\s+/).filter(Boolean).length < 2) {
+      showEmployeeAlert(
+        "Nama tidak lengkap",
+        "Nama lengkap harus terdiri dari minimal 2 kata.",
+        "warning"
+      );
+      return;
+    }
+
     if (
       !nameTrimmed ||
       !email ||

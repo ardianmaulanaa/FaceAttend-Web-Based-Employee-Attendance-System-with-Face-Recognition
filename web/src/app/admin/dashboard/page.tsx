@@ -244,6 +244,9 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-2 gap-3 p-5 md:p-6">
               {stats.map((item, index) => {
                 const Icon = item.icon;
+                const isCheckIn = item.label === "Check-in";
+                const isLate = item.label === "Terlambat";
+                const textStyle = isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-[#123c8c]";
 
                 return (
                   <div
@@ -258,19 +261,19 @@ export default function AdminDashboardPage() {
                       <Icon
                         size={20}
                         strokeWidth={2.5}
-                        className="text-[#123c8c]"
+                        className={isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-[#123c8c]"}
                       />
                     </div>
 
                     {isLoading ? (
                       <div className="mt-4 h-8 w-16 animate-pulse rounded-xl bg-blue-100" />
                     ) : (
-                      <h3 className="mt-3 text-3xl font-black text-[#123c8c]">
+                      <h3 className={`mt-3 text-3xl font-black ${textStyle}`}>
                         {item.value}
                       </h3>
                     )}
 
-                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                    <p className={`mt-1 text-xs font-semibold ${isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-slate-500"}`}>
                       {item.description}
                     </p>
                   </div>

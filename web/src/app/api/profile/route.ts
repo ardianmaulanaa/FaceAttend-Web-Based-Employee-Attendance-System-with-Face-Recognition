@@ -331,6 +331,16 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     );
   }
 
+  if (name !== undefined && name.split(/\s+/).filter(Boolean).length < 2) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Nama lengkap harus terdiri dari minimal 2 kata.",
+      },
+      { status: 400 }
+    );
+  }
+
   if (phone !== undefined && phone) {
     if (phone.length !== 12 || !/^\d+$/.test(phone)) {
       return NextResponse.json(
