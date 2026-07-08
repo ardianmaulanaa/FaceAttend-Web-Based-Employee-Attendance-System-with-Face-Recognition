@@ -122,6 +122,20 @@ function toIsoDate(value: Date | string | null | undefined) {
   return date.toISOString();
 }
 
+function formatDateDisplay(value: Date | string | null | undefined) {
+  if (!value) return "-";
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function formatLeaveType(type: string) {
   if (type === "annual") return "Cuti Tahunan";
   if (type === "permission") return "Izin";
@@ -180,8 +194,8 @@ function mapLeaveRequest(item: {
     userId: item.user_id,
     leaveType: item.leave_type,
     leaveTypeLabel: formatLeaveType(item.leave_type),
-    startDate: toIsoDate(item.start_date),
-    endDate: toIsoDate(item.end_date),
+    startDate: formatDateDisplay(item.start_date),
+    endDate: formatDateDisplay(item.end_date),
     startDateRaw: toIsoDate(item.start_date),
     endDateRaw: toIsoDate(item.end_date),
     totalDays: Number(item.total_days || 0),
