@@ -351,18 +351,20 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 overflow-hidden border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
+        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
             ? "border-blue-100/80 bg-white/95 shadow-lg shadow-slate-300/30"
             : "border-white/60 bg-white/90 shadow-sm shadow-slate-200/40"
           }`}
       >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-16 top-1/2 hidden h-64 w-64 -translate-y-1/2 bg-contain bg-center bg-no-repeat opacity-[0.11] blur-[0.5px] md:block"
-          style={{
-            backgroundImage: "url('/images/creativemu-logo/creativemu.png')",
-          }}
-        />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div
+            aria-hidden="true"
+            className="absolute right-16 top-1/2 hidden h-64 w-64 -translate-y-1/2 bg-contain bg-center bg-no-repeat opacity-[0.11] blur-[0.5px] md:block"
+            style={{
+              backgroundImage: "url('/images/creativemu-logo/creativemu.png')",
+            }}
+          />
+        </div>
 
         <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
