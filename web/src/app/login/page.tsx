@@ -493,32 +493,32 @@ export default function LoginPage() {
           <div className="absolute top-1/4 left-1/4 h-[350px] w-[350px] rounded-full bg-orange-200/25 blur-3xl animate-[loginBackgroundFloat_8s_ease-in-out_infinite]" />
           <div className="absolute bottom-1/4 right-1/4 h-[350px] w-[350px] rounded-full bg-blue-200/25 blur-3xl animate-[loginBackgroundFloat_6s_ease-in-out_infinite_reverse]" />
 
-          <div className="relative flex h-80 w-80 items-center justify-center">
+          <div className="relative flex h-44 w-44 md:h-64 md:w-64 items-center justify-center">
             {/* Concentric Expanding Wave Ripples (Squircle-shaped to match the logo frame) */}
-            <div className="absolute h-72 w-72 rounded-[4.5rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0s" }} />
-            <div className="absolute h-72 w-72 rounded-[4.5rem] border border-[#123c8c]/25 bg-gradient-to-br from-blue-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0.8s" }} />
-            <div className="absolute h-72 w-72 rounded-[4.5rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "1.6s" }} />
+            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0s" }} />
+            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-[#123c8c]/25 bg-gradient-to-br from-blue-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0.8s" }} />
+            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "1.6s" }} />
 
-            {/* Large White Logo Container */}
-            <div className="relative z-10 flex h-64 w-64 items-center justify-center overflow-hidden rounded-[4.25rem] bg-white p-10 shadow-[0_30px_70px_rgba(18,60,140,0.18)] border border-white/60 transition-transform duration-300 hover:scale-105">
+            {/* White Logo Container */}
+            <div className="relative z-10 flex h-32 w-32 md:h-48 md:w-48 items-center justify-center overflow-hidden rounded-[2rem] md:rounded-[3.25rem] bg-white p-5 md:p-8 shadow-[0_25px_60px_rgba(18,60,140,0.15)] border border-white/60 transition-transform duration-300 hover:scale-105">
               <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent" />
               <Image
                 src="/images/creativemu-logo/creativemu.png"
                 alt="Creativemu Logo"
-                width={220}
-                height={220}
+                width={140}
+                height={140}
                 className="h-full w-full object-contain animate-[splashLogoPulse_2s_ease-in-out_infinite]"
                 priority
               />
             </div>
           </div>
 
-          <div className="mt-20 flex flex-col items-center w-full max-w-[600px]">
+          <div className="mt-12 md:mt-16 flex flex-col items-center w-full max-w-[280px] md:max-w-[500px]">
             {/* Smooth fading text animations */}
-            <h2 className="text-5xl md:text-6xl font-black tracking-[0.2em] text-slate-950 text-center uppercase animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "250ms" }}>
+            <h2 className="text-2xl md:text-5xl font-black tracking-[0.16em] md:tracking-[0.2em] text-slate-950 text-center uppercase animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "250ms" }}>
               Creativemu
             </h2>
-            <p className="mt-3 text-base md:text-xl font-black uppercase tracking-[0.3em] text-[#ff8a00] text-center animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "500ms" }}>
+            <p className="mt-1.5 md:mt-3 text-[10px] md:text-base font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[#ff8a00] text-center animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "500ms" }}>
               Face Attend System
             </p>
           </div>
