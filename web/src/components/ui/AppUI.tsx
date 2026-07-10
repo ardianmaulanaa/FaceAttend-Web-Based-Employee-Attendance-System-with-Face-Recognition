@@ -530,14 +530,16 @@ type AppInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 
 export function AppInput({ label, error, className, ...props }: AppInputProps) {
   return (
-    <label className="block">
+    <label className="group block">
       {label ? (
-        <span className="text-sm font-black text-slate-700">{label}</span>
+        <span className="inline-block text-sm font-black text-slate-700 transition-all duration-200 group-focus-within:text-[#123c8c] group-focus-within:translate-x-[3px] group-focus-within:scale-[1.02]">
+          {label}
+        </span>
       ) : null}
 
       <input
         className={cn(
-          "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60",
+          "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition duration-200 placeholder:text-slate-400 hover:-translate-y-[1px] hover:border-blue-200 hover:shadow-[0_4px_12px_rgba(18,60,140,0.03)] focus:-translate-y-[3px] focus:border-[#123c8c] focus:bg-white focus:shadow-[0_10px_20px_-5px_rgba(18,60,140,0.12)] focus:ring-4 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:opacity-60",
           error &&
             "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100",
           className,
@@ -566,14 +568,16 @@ export function AppTextarea({
   ...props
 }: AppTextareaProps) {
   return (
-    <label className="block">
+    <label className="group block">
       {label ? (
-        <span className="text-sm font-black text-slate-700">{label}</span>
+        <span className="inline-block text-sm font-black text-slate-700 transition-all duration-200 group-focus-within:text-[#123c8c] group-focus-within:translate-x-[3px] group-focus-within:scale-[1.02]">
+          {label}
+        </span>
       ) : null}
 
       <textarea
         className={cn(
-          "mt-2 min-h-28 w-full resize-none rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-4 text-sm font-bold leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60",
+          "mt-2 min-h-28 w-full resize-none rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-4 text-sm font-bold leading-6 text-slate-700 outline-none transition duration-200 placeholder:text-slate-400 hover:-translate-y-[1px] hover:border-blue-200 hover:shadow-[0_4px_12px_rgba(18,60,140,0.03)] focus:-translate-y-[3px] focus:border-[#123c8c] focus:bg-white focus:shadow-[0_10px_20px_-5px_rgba(18,60,140,0.12)] focus:ring-4 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:opacity-60",
           error &&
             "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100",
           className,
@@ -604,16 +608,18 @@ export function AppSelect({
   ...props
 }: AppSelectProps) {
   return (
-    <label className="block">
+    <label className="group block">
       {label ? (
-        <span className="text-sm font-black text-slate-700">{label}</span>
+        <span className="inline-block text-sm font-black text-slate-700 transition-all duration-200 group-focus-within:text-[#123c8c] group-focus-within:translate-x-[3px] group-focus-within:scale-[1.02]">
+          {label}
+        </span>
       ) : null}
 
       <select
         suppressHydrationWarning
         value={value ?? ""}
         className={cn(
-          "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60",
+          "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition duration-200 hover:-translate-y-[1px] hover:border-blue-200 hover:shadow-[0_4px_12px_rgba(18,60,140,0.03)] focus:-translate-y-[3px] focus:border-[#123c8c] focus:bg-white focus:shadow-[0_10px_20px_-5px_rgba(18,60,140,0.12)] focus:ring-4 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:opacity-60",
           error &&
             "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100",
           className,

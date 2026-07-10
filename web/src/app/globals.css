@@ -113,11 +113,11 @@ input {
   }
 
   45% {
-    width: 16ch;
+    width: 19ch;
   }
 
   70% {
-    width: 16ch;
+    width: 19ch;
   }
 
   100% {
@@ -171,7 +171,7 @@ input {
   color: transparent;
 
   animation:
-    typingTitle 5s steps(16, end) infinite,
+    typingTitle 5s steps(19, end) infinite,
     blinkCursor 0.8s step-end infinite,
     gradientMove 5s ease infinite;
 }

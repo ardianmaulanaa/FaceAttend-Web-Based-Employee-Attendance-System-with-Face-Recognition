@@ -185,14 +185,35 @@ function LoginMotionStyles() {
 
       .login-field-smooth input {
         transition:
-          border-color 180ms ease,
-          background-color 180ms ease,
-          box-shadow 180ms ease,
-          transform 180ms ease;
+          border-color 220ms ease,
+          background-color 220ms ease,
+          box-shadow 220ms ease,
+          transform 220ms ease;
+      }
+
+      .login-field-smooth input:hover {
+        transform: translateY(-1px);
+        border-color: rgba(18, 60, 140, 0.25);
+        box-shadow: 0 4px 12px rgba(18, 60, 140, 0.04);
       }
 
       .login-field-smooth input:focus {
-        transform: translateY(-1px);
+        transform: translateY(-3px);
+        border-color: #123c8c;
+        background-color: #ffffff;
+        box-shadow: 
+          0 10px 20px -5px rgba(18, 60, 140, 0.12),
+          0 0 0 4px rgba(18, 60, 140, 0.08);
+      }
+
+      .login-field-smooth label span {
+        display: inline-block;
+        transition: color 220ms ease, transform 220ms ease;
+      }
+
+      .login-field-smooth label:has(input:focus) span {
+        color: #123c8c;
+        transform: translateX(3px) scale(1.02);
       }
 
       @media (prefers-reduced-motion: reduce) {
