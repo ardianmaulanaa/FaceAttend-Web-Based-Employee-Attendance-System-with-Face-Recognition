@@ -47,21 +47,54 @@ function isCreativemuEmail(email: string) {
 function LoginMotionStyles() {
   return (
     <style>{`
-      @keyframes logoWave {
-        0% {
-          transform: scale(0.9);
-          opacity: 0.8;
-          filter: blur(0px);
+      @keyframes faceScannerLine {
+        0%, 100% {
+          top: 0%;
+          opacity: 0;
+        }
+        10%, 90% {
+          opacity: 1;
         }
         50% {
-          opacity: 0.5;
-        }
-        100% {
-          transform: scale(2.3);
-          opacity: 0;
-          filter: blur(3px);
+          top: 100%;
+          opacity: 1;
         }
       }
+
+      @keyframes faceScanBracket {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scale(1.06);
+          opacity: 1;
+        }
+      }
+
+      @keyframes biometricPulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.15;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.35;
+        }
+      }
+
+      @keyframes techStatusPulse {
+        0%, 100% {
+          opacity: 0.4;
+          transform: translateY(0);
+        }
+        50% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
+
+
 
       @keyframes splashLogoPulse {
         0%, 100% {
@@ -502,20 +535,27 @@ export default function LoginPage() {
             theme === "dark" ? "bg-blue-500/5" : "bg-blue-200/25"
           }`} style={{ animationDirection: "reverse" }} />
 
-          <div className="relative flex h-44 w-44 md:h-64 md:w-64 items-center justify-center">
-            {/* Concentric Expanding Wave Ripples */}
-            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
-              theme === "dark" ? "border-orange-500/15 from-orange-400/5" : "border-orange-500/25 from-orange-400/8"
+          <div className="relative flex h-52 w-52 md:h-72 md:w-72 items-center justify-center p-6">
+            {/* Viewport Focus Brackets (Minimal Camera Frame) */}
+            <div className={`absolute inset-0 border-t-4 border-l-4 rounded-tl-[2.25rem] md:rounded-tl-[3.25rem] w-12 h-12 md:w-16 md:h-16 animate-[faceScanBracket_2.5s_ease-in-out_infinite] ${
+              theme === "dark" ? "border-orange-500/70" : "border-orange-600/85"
             }`} style={{ animationDelay: "0s" }} />
-            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
-              theme === "dark" ? "border-[#58a6ff]/15 from-blue-400/5" : "border-[#123c8c]/25 from-blue-400/8"
-            }`} style={{ animationDelay: "0.8s" }} />
-            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
-              theme === "dark" ? "border-orange-500/15 from-orange-400/5" : "border-orange-500/25 from-orange-400/8"
-            }`} style={{ animationDelay: "1.6s" }} />
+            <div className={`absolute inset-y-0 right-0 top-0 border-t-4 border-r-4 rounded-tr-[2.25rem] md:rounded-tr-[3.25rem] w-12 h-12 md:w-16 md:h-16 animate-[faceScanBracket_2.5s_ease-in-out_infinite] ${
+              theme === "dark" ? "border-orange-500/70" : "border-orange-600/85"
+            }`} style={{ animationDelay: "0s" }} />
+            <div className={`absolute inset-x-0 bottom-0 left-0 border-b-4 border-l-4 rounded-bl-[2.25rem] md:rounded-bl-[3.25rem] w-12 h-12 md:w-16 md:h-16 animate-[faceScanBracket_2.5s_ease-in-out_infinite] ${
+              theme === "dark" ? "border-orange-500/70" : "border-orange-600/85"
+            }`} style={{ animationDelay: "0.6s" }} />
+            <div className={`absolute inset-0 left-auto top-auto border-b-4 border-r-4 rounded-br-[2.25rem] md:rounded-br-[3.25rem] w-12 h-12 md:w-16 md:h-16 animate-[faceScanBracket_2.5s_ease-in-out_infinite] ${
+              theme === "dark" ? "border-orange-500/70" : "border-orange-600/85"
+            }`} style={{ animationDelay: "0.6s" }} />
+
+            {/* Glowing Scan Line (Moving vertically) */}
+            <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#ff8a00] to-transparent shadow-[0_0_12px_#ff8a00] animate-[faceScannerLine_3s_ease-in-out_infinite] z-20" />
+
 
             {/* White Logo Container */}
-            <div className="relative z-10 flex h-32 w-32 md:h-48 md:w-48 items-center justify-center overflow-hidden rounded-[2rem] md:rounded-[3.25rem] bg-white keep-white p-5 md:p-8 shadow-[0_25px_60px_rgba(18,60,140,0.15)] border border-white/60 transition-transform duration-300 hover:scale-105">
+            <div className="relative z-10 flex h-32 w-32 md:h-44 md:w-44 items-center justify-center overflow-hidden rounded-[2rem] md:rounded-[2.75rem] bg-white keep-white p-5 md:p-8 shadow-[0_25px_60px_rgba(18,60,140,0.15)] border border-white/60 transition-transform duration-300 hover:scale-105">
               <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent dark:from-white/5 dark:via-transparent" />
               <Image
                 src="/images/creativemu-logo/creativemu.png"
