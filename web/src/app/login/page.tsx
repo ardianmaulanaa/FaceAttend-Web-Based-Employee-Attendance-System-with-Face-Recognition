@@ -355,24 +355,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-
   const [showSplash, setShowSplash] = useState(true);
+  const [splashReady, setSplashReady] = useState(false);
   const [fadeSplash, setFadeSplash] = useState(false);
 
   useEffect(() => {
-    const fadeTimeout = setTimeout(() => {
-      setFadeSplash(true);
-    }, 1800);
-
-    const hideTimeout = setTimeout(() => {
-      setShowSplash(false);
-    }, 2350);
-
-    return () => {
-      clearTimeout(fadeTimeout);
-      clearTimeout(hideTimeout);
-    };
+    const t = setTimeout(() => setSplashReady(true), 1200);
+    return () => clearTimeout(t);
   }, []);
+
+  function dismissSplash() {
+    setFadeSplash(true);
+    setTimeout(() => setShowSplash(false), 500);
+  }
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminDemoLoading, setIsAdminDemoLoading] = useState(false);
@@ -487,25 +482,43 @@ export default function LoginPage() {
     <MobileShell variant="auth" withBottomPadding={false}>
       <LoginMotionStyles />
 
+      {/* Welcome Splash Screen (separate step before login) */}
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#f6f8ff] transition-all duration-500 ease-in-out ${
+          role="button"
+          tabIndex={0}
+          onClick={dismissSplash}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dismissSplash(); }}
+          className={`fixed inset-0 z-[999] flex flex-col items-center justify-center select-none cursor-pointer transition-all duration-500 ease-in-out ${
             fadeSplash ? "opacity-0 scale-105 pointer-events-none blur-md" : ""
           }`}
+          style={{ backgroundColor: theme === "dark" ? "#0d1117" : "#f6f8ff" }}
         >
           {/* Glowing Background Orbs */}
-          <div className="absolute top-1/4 left-1/4 h-[350px] w-[350px] rounded-full bg-orange-200/25 blur-3xl animate-[loginBackgroundFloat_8s_ease-in-out_infinite]" />
-          <div className="absolute bottom-1/4 right-1/4 h-[350px] w-[350px] rounded-full bg-blue-200/25 blur-3xl animate-[loginBackgroundFloat_6s_ease-in-out_infinite_reverse]" />
+          <div className={`absolute top-1/4 left-1/4 h-[350px] w-[350px] rounded-full blur-3xl login-bg-float ${
+            theme === "dark" ? "bg-orange-500/5" : "bg-orange-200/25"
+          }`} />
+          <div className={`absolute bottom-1/4 right-1/4 h-[350px] w-[350px] rounded-full blur-3xl login-bg-float ${
+            theme === "dark" ? "bg-blue-500/5" : "bg-blue-200/25"
+          }`} style={{ animationDirection: "reverse" }} />
 
           <div className="relative flex h-44 w-44 md:h-64 md:w-64 items-center justify-center">
-            {/* Concentric Expanding Wave Ripples (Squircle-shaped to match the logo frame) */}
-            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0s" }} />
-            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-[#123c8c]/25 bg-gradient-to-br from-blue-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "0.8s" }} />
-            <div className="absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border border-orange-500/25 bg-gradient-to-br from-orange-400/8 to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite]" style={{ animationDelay: "1.6s" }} />
+            {/* Concentric Expanding Wave Ripples */}
+            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
+              theme === "dark" ? "border-orange-500/15 from-orange-400/5" : "border-orange-500/25 from-orange-400/8"
+            }`} style={{ animationDelay: "0s" }} />
+            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
+              theme === "dark" ? "border-[#58a6ff]/15 from-blue-400/5" : "border-[#123c8c]/25 from-blue-400/8"
+            }`} style={{ animationDelay: "0.8s" }} />
+            <div className={`absolute h-36 w-36 md:h-56 md:w-56 rounded-[2.25rem] md:rounded-[3.75rem] border bg-gradient-to-br to-transparent animate-[logoWave_2.4s_cubic-bezier(0.1,0.8,0.3,1)_infinite] ${
+              theme === "dark" ? "border-orange-500/15 from-orange-400/5" : "border-orange-500/25 from-orange-400/8"
+            }`} style={{ animationDelay: "1.6s" }} />
 
             {/* White Logo Container */}
-            <div className="relative z-10 flex h-32 w-32 md:h-48 md:w-48 items-center justify-center overflow-hidden rounded-[2rem] md:rounded-[3.25rem] bg-white p-5 md:p-8 shadow-[0_25px_60px_rgba(18,60,140,0.15)] border border-white/60 transition-transform duration-300 hover:scale-105">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent" />
+            <div className={`relative z-10 flex h-32 w-32 md:h-48 md:w-48 items-center justify-center overflow-hidden rounded-[2rem] md:rounded-[3.25rem] p-5 md:p-8 shadow-[0_25px_60px_rgba(18,60,140,0.15)] border transition-transform duration-300 hover:scale-105 ${
+              theme === "dark" ? "border-[#30363d] bg-[#161b22]" : "border-white/60 bg-white"
+            }`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/5 to-transparent dark:from-white/5 dark:via-transparent" />
               <Image
                 src="/images/creativemu-logo/creativemu.png"
                 alt="Creativemu Logo"
@@ -518,16 +531,34 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-12 md:mt-16 flex flex-col items-center w-full max-w-[280px] md:max-w-[500px]">
-            {/* Smooth fading text animations */}
-            <h2 className="text-2xl md:text-5xl font-black tracking-[0.16em] md:tracking-[0.2em] text-slate-950 text-center uppercase animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "250ms" }}>
+            <h2 className={`text-2xl md:text-5xl font-black tracking-[0.16em] md:tracking-[0.2em] text-center uppercase animate-[splashTextFadeIn_0.8s_ease-out_both] ${
+              theme === "dark" ? "text-white" : "text-slate-950"
+            }`} style={{ animationDelay: "250ms" }}>
               Creativemu
             </h2>
             <p className="mt-1.5 md:mt-3 text-[10px] md:text-base font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[#ff8a00] text-center animate-[splashTextFadeIn_0.8s_ease-out_both]" style={{ animationDelay: "500ms" }}>
               Face Attend System
             </p>
           </div>
+
+          {/* Tap hint */}
+          {splashReady && (
+            <div className={`mt-16 text-center text-sm font-semibold md:mt-20 ${
+              theme === "dark" ? "text-slate-500" : "text-slate-400"
+            }`} style={{ animation: "loginFieldEnter 600ms ease-out both" }}>
+              <p className="animate-pulse">Tap di mana saja untuk melanjutkan</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className={`absolute inset-x-0 bottom-6 text-center text-xs font-semibold ${
+            theme === "dark" ? "text-slate-600" : "text-slate-400"
+          }`} style={{ animation: "splashTextFadeIn 0.8s ease-out both", animationDelay: "800ms" }}>
+            © 2026 FaceAttend for Creativemu
+          </div>
         </div>
       )}
+
 
       <section className="relative min-h-dvh w-full overflow-hidden bg-transparent">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,138,0,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(18,60,140,0.18),transparent_36%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(240,136,62,0.06),transparent_38%),radial-gradient(circle_at_top_right,rgba(88,166,255,0.06),transparent_38%)]" />

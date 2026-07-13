@@ -26,6 +26,7 @@ export default function MobileShell({
     <div
       className={`relative min-h-dvh overflow-hidden bg-gradient-to-br ${backgroundGlow} ${bottomPaddingClass} ${className}`}
     >
+      {/* Decorative Glow Circles and Watermark behind content (z-0) */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
