@@ -17,6 +17,7 @@ import {
 import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
 import { useAppData } from "@/context/AppDataContext";
+import { useTheme } from "@/context/ThemeContext";
 
 const metricOptions = [
   { value: "present", label: "Hadir" },
@@ -516,28 +517,34 @@ function AnimatedHistogram({
             </div>
           </div>
 
-          <div className="relative mt-5 h-[255px] rounded-[1.35rem] border border-white/10 bg-[#0f3578] px-4 pb-9 pt-6 shadow-inner md:h-[300px] md:rounded-[1.6rem] md:px-5 md:pb-10 md:pt-8">
-            {Array.from({ length: 5 }).map((_, index) => {
-              const percent = index * 25;
-              const value = Math.round((safeMaxValue * percent) / 100);
+          <div className="relative mt-5 h-[255px] rounded-[1.35rem] border border-white/10 bg-[#0f3578] px-4 pb-12 pt-6 shadow-inner md:h-[300px] md:rounded-[1.6rem] md:px-5 md:pb-14 md:pt-8">
+            {/* Grid Lines Container */}
+            <div className="pointer-events-none absolute inset-x-4 bottom-12 h-[120px] md:inset-x-5 md:bottom-14 md:h-[160px]">
+              {Array.from({ length: 5 }).map((_, index) => {
+                const percent = index * 25;
+                const value = Math.round((safeMaxValue * percent) / 100);
 
-              return (
-                <div
-                  key={percent}
-                  className="pointer-events-none absolute left-4 right-4 border-t border-white/14 md:left-5 md:right-5"
-                  style={{ bottom: `${34 + percent * 1.92}px` }}
-                >
-                  <span className="absolute -top-2 right-0 rounded-full bg-[#0f3578] px-1.5 text-[9px] font-black text-blue-100/75 md:px-2 md:text-[10px]">
-                    {value}
-                  </span>
-                </div>
-              );
-            })}
+                return (
+                  <div
+                    key={percent}
+                    className="absolute left-0 right-0 border-t border-white/14"
+                    style={{ bottom: `${percent}%` }}
+                  >
+                    <span className="absolute -top-2 right-0 rounded-full bg-[#0f3578] px-1.5 text-[9px] font-black text-blue-100/75 md:px-2 md:text-[10px]">
+                      {value}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
-            <div className="relative z-10 flex h-[200px] items-end gap-1 md:h-[230px] md:gap-4">
+            {/* Bars Flex Container */}
+            <div className="absolute z-10 flex h-[120px] items-end gap-1 inset-x-4 bottom-12 md:inset-x-5 md:bottom-14 md:h-[160px] md:gap-4">
               {points.map((point, index) => {
-                const rawHeight = (point.value / safeMaxValue) * 190;
-                const height = Math.max(rawHeight, point.value > 0 ? 10 : 3);
+                const heightPercent = Math.max(
+                  (point.value / safeMaxValue) * 100,
+                  point.value > 0 ? 8 : 2.5
+                );
                 const isActive = activeIndex === index;
 
                 return (
@@ -552,20 +559,17 @@ function AnimatedHistogram({
                       onFocus={() => setActiveIndex(index)}
                       onBlur={() => setActiveIndex(null)}
                       onClick={() => setActiveIndex(index)}
-                      className={`monitor-bar-enter relative w-full rounded-t-md outline-none transition duration-300 ease-out ${isActive
+                      className={`monitor-bar-enter relative w-full rounded-t-md outline-none transition duration-300 ease-out ${
+                        isActive
                           ? "scale-x-110 bg-blue-200"
                           : "bg-blue-300/95 hover:bg-blue-200"
-                        }`}
+                      }`}
                       style={{
-                        height,
+                        height: `${heightPercent}%`,
                         animationDelay: `${index * 18}ms`,
-                        animationName: isActive
-                          ? "histogramBarGlow"
-                          : undefined,
+                        animationName: isActive ? "histogramBarGlow" : undefined,
                         animationDuration: isActive ? "160ms" : undefined,
-                        animationTimingFunction: isActive
-                          ? "ease-out"
-                          : undefined,
+                        animationTimingFunction: isActive ? "ease-out" : undefined,
                         animationFillMode: isActive ? "forwards" : undefined,
                       }}
                       aria-label={`${metricLabel} tanggal ${point.label}: ${point.value} ${unit}`}
@@ -574,7 +578,7 @@ function AnimatedHistogram({
                         <div
                           className="absolute left-1/2 z-30 w-24 -translate-x-1/2 rounded-xl border border-white/40 bg-white/70 px-2 py-1.5 text-center shadow-lg shadow-blue-950/10 backdrop-blur-md"
                           style={{
-                            bottom: height + 10,
+                            bottom: `calc(${heightPercent}% + 10px)`,
                             animation:
                               "histogramTooltipIn 160ms ease-out forwards",
                           }}
@@ -696,6 +700,8 @@ function PieProgressCard({
     return () => clearInterval(interval);
   }, [value, percentage]);
 
+  const { theme } = useTheme();
+
   const visualPercentage =
     animatedValue > 0 && animatedPercentage > 0
       ? Math.max(animatedPercentage, 1.5)
@@ -724,12 +730,12 @@ function PieProgressCard({
         <div
           className="relative h-24 w-24 rounded-full transition-transform duration-300"
           style={{
-            background: `conic-gradient(#123c8c 0% ${visualPercentage}%, #dbeafe ${visualPercentage}% 100%)`,
+            background: `conic-gradient(${theme === "dark" ? "#388bfd" : "#123c8c"} 0% ${visualPercentage}%, ${theme === "dark" ? "#30363d" : "#dbeafe"} ${visualPercentage}% 100%)`,
             transform: `rotate(${currentRotation}deg)`,
           }}
         >
           <div
-            className="absolute inset-[10px] flex items-center justify-center rounded-full bg-white"
+            className="absolute inset-[10px] flex items-center justify-center rounded-full bg-white pie-progress-circle"
             style={{ transform: `rotate(-${currentRotation}deg)` }}
           >
             <div className="text-center">
@@ -744,14 +750,14 @@ function PieProgressCard({
         </div>
 
         <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center justify-between rounded-2xl bg-[#f8fbff] px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-blue-100">
+          <div className="flex items-center justify-between rounded-2xl bg-[#f8fbff] px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-blue-100 pie-capsule-terpakai">
             <span>Terpakai</span>
             <span className="font-black text-[#123c8c]">
               {animatedPercentage.toFixed(1)}%
             </span>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
+          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100 pie-capsule-sisa">
             <span>Sisa</span>
             <span className="font-black text-slate-700">
               {rest.toFixed(1)}%

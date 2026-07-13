@@ -547,7 +547,7 @@ export default function AdminAttendanceReportPage() {
                   {groupedReports.map((group, groupIndex) => (
                     <section
                       key={group.dateLabel}
-                      className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-[#f8fbff] p-4 md:p-5"
+                      className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-[#f8fbff] dark:border-slate-800 dark:bg-[#0d1117] p-4 md:p-5"
                       style={{
                         animationDelay: `${groupIndex * 70}ms`,
                       }}
@@ -575,7 +575,7 @@ export default function AdminAttendanceReportPage() {
                           <Link
                             key={item.id}
                             href={`/admin/laporan-kehadiran/${item.id}`}
-                            className="attendance-report-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
+                            className="attendance-report-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] dark:hover:bg-[#1c212a] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
                             style={{
                               animationDelay: `${index * 45}ms`,
                             }}

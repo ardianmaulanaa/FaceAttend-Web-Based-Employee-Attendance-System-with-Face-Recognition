@@ -2402,7 +2402,7 @@ export default function AttendancePage() {
                       }
                     }}
                     className={cn(
-                      "h-full w-full object-cover transition",
+                      "h-full w-full object-contain -scale-x-100 transition",
                       cameraReady ? "opacity-100" : "opacity-0",
                     )}
                   />
@@ -2443,24 +2443,28 @@ export default function AttendancePage() {
                 disabled={loading || cameraStarting}
                 danger={cameraReady}
               >
-                {cameraStarting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Power size={16} />
-                )}
-                {cameraReady ? "Matikan" : "Aktifkan"}
+                <span className="flex items-center justify-center gap-1.5 w-full whitespace-nowrap">
+                  {cameraStarting ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Power size={15} />
+                  )}
+                  {cameraReady ? "Matikan" : "Aktifkan"}
+                </span>
               </CameraControlButton>
 
               <CameraControlButton
                 onClick={startCamera}
                 disabled={loading || cameraStarting}
               >
-                {cameraStarting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <RotateCcw size={16} />
-                )}
-                Restart
+                <span className="flex items-center justify-center gap-1.5 w-full whitespace-nowrap">
+                  {cameraStarting ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <RotateCcw size={15} />
+                  )}
+                  Restart
+                </span>
               </CameraControlButton>
             </div>
 

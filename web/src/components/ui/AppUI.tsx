@@ -476,7 +476,7 @@ export function AppAnimatedActionButton({
         disabled={isDisabled}
         onClick={handleClick}
         className={cn(
-          "group relative inline-flex items-center justify-center gap-4 overflow-hidden rounded-[1.8rem] bg-white px-6 py-5 text-[#123c8c] shadow-2xl shadow-blue-950/20 ring-1 ring-white/70 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-blue-950/25 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80",
+          "group relative inline-flex items-center justify-center gap-4 overflow-hidden rounded-[1.8rem] bg-white dark:bg-[#123c8c] px-6 py-5 text-[#123c8c] dark:text-white shadow-2xl shadow-blue-950/20 ring-1 ring-white/70 dark:ring-0 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50 dark:hover:bg-blue-800 hover:shadow-blue-950/25 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80",
           full && "w-full",
           fullOnMobile && "w-full md:w-auto",
           !full && !fullOnMobile && "w-auto",

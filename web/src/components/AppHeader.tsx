@@ -26,7 +26,11 @@ import {
   UserRound,
   UserRoundCog,
   X,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+
 
 type AppHeaderProps = {
   title: string;
@@ -199,6 +203,7 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isBellMenuOpen, setIsBellMenuOpen] = useState(false);
@@ -391,12 +396,26 @@ export default function AppHeader({
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-3">
+            {/* Header Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
+              title={theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"}
+            >
+              {theme === "light" ? (
+                <Moon size={20} strokeWidth={2.5} />
+              ) : (
+                <Sun size={20} strokeWidth={2.5} />
+              )}
+            </button>
+
             <a
               href={WHATSAPP_LINK}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Hubungi via WhatsApp"
-              className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ecfff5] text-[#00a884] shadow-sm ring-1 ring-[#baf7dc] transition hover:bg-[#dcfce7] active:scale-[0.96]"
+              className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#3fb950] ring-[#30363d] shadow-black/20" : "bg-[#ecfff5] text-[#00a884] ring-[#baf7dc] hover:bg-[#dcfce7]"}`}
             >
               <PhoneCall className="h-5 w-5" strokeWidth={2.7} />
             </a>
@@ -406,7 +425,7 @@ export default function AppHeader({
                 <button
                   type="button"
                   onClick={() => setIsBellMenuOpen(!isBellMenuOpen)}
-                  className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-lg shadow-slate-200/70 ring-1 ring-blue-100 transition hover:bg-blue-50 active:scale-[0.96]"
+                  className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
                   aria-label="Notifications"
                 >
                   <Bell size={22} strokeWidth={2.5} />
@@ -418,7 +437,7 @@ export default function AppHeader({
                 </button>
 
                 {isBellMenuOpen && (
-                  <div className="absolute right-0 top-14 z-50 w-80 rounded-2xl border border-blue-100 bg-white p-4 shadow-2xl shadow-slate-300/40">
+                  <div className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
                       Pemberitahuan Admin
                     </p>
@@ -558,19 +577,17 @@ export default function AppHeader({
 
       <div className={subtitle ? "h-[106px]" : "h-[88px]"} />
 
-      {isSidebarOpen ? (
-        <button
-          type="button"
-          aria-label="Tutup menu"
-          onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm"
-        />
-      ) : null}
+      {/* Backdrop: always rendered, animated via opacity */}
+      <button
+        type="button"
+        aria-label="Tutup menu"
+        onClick={() => setIsSidebarOpen(false)}
+        className={`sidebar-backdrop ${isSidebarOpen ? "open" : ""}`}
+      />
 
-      <aside
-        className={`fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-blue-100 bg-white shadow-2xl shadow-slate-950/20 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-      >
+      <aside className={`sidebar-drawer ${isSidebarOpen ? "open" : ""} fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-indigo-100/70 dark:border-[#21262d] bg-[#f4f2ff] dark:bg-[#161b22] shadow-2xl shadow-slate-950/20`}>
+
+
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-blue-50 px-5 py-5">
             <div className="flex items-center gap-3">
@@ -723,16 +740,35 @@ export default function AppHeader({
             )}
           </div>
 
-          <div className="border-t border-blue-50 p-4">
+          <div className="border-t border-blue-50 p-4 space-y-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#eaf1ff] px-4 py-3 text-sm font-black text-[#123c8c] transition hover:bg-blue-50 active:scale-[0.98] dark:bg-[#162238] dark:text-[#3b82f6]"
+            >
+              {theme === "light" ? (
+                <>
+                  <Moon size={18} strokeWidth={2.5} />
+                  Mode Gelap
+                </>
+              ) : (
+                <>
+                  <Sun size={18} strokeWidth={2.5} />
+                  Mode Terang
+                </>
+              )}
+            </button>
+
             <Link
               href="/login"
               onClick={() => setIsSidebarOpen(false)}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.98] dark:bg-rose-950/20 dark:text-rose-400"
             >
               <LogOut size={18} strokeWidth={2.5} />
               Logout
             </Link>
           </div>
+
         </div>
       </aside>
     </>

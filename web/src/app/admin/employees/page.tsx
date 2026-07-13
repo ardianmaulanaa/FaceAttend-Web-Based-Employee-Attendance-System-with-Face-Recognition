@@ -15,6 +15,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Edit,
   Info,
@@ -898,24 +899,27 @@ export default function AdminEmployeesPage() {
       <AppHeader title="Employees" variant="admin" />
 
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
-        <section className="employee-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
+        <section
+          style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}
+          className="employee-enter relative overflow-hidden rounded-[1.8rem] bg-[#123c8c] text-white shadow-2xl shadow-blue-900/25"
+        >
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -bottom-24 left-16 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
 
-          <div className="relative z-10 flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+          <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
                 <ShieldCheck size={15} />
                 Employee Management
               </div>
 
-              <h2 className="mt-5 text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
                 Data Karyawan
               </h2>
             </div>
 
             <AppAnimatedActionButton
-              icon={<Plus size={27} strokeWidth={3} />}
+              icon={<Plus size={20} strokeWidth={3} />}
               title="Register Employee"
               loadingTitle="Opening..."
               onClick={openRegisterModal}
@@ -1277,7 +1281,7 @@ export default function AdminEmployeesPage() {
                           position_id: "",
                         }))
                       }
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     >
                       <option value="">Pilih Kantor</option>
                       {activeOffices.map((office) => (
@@ -1286,6 +1290,10 @@ export default function AdminEmployeesPage() {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
 
@@ -1309,7 +1317,7 @@ export default function AdminEmployeesPage() {
                         }))
                       }
                       disabled={!form.registered_office_id}
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">
                         {form.registered_office_id
@@ -1322,6 +1330,10 @@ export default function AdminEmployeesPage() {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
 
@@ -1344,7 +1356,7 @@ export default function AdminEmployeesPage() {
                         }))
                       }
                       disabled={!form.department_id}
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">
                         {form.department_id
@@ -1357,6 +1369,10 @@ export default function AdminEmployeesPage() {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
 
@@ -1378,7 +1394,7 @@ export default function AdminEmployeesPage() {
                         }))
                       }
                       disabled={!form.unit_id}
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">
                         {form.unit_id ? "Pilih Jabatan" : "Pilih Unit dulu"}
@@ -1389,6 +1405,10 @@ export default function AdminEmployeesPage() {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
 
@@ -1409,7 +1429,7 @@ export default function AdminEmployeesPage() {
                           shift_id: event.target.value,
                         }))
                       }
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     >
                       <option value="">Pilih Shift</option>
                       {activeShifts.map((shift) => (
@@ -1419,6 +1439,10 @@ export default function AdminEmployeesPage() {
                         </option>
                       ))}
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
               </AppFormReveal>
@@ -1520,7 +1544,7 @@ export default function AdminEmployeesPage() {
                   <label className="mb-2 block text-sm font-black text-slate-700">
                     Status
                   </label>
-                  <div className="app-field-smooth rounded-2xl">
+                  <div className="app-field-smooth relative rounded-2xl">
                     <select
                       value={form.status}
                       onChange={(event) =>
@@ -1529,11 +1553,15 @@ export default function AdminEmployeesPage() {
                           status: event.target.value as "active" | "inactive",
                         }))
                       }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-4 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
               </AppFormReveal>

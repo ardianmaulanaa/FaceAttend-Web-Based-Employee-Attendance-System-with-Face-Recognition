@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { AppDataProvider } from "@/context/AppDataContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import ScrollReloadGuard from "@/components/ScrollReloadGuard";
 import LateGuard from "@/components/LateGuard";
 import GlobalAlert from "@/components/GlobalAlert";
@@ -37,25 +38,38 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} notranslate h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className="notranslate min-h-full flex flex-col"
       >
-        <AppDataProvider>
-          <ScrollReloadGuard />
-          <LateGuard />
-          <GlobalAlert />
-          {/* Watermark Background Logo */}
-          <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[35] select-none overflow-hidden">
-            <img
-              src="/images/creativemu-logo/creativemu.png"
-              alt="Creativemu Watermark"
-              className="w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[550px] md:h-[550px] object-contain opacity-[0.035] blur-[1px]"
-            />
-          </div>
-          {children}
-        </AppDataProvider>
+        <ThemeProvider>
+          <AppDataProvider>
+            <ScrollReloadGuard />
+            <LateGuard />
+            <GlobalAlert />
+            {children}
+          </AppDataProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+

@@ -640,7 +640,7 @@ export default function HomePage() {
             <div className="mx-auto w-full max-w-7xl px-5 pt-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="home-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-2 ring-1 ring-blue-100">
+                  <div className="home-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white keep-white p-2 ring-1 ring-blue-100/60 dark:ring-slate-800/10">
                     <Image
                       src="/images/creativemu-logo/creativemu.png"
                       alt="Creativemu Logo"

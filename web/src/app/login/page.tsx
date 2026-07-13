@@ -3,9 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, LogIn, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Loader2, LogIn, ShieldCheck, X, Moon, Sun } from "lucide-react";
 import MobileShell from "@/components/MobileShell";
 import { AppButton, AppCard, AppInput } from "@/components/ui/AppUI";
+import { useTheme } from "@/context/ThemeContext";
+
 
 const ADMIN_DEMO_EMAIL = "admin@creativemu.co.id";
 const ADMIN_DEMO_PASSWORD = "123456";
@@ -348,9 +350,11 @@ function FloatingAlert({
 
 export default function LoginPage() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
 
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
@@ -525,35 +529,34 @@ export default function LoginPage() {
         </div>
       )}
 
-      <section className="relative min-h-dvh w-full overflow-hidden bg-[#f6f8ff]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,138,0,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(18,60,140,0.18),transparent_36%)]" />
+      <section className="relative min-h-dvh w-full overflow-hidden bg-transparent">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,138,0,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(18,60,140,0.18),transparent_36%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(240,136,62,0.06),transparent_38%),radial-gradient(circle_at_top_right,rgba(88,166,255,0.06),transparent_38%)]" />
+
+        {/* Floating Theme Toggle (Allows theme switching directly from the login page) */}
+        <div className="absolute right-4 top-4 z-50 flex items-center gap-2 md:right-8 md:top-8">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-white/80 text-[#123c8c] shadow-lg backdrop-blur-md transition hover:bg-white active:scale-95 dark:border-slate-800/80 dark:bg-[#161b22]/80 dark:text-[#58a6ff] dark:hover:bg-[#161b22]"
+            title={theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"}
+          >
+            {theme === "light" ? (
+              <Moon size={20} strokeWidth={2.5} />
+            ) : (
+              <Sun size={20} strokeWidth={2.5} />
+            )}
+          </button>
+        </div>
+
 
         <div className="login-bg-float pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-orange-200/20 blur-3xl" />
         <div className="login-bg-float pointer-events-none absolute -right-28 bottom-20 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
 
         <div className="relative z-10 grid min-h-dvh w-full grid-cols-1 lg:grid-cols-2">
           <div className="login-enter relative flex flex-col px-6 py-7 md:px-12 lg:justify-between lg:px-20 lg:py-14">
-            <Image
-              src="/images/creativemu-logo/creativemu.png"
-              alt="Creativemu Background Logo"
-              width={620}
-              height={620}
-              className="pointer-events-none absolute -left-20 top-1/2 hidden -translate-y-1/2 opacity-[0.045] lg:block"
-              priority
-            />
-
-            <Image
-              src="/images/creativemu-logo/creativemu.png"
-              alt="Creativemu Background Logo"
-              width={300}
-              height={300}
-              className="pointer-events-none absolute -right-20 top-24 opacity-[0.04] lg:hidden"
-              priority
-            />
-
             <div className="relative z-10">
               <div className="login-logo-pop flex items-center gap-4">
-                <div className="flex h-12 min-h-12 w-12 min-w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-xl shadow-slate-300/60 md:h-14 md:w-14">
+                <div className="flex h-12 min-h-12 w-12 min-w-12 items-center justify-center overflow-hidden rounded-2xl bg-white keep-white p-2 shadow-xl shadow-slate-300/60 md:h-14 md:w-14">
                   <Image
                     src="/images/creativemu-logo/creativemu.png"
                     alt="Creativemu Logo"
@@ -602,11 +605,13 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-start justify-center px-6 pb-8 pt-2 md:px-12 md:pb-12 lg:items-center lg:bg-white/35 lg:px-20 lg:py-14 lg:backdrop-blur-xl">
+          <div className="flex items-start justify-center px-6 pb-8 pt-2 md:px-12 md:pb-12 lg:items-center lg:px-20 lg:py-14">
             <AppCard
               padding="lg"
-              className="login-card-enter w-full max-w-md border-white/70 bg-white/90 shadow-2xl shadow-slate-300/60 backdrop-blur-2xl"
+              className={`login-card-enter w-full max-w-md shadow-2xl backdrop-blur-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/30" : "border-white/70 bg-white/90 shadow-slate-300/60"}`}
             >
+
+
               <form suppressHydrationWarning noValidate onSubmit={handleSubmit}>
                 <div className="login-field-enter mb-7 md:mb-8">
                   <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
