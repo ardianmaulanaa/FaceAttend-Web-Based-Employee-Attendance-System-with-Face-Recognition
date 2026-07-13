@@ -181,3 +181,7 @@ out/
 # Logs and macOS
 *.log
 .DS_Store
+
+# Database backups
+backups/
+*.sql
