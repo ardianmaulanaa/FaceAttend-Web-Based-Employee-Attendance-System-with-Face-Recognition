@@ -184,4 +184,3 @@ out/
 
 # Database backups
 backups/
-*.sql
