@@ -7,11 +7,17 @@ const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL belum diatur. Tambahkan DATABASE_URL ke file .env atau environment hosting.",
+    "DATABASE_URL belum diatur. Tambahkan DATABASE_URL ke .env atau environment hosting.",
   );
 }
 
-const parsedUrl = new URL(databaseUrl);
+let parsedUrl: URL;
+
+try {
+  parsedUrl = new URL(databaseUrl);
+} catch {
+  throw new Error("Format DATABASE_URL tidak valid.");
+}
 
 if (
   parsedUrl.protocol !== "mysql:" &&
@@ -22,40 +28,83 @@ if (
   );
 }
 
-const databaseName = decodeURIComponent(
+const host = parsedUrl.hostname;
+const port = Number(parsedUrl.port || 3306);
+const user = decodeURIComponent(parsedUrl.username);
+const password = decodeURIComponent(parsedUrl.password);
+const database = decodeURIComponent(
   parsedUrl.pathname.replace(/^\/+/, ""),
 );
 
-if (!databaseName) {
-  throw new Error("Nama database belum tersedia di DATABASE_URL.");
+if (!host) {
+  throw new Error("Host database tidak ditemukan di DATABASE_URL.");
 }
 
-const sslAccept = parsedUrl.searchParams.get("sslaccept");
-const sslEnabled =
-  sslAccept === "strict" ||
-  parsedUrl.searchParams.get("ssl") === "true";
+if (!user) {
+  throw new Error("Username database tidak ditemukan di DATABASE_URL.");
+}
 
-const connectionLimit = Number(
-  process.env.DATABASE_CONNECTION_LIMIT ?? "5",
+if (!database) {
+  throw new Error("Nama database tidak ditemukan di DATABASE_URL.");
+}
+
+const localHosts = new Set([
+  "localhost",
+  "127.0.0.1",
+  "::1",
+]);
+
+const isLocalDatabase = localHosts.has(host.toLowerCase());
+
+const sslAccept = (
+  parsedUrl.searchParams.get("sslaccept") || ""
+).toLowerCase();
+
+const sslValue = (
+  parsedUrl.searchParams.get("ssl") || ""
+).toLowerCase();
+
+const sslMode = (
+  parsedUrl.searchParams.get("sslmode") || ""
+).toLowerCase();
+
+/*
+ * TiDB Cloud menggunakan host remote dan mewajibkan TLS.
+ * Database lokal localhost/127.0.0.1 tetap berjalan tanpa TLS.
+ */
+const useTls =
+  !isLocalDatabase ||
+  sslAccept === "strict" ||
+  sslValue === "true" ||
+  sslMode === "required" ||
+  sslMode === "verify-ca" ||
+  sslMode === "verify-identity";
+
+const configuredConnectionLimit = Number(
+  process.env.DATABASE_CONNECTION_LIMIT || "5",
 );
 
+const connectionLimit =
+  Number.isFinite(configuredConnectionLimit) &&
+  configuredConnectionLimit > 0
+    ? configuredConnectionLimit
+    : 5;
+
 const adapter = new PrismaMariaDb({
-  host: parsedUrl.hostname,
-  port: Number(parsedUrl.port || 3306),
-  user: decodeURIComponent(parsedUrl.username),
-  password: decodeURIComponent(parsedUrl.password),
-  database: databaseName,
+  host,
+  port,
+  user,
+  password: password || undefined,
+  database,
+  connectionLimit,
+  connectTimeout: 20_000,
 
-  connectionLimit:
-    Number.isFinite(connectionLimit) && connectionLimit > 0
-      ? connectionLimit
-      : 5,
-
-  connectTimeout: 10_000,
-
-  ...(sslEnabled
+  ...(useTls
     ? {
-        ssl: true,
+        ssl: {
+          minVersion: "TLSv1.2" as const,
+          rejectUnauthorized: true,
+        },
       }
     : {}),
 });
