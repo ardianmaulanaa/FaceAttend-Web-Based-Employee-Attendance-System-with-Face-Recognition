@@ -20,6 +20,9 @@ type AttendanceDetailRow = {
   checkInPhoto: unknown;
   checkOutPhoto: unknown;
   proofPhoto: unknown;
+  checkInPhotoUrl: unknown;
+  checkOutPhotoUrl: unknown;
+  proofPhotoUrl: unknown;
 
   checkInLatitude: number | string | null;
   checkInLongitude: number | string | null;
@@ -422,6 +425,24 @@ export async function GET(
 
           ${selectAttendanceColumn(
             attendanceColumns,
+            ["check_in_photo_url"],
+            "checkInPhotoUrl",
+          )},
+
+          ${selectAttendanceColumn(
+            attendanceColumns,
+            ["check_out_photo_url"],
+            "checkOutPhotoUrl",
+          )},
+
+          ${selectAttendanceColumn(
+            attendanceColumns,
+            ["check_in_photo_url"],
+            "proofPhotoUrl",
+          )},
+
+          ${selectAttendanceColumn(
+            attendanceColumns,
             ["check_in_latitude", "attendance_latitude", "latitude"],
             "checkInLatitude",
           )},
@@ -543,9 +564,15 @@ export async function GET(
           ? formatWorkMode(checkOutWorkMode)
           : null,
 
-        checkInPhoto: normalizeImageUrl(row.checkInPhoto),
-        checkOutPhoto: normalizeImageUrl(row.checkOutPhoto),
-        proofPhoto: normalizeImageUrl(row.proofPhoto),
+        checkInPhoto:
+          normalizeImageUrl(row.checkInPhotoUrl) ||
+          normalizeImageUrl(row.checkInPhoto),
+        checkOutPhoto:
+          normalizeImageUrl(row.checkOutPhotoUrl) ||
+          normalizeImageUrl(row.checkOutPhoto),
+        proofPhoto:
+          normalizeImageUrl(row.proofPhotoUrl) ||
+          normalizeImageUrl(row.proofPhoto),
 
         officeName: row.officeName || null,
         officeAddress: row.officeAddress || null,

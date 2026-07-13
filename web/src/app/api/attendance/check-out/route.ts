@@ -1,11 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { UploadApiResponse } from "cloudinary";
 import { jwtVerify } from "jose";
 import { Buffer } from "node:buffer";
+import { NextRequest, NextResponse } from "next/server";
+
+import { getCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 const MAX_GPS_ACCURACY_METERS = 100;
+const MAX_PHOTO_SIZE = 4 * 1024 * 1024;
+
+const ALLOWED_PHOTO_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
 
 type WorkMode = "office" | "wfh" | "wfc" | "visit";
 
@@ -217,6 +228,54 @@ async function fileToBuffer(file: File) {
   };
 }
 
+async function uploadCheckOutPhoto(
+  photoBuffer: Uint8Array<ArrayBuffer>,
+  userId: string,
+): Promise<UploadApiResponse> {
+  const cloudinary = getCloudinary();
+
+  return new Promise<UploadApiResponse>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "faceattend/attendance/check-out",
+        public_id: `user-${userId}-${Date.now()}`,
+        resource_type: "image",
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        if (!result) {
+          reject(new Error("Cloudinary tidak mengembalikan hasil upload."));
+          return;
+        }
+
+        resolve(result);
+      },
+    );
+
+    uploadStream.end(Buffer.from(photoBuffer));
+  });
+}
+
+async function deleteCloudinaryPhoto(publicId: string | null | undefined) {
+  if (!publicId) return;
+
+  try {
+    const cloudinary = getCloudinary();
+
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+      invalidate: true,
+    });
+  } catch (error) {
+    console.warn("DELETE_CHECK_OUT_PHOTO_WARNING:", error);
+  }
+}
+
 function getDistanceInMeters(from: GeoPoint, to: GeoPoint) {
   const earthRadius = 6371000;
 
@@ -353,6 +412,20 @@ export async function POST(req: NextRequest) {
     if (!photoBuffer) {
       return NextResponse.json(
         { error: "Foto check-out wajib dikirim." },
+        { status: 400 },
+      );
+    }
+
+    if (!ALLOWED_PHOTO_MIME_TYPES.has(photoMime.toLowerCase())) {
+      return NextResponse.json(
+        { error: "Format foto harus JPG, PNG, atau WEBP." },
+        { status: 400 },
+      );
+    }
+
+    if (photoBuffer.byteLength > MAX_PHOTO_SIZE) {
+      return NextResponse.json(
+        { error: "Ukuran foto maksimal 4MB." },
         { status: 400 },
       );
     }
@@ -599,15 +672,22 @@ export async function POST(req: NextRequest) {
     const checkOutStatus =
       earlyLeaveMinutes > 0 ? ("EARLY" as const) : ("NORMAL" as const);
 
-    const updatedAttendance = await prisma.$transaction(async (tx) => {
-      const savedAttendance = await tx.attendance.update({
+    const uploadedPhoto = await uploadCheckOutPhoto(photoBuffer, userId);
+
+    let updatedAttendance;
+
+    try {
+      updatedAttendance = await prisma.$transaction(async (tx) => {
+        const savedAttendance = await tx.attendance.update({
         where: {
           id: attendance.id,
         },
         data: {
           check_out_time: now,
-          check_out_photo: photoBuffer,
+          check_out_photo: null,
           check_out_photo_mime: photoMime,
+          check_out_photo_url: uploadedPhoto.secure_url,
+          check_out_photo_public_id: uploadedPhoto.public_id,
 
           check_out_latitude: latitude,
           check_out_longitude: longitude,
@@ -665,8 +745,19 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return savedAttendance;
-    });
+        return savedAttendance;
+      });
+    } catch (databaseError) {
+      await deleteCloudinaryPhoto(uploadedPhoto.public_id);
+      throw databaseError;
+    }
+
+    if (
+      attendance.check_out_photo_public_id &&
+      attendance.check_out_photo_public_id !== uploadedPhoto.public_id
+    ) {
+      await deleteCloudinaryPhoto(attendance.check_out_photo_public_id);
+    }
 
     return NextResponse.json({
       success: true,
@@ -675,6 +766,7 @@ export async function POST(req: NextRequest) {
           ? `Check-out berhasil. Kamu pulang lebih awal ${earlyLeaveMinutes} menit.`
           : "Check-out berhasil.",
       attendanceId: updatedAttendance.id,
+      photoUrl: uploadedPhoto.secure_url,
       workMode,
       workModeLabel: getWorkModeLabel(workMode),
       isWfh: isWfhMode,

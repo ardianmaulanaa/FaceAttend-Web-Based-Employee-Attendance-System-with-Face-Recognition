@@ -215,11 +215,19 @@ model Attendance {
   check_in_time  DateTime?
   check_out_time DateTime?
 
+  // Foto lama dalam database, dipertahankan sementara untuk kompatibilitas
   check_in_photo  Bytes?
   check_out_photo Bytes?
 
   check_in_photo_mime  String? @db.VarChar(50)
   check_out_photo_mime String? @db.VarChar(50)
+
+  // Foto baru disimpan di Cloudinary
+  check_in_photo_url       String? @db.Text
+  check_in_photo_public_id String? @db.VarChar(255)
+
+  check_out_photo_url       String? @db.Text
+  check_out_photo_public_id String? @db.VarChar(255)
 
   // office, wfh, wfc, visit
   work_mode String @default("office") @db.VarChar(20)

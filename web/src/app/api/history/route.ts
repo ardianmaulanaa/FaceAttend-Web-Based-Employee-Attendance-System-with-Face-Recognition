@@ -33,13 +33,23 @@ async function getUserIdFromRequest(req: NextRequest) {
 
 function photoToDataUrl(
   photo: Uint8Array | Buffer | null,
-  mime: string | null
+  mime: string | null,
 ) {
   if (!photo) return null;
 
   const buffer = Buffer.isBuffer(photo) ? photo : Buffer.from(photo);
 
   return `data:${mime || "image/jpeg"};base64,${buffer.toString("base64")}`;
+}
+
+function resolvePhoto(
+  photoUrl: string | null,
+  photo: Uint8Array | Buffer | null,
+  mime: string | null,
+) {
+  if (photoUrl?.trim()) return photoUrl;
+
+  return photoToDataUrl(photo, mime);
 }
 
 function getAttendanceStatus(
@@ -102,6 +112,8 @@ export async function GET(req: NextRequest) {
 
         check_in_photo_mime: true,
         check_out_photo_mime: true,
+        check_in_photo_url: true,
+        check_out_photo_url: true,
 
         registered_office_id: true,
         registered_office: {
@@ -174,13 +186,15 @@ export async function GET(req: NextRequest) {
       checkInTime: toIsoString(attendance.check_in_time),
       checkOutTime: toIsoString(attendance.check_out_time),
 
-      checkInPhoto: photoToDataUrl(
+      checkInPhoto: resolvePhoto(
+        attendance.check_in_photo_url,
         attendance.check_in_photo,
-        attendance.check_in_photo_mime
+        attendance.check_in_photo_mime,
       ),
-      checkOutPhoto: photoToDataUrl(
+      checkOutPhoto: resolvePhoto(
+        attendance.check_out_photo_url,
         attendance.check_out_photo,
-        attendance.check_out_photo_mime
+        attendance.check_out_photo_mime,
       ),
 
       registeredOffice: attendance.registered_office

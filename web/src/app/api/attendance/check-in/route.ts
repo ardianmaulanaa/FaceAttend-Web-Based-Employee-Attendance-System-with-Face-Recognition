@@ -1,11 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { UploadApiResponse } from "cloudinary";
 import { jwtVerify } from "jose";
 import { Buffer } from "node:buffer";
+import { NextRequest, NextResponse } from "next/server";
+
+import { getCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 const MAX_GPS_ACCURACY_METERS = 100;
+const MAX_PHOTO_SIZE = 4 * 1024 * 1024;
+
+const ALLOWED_PHOTO_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
 
 type WorkMode = "office" | "wfh" | "wfc" | "visit";
 
@@ -152,6 +163,54 @@ async function fileToBuffer(file: File) {
     buffer: new Uint8Array(arrayBuffer),
     mime: file.type || "image/jpeg",
   };
+}
+
+async function uploadCheckInPhoto(
+  photoBuffer: Uint8Array<ArrayBuffer>,
+  userId: string,
+): Promise<UploadApiResponse> {
+  const cloudinary = getCloudinary();
+
+  return new Promise<UploadApiResponse>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "faceattend/attendance/check-in",
+        public_id: `user-${userId}-${Date.now()}`,
+        resource_type: "image",
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        if (!result) {
+          reject(new Error("Cloudinary tidak mengembalikan hasil upload."));
+          return;
+        }
+
+        resolve(result);
+      },
+    );
+
+    uploadStream.end(Buffer.from(photoBuffer));
+  });
+}
+
+async function deleteCloudinaryPhoto(publicId: string | null | undefined) {
+  if (!publicId) return;
+
+  try {
+    const cloudinary = getCloudinary();
+
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+      invalidate: true,
+    });
+  } catch (error) {
+    console.warn("DELETE_CHECK_IN_PHOTO_WARNING:", error);
+  }
 }
 
 function getDistanceInMeters(from: GeoPoint, to: GeoPoint) {
@@ -481,6 +540,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!ALLOWED_PHOTO_MIME_TYPES.has(photoMime.toLowerCase())) {
+      return NextResponse.json(
+        { error: "Format foto harus JPG, PNG, atau WEBP." },
+        { status: 400 },
+      );
+    }
+
+    if (photoBuffer.byteLength > MAX_PHOTO_SIZE) {
+      return NextResponse.json(
+        { error: "Ukuran foto maksimal 4MB." },
+        { status: 400 },
+      );
+    }
+
     if (latitude === null || longitude === null) {
       return NextResponse.json(
         { error: "Lokasi GPS check-in wajib dikirim." },
@@ -720,10 +793,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const uploadedPhoto = await uploadCheckInPhoto(photoBuffer, userId);
+
     const checkInData = {
       check_in_time: now,
-      check_in_photo: photoBuffer,
+      check_in_photo: null,
       check_in_photo_mime: photoMime,
+      check_in_photo_url: uploadedPhoto.secure_url,
+      check_in_photo_public_id: uploadedPhoto.public_id,
 
       work_mode: workMode,
       is_wfh: isWfhMode,
@@ -748,8 +825,11 @@ export async function POST(req: NextRequest) {
       activity_note: activityNote || null,
     };
 
-    const attendance = await prisma.$transaction(async (tx) => {
-      const savedAttendance = existingAttendance
+    let attendance;
+
+    try {
+      attendance = await prisma.$transaction(async (tx) => {
+        const savedAttendance = existingAttendance
         ? await tx.attendance.update({
             where: {
               id: existingAttendance.id,
@@ -811,8 +891,19 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return savedAttendance;
-    });
+        return savedAttendance;
+      });
+    } catch (databaseError) {
+      await deleteCloudinaryPhoto(uploadedPhoto.public_id);
+      throw databaseError;
+    }
+
+    if (
+      existingAttendance?.check_in_photo_public_id &&
+      existingAttendance.check_in_photo_public_id !== uploadedPhoto.public_id
+    ) {
+      await deleteCloudinaryPhoto(existingAttendance.check_in_photo_public_id);
+    }
 
     return NextResponse.json({
       success: true,
@@ -822,6 +913,7 @@ export async function POST(req: NextRequest) {
           ? `Check-in berhasil. Kamu terlambat ${lateMinutes} menit.`
           : "Check-in berhasil.",
       attendanceId: attendance.id,
+      photoUrl: uploadedPhoto.secure_url,
       status: attendanceStatus,
       workMode,
       workModeLabel: getWorkModeLabel(workMode),
