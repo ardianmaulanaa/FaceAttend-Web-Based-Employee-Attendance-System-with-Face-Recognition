@@ -11,7 +11,7 @@ const MAX_GPS_ACCURACY_METERS = 100;
 type WorkMode = "office" | "wfh" | "wfc" | "visit";
 
 type ParsedAttendanceBody = {
-  photoBuffer: Buffer | null;
+  photoBuffer: Uint8Array<ArrayBuffer> | null;
   photoMime: string;
   latitude: number | null;
   longitude: number | null;
@@ -135,13 +135,13 @@ function dataUrlToBuffer(dataUrl: string) {
 
   if (!match) {
     return {
-      buffer: Buffer.from(dataUrl, "base64"),
+      buffer: Uint8Array.from(Buffer.from(dataUrl, "base64")),
       mime: "image/jpeg",
     };
   }
 
   return {
-    buffer: Buffer.from(match[2], "base64"),
+    buffer: Uint8Array.from(Buffer.from(match[2], "base64")),
     mime: match[1],
   };
 }
@@ -150,7 +150,7 @@ async function fileToBuffer(file: File) {
   const arrayBuffer = await file.arrayBuffer();
 
   return {
-    buffer: Buffer.from(arrayBuffer),
+    buffer: new Uint8Array(arrayBuffer),
     mime: file.type || "image/jpeg",
   };
 }
@@ -166,9 +166,9 @@ function getDistanceInMeters(from: GeoPoint, to: GeoPoint) {
   const a =
     Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
     Math.cos(lat1) *
-      Math.cos(lat2) *
-      Math.sin(deltaLng / 2) *
-      Math.sin(deltaLng / 2);
+    Math.cos(lat2) *
+    Math.sin(deltaLng / 2) *
+    Math.sin(deltaLng / 2);
 
   return earthRadius * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
@@ -256,9 +256,9 @@ async function parseAttendanceBody(
 
     const workMode = normalizeWorkMode(
       formData.get("workMode") ||
-        formData.get("work_mode") ||
-        formData.get("attendanceMode") ||
-        formData.get("attendance_mode"),
+      formData.get("work_mode") ||
+      formData.get("attendanceMode") ||
+      formData.get("attendance_mode"),
     );
 
     const activityNote = getFormText(formData, [
@@ -353,20 +353,20 @@ async function parseAttendanceBody(
 
   const latitude = toNumber(
     body.latitude ??
-      body.checkInLatitude ??
-      (body.location as { latitude?: unknown } | undefined)?.latitude,
+    body.checkInLatitude ??
+    (body.location as { latitude?: unknown } | undefined)?.latitude,
   );
 
   const longitude = toNumber(
     body.longitude ??
-      body.checkInLongitude ??
-      (body.location as { longitude?: unknown } | undefined)?.longitude,
+    body.checkInLongitude ??
+    (body.location as { longitude?: unknown } | undefined)?.longitude,
   );
 
   const accuracy = toNumber(
     body.accuracy ??
-      body.checkInAccuracy ??
-      (body.location as { accuracy?: unknown } | undefined)?.accuracy,
+    body.checkInAccuracy ??
+    (body.location as { accuracy?: unknown } | undefined)?.accuracy,
   );
 
   const lateReason = getBodyText(body, [
@@ -379,9 +379,9 @@ async function parseAttendanceBody(
 
   const workMode = normalizeWorkMode(
     body.workMode ??
-      body.work_mode ??
-      body.attendanceMode ??
-      body.attendance_mode,
+    body.work_mode ??
+    body.attendanceMode ??
+    body.attendance_mode,
   );
 
   const activityNote = getBodyText(body, [
@@ -699,7 +699,7 @@ export async function POST(req: NextRequest) {
         : 0;
 
     const isLate = shouldValidateLate && lateMinutes > 0;
-    const attendanceStatus = isLate ? "LATE" : "PRESENT";
+    const attendanceStatus = isLate ? ("LATE" as const) : ("PRESENT" as const);
 
     if (isLate && !lateReason) {
       return NextResponse.json(
@@ -752,22 +752,22 @@ export async function POST(req: NextRequest) {
     const attendance = await prisma.$transaction(async (tx: any) => {
       const savedAttendance = existingAttendance
         ? await tx.attendance.update({
-            where: {
-              id: existingAttendance.id,
-            },
-            data: {
-              ...checkInData,
-              work_minutes: existingAttendance.work_minutes ?? 0,
-            },
-          })
+          where: {
+            id: existingAttendance.id,
+          },
+          data: {
+            ...checkInData,
+            work_minutes: existingAttendance.work_minutes ?? 0,
+          },
+        })
         : await tx.attendance.create({
-            data: {
-              user_id: userId,
-              attendance_date: today,
-              ...checkInData,
-              work_minutes: 0,
-            },
-          });
+          data: {
+            user_id: userId,
+            attendance_date: today,
+            ...checkInData,
+            work_minutes: 0,
+          },
+        });
 
       if (isVisitMode) {
         await tx.employeeVisit.create({
@@ -834,31 +834,31 @@ export async function POST(req: NextRequest) {
       isLateValidationSkipped: isVisitMode,
       schedule: shouldValidateLate
         ? {
-            shift: user.shift?.name || "Tanpa Shift",
-            startTime,
-            toleranceMinutes,
-          }
+          shift: user.shift?.name || "Tanpa Shift",
+          startTime,
+          toleranceMinutes,
+        }
         : {
-            shift: user.shift?.name || "Tanpa Shift",
-            startTime: null,
-            toleranceMinutes: 0,
-            note: "Mode kunjungan tidak terikat jadwal shift dan toleransi keterlambatan.",
-          },
+          shift: user.shift?.name || "Tanpa Shift",
+          startTime: null,
+          toleranceMinutes: 0,
+          note: "Mode kunjungan tidak terikat jadwal shift dan toleransi keterlambatan.",
+        },
       office: matchedOffice
         ? {
-            id: matchedOffice.office.id,
-            name: matchedOffice.office.name,
-            distance: Math.round(matchedOffice.distance),
-            radius: matchedOffice.office.radius_meters,
-          }
+          id: matchedOffice.office.id,
+          name: matchedOffice.office.name,
+          distance: Math.round(matchedOffice.distance),
+          radius: matchedOffice.office.radius_meters,
+        }
         : null,
       visit: isVisitMode
         ? {
-            title: visitTitle,
-            clientName: visitClientName || null,
-            address: visitAddress,
-            note: visitNote,
-          }
+          title: visitTitle,
+          clientName: visitClientName || null,
+          address: visitAddress,
+          note: visitNote,
+        }
         : null,
       gps: {
         latitude,
