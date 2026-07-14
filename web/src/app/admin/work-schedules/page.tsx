@@ -689,7 +689,7 @@ export default function WorkSchedulesPage() {
                         className={`work-schedule-row-enter rounded-3xl border p-4 transition duration-200 hover:-translate-y-0.5 ${
                           day.is_work_day
                             ? "border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] shadow-lg shadow-slate-200/50 hover:shadow-xl hover:shadow-slate-300/40"
-                            : "border-slate-100 bg-slate-50 dark:border-slate-850 dark:bg-[#0d1117]/60"
+                            : "border-slate-100 bg-slate-50 dark:border-slate-800/80 dark:bg-[#0d1117]/60 opacity-60"
                         }`}
                         style={{
                           animationDelay: `${index * 55}ms`,
@@ -726,7 +726,7 @@ export default function WorkSchedulesPage() {
                               className="peer sr-only"
                             />
                             <div className="h-7 w-12 rounded-full bg-slate-200 transition peer-checked:bg-[#123c8c]" />
-                            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+                            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white keep-white shadow transition peer-checked:translate-x-5" />
                           </label>
                         </div>
 

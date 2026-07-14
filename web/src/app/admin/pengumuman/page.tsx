@@ -326,7 +326,9 @@ export default function AdminAnnouncementsPage() {
   }
 
   async function deleteAnnouncement(id: string) {
-    const confirmed = confirm("Yakin ingin menghapus pengumuman ini?");
+    const confirmed = window.customConfirm
+      ? await window.customConfirm("Yakin ingin menghapus pengumuman ini?")
+      : confirm("Yakin ingin menghapus pengumuman ini?");
 
     if (!confirmed) return;
 
@@ -416,7 +418,7 @@ export default function AdminAnnouncementsPage() {
             <button
               type="button"
               onClick={openAddModal}
-              className="inline-flex items-center justify-center gap-3 rounded-[1.3rem] bg-white px-5 py-3 text-sm font-black text-[#123c8c] shadow-2xl shadow-blue-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-3 rounded-[1.3rem] bg-white dark:bg-[#21262d] px-5 py-3 text-sm font-black text-[#123c8c] dark:text-[#58a6ff] shadow-2xl shadow-blue-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 dark:hover:bg-[#30363d] active:scale-[0.98]"
             >
               <Plus size={18} strokeWidth={3} />
               Tambah Pengumuman

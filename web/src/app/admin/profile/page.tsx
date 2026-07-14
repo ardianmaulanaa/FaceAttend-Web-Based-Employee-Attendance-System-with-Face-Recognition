@@ -242,7 +242,9 @@ export default function AdminProfilePage() {
 
   // Reset Data Perusahaan (Demo Simulation)
   async function handleResetCompanyData() {
-    const confirm = window.confirm("Apakah Anda yakin ingin mereset seluruh data absensi dan aktivitas perusahaan? Tindakan ini tidak bisa dibatalkan.");
+    const confirm = window.customConfirm
+      ? await window.customConfirm("Apakah Anda yakin ingin mereset seluruh data absensi dan aktivitas perusahaan? Tindakan ini tidak bisa dibatalkan.")
+      : window.confirm("Apakah Anda yakin ingin mereset seluruh data absensi dan aktivitas perusahaan? Tindakan ini tidak bisa dibatalkan.");
     if (!confirm) return;
 
     try {

@@ -356,9 +356,9 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
-            ? "border-blue-100/80 bg-white/95 shadow-lg shadow-slate-300/30"
-            : "border-white/60 bg-white/90 shadow-sm shadow-slate-200/40"
+        className={`fixed inset-x-0 top-0 z-[999] border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
+            ? "border-blue-100/80 bg-white/95 dark:border-[#21262d] dark:bg-[#161b22]/95 shadow-lg shadow-slate-300/30 dark:shadow-black/20"
+            : "border-white/60 bg-white/90 dark:border-[#21262d]/60 dark:bg-[#161b22]/90 shadow-sm shadow-slate-200/40 dark:shadow-none"
           }`}
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -572,7 +572,7 @@ export default function AppHeader({
         className={`sidebar-backdrop ${isSidebarOpen ? "open" : ""}`}
       />
 
-      <aside className={`sidebar-drawer ${isSidebarOpen ? "open" : ""} fixed left-0 top-0 z-[60] h-dvh w-[82vw] max-w-80 border-r border-indigo-100/70 dark:border-[#21262d] bg-[#f4f2ff] dark:bg-[#161b22] shadow-2xl shadow-slate-950/20`}>
+      <aside className={`sidebar-drawer ${isSidebarOpen ? "open" : ""} fixed left-0 top-0 z-[1001] h-dvh w-[82vw] max-w-80 border-r border-indigo-100/70 dark:border-[#21262d] bg-[#f4f2ff] dark:bg-[#161b22] shadow-2xl shadow-slate-950/20`}>
 
 
         <div className="flex h-full flex-col">

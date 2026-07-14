@@ -19,8 +19,29 @@ const emptyAlert: AlertState = {
   type: "warning",
 };
 
+type ConfirmState = {
+  open: boolean;
+  title: string;
+  message: string;
+  resolve: ((val: boolean) => void) | null;
+};
+
+const emptyConfirm: ConfirmState = {
+  open: false,
+  title: "",
+  message: "",
+  resolve: null,
+};
+
+declare global {
+  interface Window {
+    customConfirm?: (message: string, title?: string) => Promise<boolean>;
+  }
+}
+
 export default function GlobalAlert() {
   const [alert, setAlert] = useState<AlertState>(emptyAlert);
+  const [confirmState, setConfirmState] = useState<ConfirmState>(emptyConfirm);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,6 +52,13 @@ export default function GlobalAlert() {
       setIsClosing(false);
     }, 200);
   }, []);
+
+  const handleConfirmAction = (value: boolean) => {
+    if (confirmState.resolve) {
+      confirmState.resolve(value);
+    }
+    setConfirmState(emptyConfirm);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,15 +102,98 @@ export default function GlobalAlert() {
       });
     };
 
+    // Set customConfirm helper
+    window.customConfirm = (message: string, title = "Konfirmasi") => {
+      return new Promise<boolean>((resolve) => {
+        setConfirmState({
+          open: true,
+          title,
+          message,
+          resolve,
+        });
+      });
+    };
+
     return () => {
       window.alert = originalAlert;
+      delete window.customConfirm;
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
       }
     };
   }, []);
 
-  if (!alert.open) return null;
+  if (!alert.open && !confirmState.open) return null;
+
+  if (confirmState.open) {
+    const isDelete = confirmState.message.toLowerCase().includes("hapus") || confirmState.message.toLowerCase().includes("reset");
+    const theme = {
+      shell: "from-orange-50 via-white to-blue-50 dark:from-[#2e1d0f] dark:via-[#161b22] dark:to-[#121d2f] dark:border-[#21262d]",
+      iconWrap: "bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400",
+      badge: "text-orange-600 bg-white/70 dark:bg-[#30363d] dark:text-orange-400",
+      buttonOk: isDelete 
+        ? "bg-red-600 hover:bg-red-700 shadow-red-900/20 dark:bg-red-500 dark:hover:bg-red-600 dark:text-[#0d1117]" 
+        : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20 dark:bg-emerald-500 dark:hover:bg-emerald-600 dark:text-[#0d1117]",
+      buttonCancel: "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-[#21262d] dark:hover:bg-[#30363d] dark:text-[#c9d1d9]",
+      icon: AlertTriangle,
+      label: "KONFIRMASI",
+    };
+    const Icon = theme.icon;
+    const okLabel = isDelete ? "Ya, Hapus" : "Ya, Lanjutkan";
+
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300">
+        <div className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white dark:border-[#21262d] bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg scale-100 opacity-100 ${theme.shell}`}>
+          <div className="p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.iconWrap}`}>
+                <Icon size={32} strokeWidth={3} />
+              </div>
+
+              <div className="min-w-0 flex-1 pt-1">
+                <div className={`inline-flex rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] ${theme.badge}`}>
+                  {theme.label}
+                </div>
+
+                <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950 dark:text-white">
+                  {confirmState.title}
+                </h3>
+
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-400">
+                  {confirmState.message}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleConfirmAction(false)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-transparent text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition active:scale-[0.92]"
+              >
+                <X size={22} strokeWidth={2.8} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-white/60 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/90 p-4">
+            <button
+              type="button"
+              onClick={() => handleConfirmAction(false)}
+              className={`rounded-2xl px-6 py-3.5 text-sm font-black transition active:scale-[0.98] ${theme.buttonCancel}`}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => handleConfirmAction(true)}
+              className={`rounded-2xl px-6 py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] ${theme.buttonOk}`}
+            >
+              {okLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const theme = {
     success: {
@@ -126,7 +237,7 @@ export default function GlobalAlert() {
       className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300`}
     >
       <div
-        className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg ${
+        className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white dark:border-[#21262d] bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg ${
           isClosing ? "scale-95 opacity-0" : "scale-100 opacity-100"
         } ${theme.shell}`}
       >

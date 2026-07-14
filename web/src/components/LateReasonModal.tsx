@@ -84,11 +84,16 @@ export default function LateReasonModal({
           onClick={onSubmit}
           disabled={isSubmitting || isReasonEmpty}
           className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 to-amber-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-red-200 transition hover:from-red-700 hover:to-amber-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none"
+          style={{
+            color: isSubmitting || isReasonEmpty ? "#94a3b8" : "#ffffff"
+          }}
         >
           {isSubmitting ? (
-            <span>Mengirim Alasan...</span>
+            <span style={{ color: "#94a3b8" }}>Mengirim Alasan...</span>
           ) : (
-            <span>Kirim Alasan & Buka Dashboard</span>
+            <span style={{ color: isReasonEmpty ? "#94a3b8" : "#ffffff" }}>
+              Kirim Alasan & Buka Dashboard
+            </span>
           )}
         </button>
       </div>

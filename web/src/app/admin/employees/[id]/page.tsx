@@ -400,7 +400,7 @@ export default function AdminEmployeeDetailPage() {
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
         <Link
           href="/admin/employees"
-          className="employee-detail-enter inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#123c8c] shadow-sm ring-1 ring-blue-100 transition hover:bg-[#f8fbff] active:scale-[0.98]"
+          className="employee-detail-enter inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-[#21262d] px-4 py-3 text-sm font-black text-[#123c8c] dark:text-[#58a6ff] shadow-sm ring-1 ring-blue-100 dark:ring-[#30363d] transition hover:bg-[#f8fbff] dark:hover:bg-[#30363d] active:scale-[0.98]"
         >
           <ArrowLeft size={18} strokeWidth={2.7} />
           Kembali ke Employees

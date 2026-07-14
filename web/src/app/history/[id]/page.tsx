@@ -692,7 +692,7 @@ export default function HistoryDetailPage() {
       <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
         <Link
           href="/history"
-          className="history-detail-row-enter inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-200/60 transition hover:-translate-y-0.5 hover:bg-[#f8fbff] active:scale-[0.98]"
+          className="history-detail-row-enter inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-[#21262d] px-4 py-3 text-sm font-black text-[#123c8c] dark:text-[#58a6ff] shadow-lg shadow-slate-200/60 dark:shadow-none transition hover:-translate-y-0.5 hover:bg-[#f8fbff] dark:hover:bg-[#30363d] active:scale-[0.98]"
         >
           <ArrowLeft size={18} strokeWidth={2.7} />
           Kembali ke History

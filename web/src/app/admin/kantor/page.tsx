@@ -654,9 +654,9 @@ export default function AdminOfficePage() {
   }
 
   async function deleteOffice(office: OfficeLocation) {
-    const confirmed = window.confirm(
-      `Hapus kantor "${office.name}"? Data akan dinonaktifkan.`,
-    );
+    const confirmed = window.customConfirm
+      ? await window.customConfirm(`Hapus kantor "${office.name}"? Data akan dinonaktifkan.`)
+      : window.confirm(`Hapus kantor "${office.name}"? Data akan dinonaktifkan.`);
 
     if (!confirmed) return;
 
@@ -697,10 +697,10 @@ export default function AdminOfficePage() {
     <MobileShell variant="admin" withBottomPadding={false}>
       <OfficeMotionStyles />
 
-      <div className="min-h-dvh w-full max-w-full overflow-x-hidden bg-white md:bg-[#f6f8ff]">
+      <div className="min-h-screen bg-[#f8fbff] pb-24">
         <AppHeader title="Kantor" variant="admin" />
 
-        <main className="min-h-dvh w-full max-w-full overflow-x-hidden bg-white text-slate-950 md:bg-gradient-to-br md:from-[#f6f8ff] md:via-white md:to-[#eef4ff]">
+        <main className="w-full max-w-full text-slate-950 md:bg-gradient-to-br md:from-[#f6f8ff] md:via-white md:to-[#eef4ff]">
           <section
             className="mx-auto grid w-full max-w-full items-start gap-6 overflow-x-hidden px-4 pt-6 md:max-w-7xl md:overflow-visible md:px-10 md:py-8 lg:grid-cols-[0.85fr_1.15fr] lg:px-16"
             style={{

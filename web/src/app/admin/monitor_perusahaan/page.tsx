@@ -550,7 +550,7 @@ function AnimatedHistogram({
                 return (
                   <div
                     key={`${metricLabel}-${point.label}`}
-                    className="relative flex w-3 shrink-0 flex-col items-center md:w-4"
+                    className="relative flex h-full w-3 shrink-0 flex-col items-center justify-end md:w-4"
                   >
                     <button
                       type="button"

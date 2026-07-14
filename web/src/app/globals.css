@@ -271,7 +271,7 @@ main {
 .sidebar-backdrop {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 50 !important;
+  z-index: 1000 !important;
   background-color: rgba(2, 6, 23, 0.4) !important;
   backdrop-filter: blur(4px) !important;
   -webkit-backdrop-filter: blur(4px) !important;
@@ -344,8 +344,48 @@ main:not(.app-card) {
   box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.25) !important;
 }
 
+/* Force slate backgrounds to be dark in dark mode */
+.dark .bg-slate-50, .dark [class*="bg-slate-50"]:not(.keep-white) {
+  background-color: #161b22 !important;
+}
+.dark .bg-slate-100, .dark [class*="bg-slate-100"]:not(.keep-white) {
+  background-color: #21262d !important;
+}
+.dark .bg-slate-200, .dark [class*="bg-slate-200"]:not(.keep-white) {
+  background-color: #30363d !important;
+}
+
+/* Force slate borders to be dark in dark mode */
+.dark .border-slate-50, .dark [class*="border-slate-50"] {
+  border-color: #21262d !important;
+}
+.dark .border-slate-100, .dark [class*="border-slate-100"] {
+  border-color: #21262d !important;
+}
+.dark .border-slate-200, .dark [class*="border-slate-200"] {
+  border-color: #30363d !important;
+}
+
+/* Ensure text on slate-colored buttons changes to light in dark mode */
+.dark button[class*="bg-slate-"],
+.dark [type="button"][class*="bg-slate-"],
+.dark button[class*="bg-gray-"],
+.dark [type="button"][class*="bg-gray-"] {
+  color: #c9d1d9 !important;
+}
+
+/* Disabled buttons premium dark mode styling */
+.dark button:disabled,
+.dark [type="button"]:disabled {
+  opacity: 0.55 !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #c9d1d9 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
 /* Muted primary text colors (No glows or high-contrast gradients) */
-.dark [class*="text-[#123c8c]"]:not(h1):not(h2):not(h3) {
+.dark [class*="text-[#123c8c]"]:not(h1):not(h2):not(h3):not(button):not(a):not([type="button"]):not(.app-button) {
   color: #58a6ff !important;
 }
 
@@ -359,7 +399,7 @@ main:not(.app-card) {
   -webkit-text-fill-color: unset !important;
 }
 
-.dark [class*="bg-[#123c8c]"] {
+.dark [class*="bg-[#123c8c]"]:not(button):not(a):not([type="button"]):not(.app-button) {
   background-color: #1f6feb !important;
   color: #ffffff !important;
   border: none !important;
@@ -523,6 +563,10 @@ main:not(.app-card) {
 }
 
 /* Header dynamic glassmorphic backgrounds */
+header {
+  z-index: 9999 !important;
+}
+
 .dark header {
   background-color: rgba(13, 17, 23, 0.85) !important;
   border-bottom-color: #21262d !important;
@@ -766,7 +810,7 @@ main:not(.app-card) {
 .dark [role="switch"][data-state="checked"],
 .dark [role="switch"][aria-checked="true"],
 .dark button[class*="bg-blue-600"],
-.dark button[class*="bg-[#123c8c]"]:not(aside button) {
+.dark button[class*="bg-[#123c8c]"]:not(aside button):not([class*="bg-white"]):not([class*="bg-transparent"]) {
   background-color: #1f6feb !important;
 }
 
@@ -965,6 +1009,52 @@ div[style*="creativemu.png"].universal-watermark,
   --tw-ring-color: transparent !important;
   border-color: #21262d !important;
   box-shadow: none !important;
+}
+
+/* Fix native calendar and clock picker indicators in dark mode inputs */
+.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) !important;
+}
+
+/* Fix checked state of custom peer-checked switches in dark mode */
+.dark .peer:checked + div[class*="peer-checked:bg-"],
+.dark .peer:checked + [class*="peer-checked:bg-"] {
+  background: #1f6feb !important;
+  background-color: #1f6feb !important;
+  background-image: none !important;
+  border-color: transparent !important;
+}
+
+/* Inherit button and link text colors for children spans and paragraphs */
+.dark button span,
+.dark button p,
+.dark a span,
+.dark a p {
+  color: inherit !important;
+}
+
+/* Explicitly style native selects and options for dark mode readability */
+.dark select {
+  background-color: #161b22 !important;
+  color: #c9d1d9 !important;
+  border-color: #21262d !important;
+}
+
+.dark select option {
+  background-color: #161b22 !important;
+  color: #c9d1d9 !important;
+}
+
+/* Force white text for red gradient buttons inside modals in dark mode */
+.dark button[class*="from-red-600"] span,
+.dark button[class*="from-red-"] span {
+  color: #ffffff !important;
+}
+
+.dark button[class*="from-red-600"]:disabled span,
+.dark button[class*="from-red-"]:disabled span {
+  color: #94a3b8 !important;
 }
 
 

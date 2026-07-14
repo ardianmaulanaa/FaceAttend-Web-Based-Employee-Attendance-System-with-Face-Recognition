@@ -415,7 +415,7 @@ export default function AdminNotificationsPage() {
             <button
               type="button"
               onClick={loadNotifications}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-[#123c8c] shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 active:scale-[0.98]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white dark:bg-[#21262d] px-5 text-sm font-black text-[#123c8c] dark:text-[#58a6ff] shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 dark:hover:bg-[#30363d] active:scale-[0.98]"
             >
               <RefreshCw size={18} />
               Refresh
