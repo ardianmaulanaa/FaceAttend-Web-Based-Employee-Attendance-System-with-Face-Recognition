@@ -232,24 +232,6 @@ aside {
 }
 
 
-/* Cinematic Theme Transitions for a premium feel when toggling */
-body, 
-header, 
-section, 
-.bg-white, 
-[class*="bg-white"], 
-button, 
-input, 
-select, 
-textarea,
-main {
-  transition: 
-    background-color 0.22s cubic-bezier(0.25, 1, 0.5, 1), 
-    border-color 0.22s cubic-bezier(0.25, 1, 0.5, 1), 
-    box-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1), 
-    color 0.18s ease-out !important;
-}
-
 .dark ::selection {
   background: #1f6feb;
   color: white;
@@ -564,7 +546,7 @@ main:not(.app-card) {
 
 /* Header dynamic glassmorphic backgrounds */
 header {
-  z-index: 9999 !important;
+  z-index: 40 !important;
 }
 
 .dark header {

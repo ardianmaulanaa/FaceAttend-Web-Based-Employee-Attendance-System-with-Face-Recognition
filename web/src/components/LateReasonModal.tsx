@@ -30,7 +30,7 @@ export default function LateReasonModal({
   const isReasonEmpty = !reason.trim();
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-md">
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-md" style={{ zIndex: 999999 }}>
       <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-red-200/50 bg-white p-6 shadow-2xl shadow-red-950/40 md:p-8 animate-in fade-in zoom-in-95 duration-200">
         {/* Sleek top warning stripe */}
         <div className="absolute left-0 top-0 h-2 w-full bg-gradient-to-r from-amber-500 via-red-500 to-amber-500" />

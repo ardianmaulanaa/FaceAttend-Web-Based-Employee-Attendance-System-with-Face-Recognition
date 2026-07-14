@@ -142,7 +142,7 @@ export default function GlobalAlert() {
     const okLabel = isDelete ? "Ya, Hapus" : "Ya, Lanjutkan";
 
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300">
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300" style={{ zIndex: 999999 }}>
         <div className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white dark:border-[#21262d] bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg scale-100 opacity-100 ${theme.shell}`}>
           <div className="p-6 md:p-8">
             <div className="flex items-start gap-4">
@@ -234,7 +234,8 @@ export default function GlobalAlert() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300`}
+      className={`fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm transition-all duration-300`}
+      style={{ zIndex: 999999 }}
     >
       <div
         className={`w-full max-w-md overflow-hidden rounded-[2rem] border border-white dark:border-[#21262d] bg-gradient-to-br p-0 shadow-2xl transition-all duration-300 md:max-w-lg ${

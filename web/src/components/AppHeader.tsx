@@ -517,7 +517,7 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-[999] border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
+        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
           ? "border-blue-100/80 bg-white/95 dark:border-[#21262d] dark:bg-[#161b22]/95 shadow-lg shadow-slate-300/30 dark:shadow-black/20"
           : "border-white/60 bg-white/90 dark:border-[#21262d]/60 dark:bg-[#161b22]/90 shadow-sm shadow-slate-200/40 dark:shadow-none"
           }`}
@@ -533,7 +533,7 @@ export default function AppHeader({
         </div>
 
         <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
+          <div className="flex min-w-0 shrink-0 items-center gap-4">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
@@ -557,7 +557,7 @@ export default function AppHeader({
           </div>
 
           {/* Quick Search Bar (Desktop) */}
-          <div ref={searchContainerRef} className="relative hidden md:block w-full max-w-md lg:max-w-xl xl:max-w-2xl mx-4 z-50">
+          <div ref={searchContainerRef} className="relative hidden md:block w-full max-w-xs lg:max-w-md xl:max-w-xl mx-4 z-50">
             <div className="relative flex items-center">
               <Search className={`absolute left-4 h-4 w-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-400'}`} />
               <input
@@ -798,7 +798,7 @@ export default function AppHeader({
                     <Bell size={20} strokeWidth={2.7} />
 
                     {hasNewNotification ? (
-                      <span className="absolute -right-2 -top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                      <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff8a00] text-[10px] font-black leading-none text-white">
                         {formatNotificationCount(notificationCount)}
                       </span>
                     ) : null}
@@ -818,7 +818,7 @@ export default function AppHeader({
                   <Bell size={21} strokeWidth={2.7} />
 
                   {hasNewNotification ? (
-                    <span className="absolute right-1.5 top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                    <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff8a00] text-[10px] font-black leading-none text-white">
                       {formatNotificationCount(notificationCount)}
                     </span>
                   ) : null}
