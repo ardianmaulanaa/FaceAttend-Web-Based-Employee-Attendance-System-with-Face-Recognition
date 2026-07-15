@@ -31,7 +31,10 @@
 html {
   width: 100%;
   max-width: 100%;
-  min-height: 100%;
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: none;
   background:
     radial-gradient(
       circle at top left,
@@ -45,15 +48,15 @@ html {
     ),
     linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
   scroll-behavior: smooth;
-  overscroll-behavior-y: none;
-  overflow-x: auto;
 }
 
 body {
   width: 100%;
   max-width: 100%;
-  min-height: 100%;
-  min-height: 100vh;
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: none;
   background:
     radial-gradient(
       circle at top left,
@@ -70,8 +73,6 @@ body {
   background-attachment: fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overscroll-behavior-y: none;
-  overflow-x: auto;
 }
 
 main,

@@ -62,7 +62,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AppDataProvider>
-            <ScrollReloadGuard />
+            {/* <ScrollReloadGuard /> */}
             <LateGuard />
             <GlobalAlert />
             {children}
