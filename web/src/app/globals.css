@@ -23,7 +23,14 @@
   box-sizing: border-box;
 }
 
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
+  width: 100%;
+  max-width: 100%;
   min-height: 100%;
   background:
     radial-gradient(
@@ -39,9 +46,12 @@ html {
     linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
   scroll-behavior: smooth;
   overscroll-behavior-y: none;
+  overflow-x: auto;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
   min-height: 100%;
   min-height: 100vh;
   background:
@@ -61,7 +71,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   overscroll-behavior-y: none;
-  overflow-x: hidden;
+  overflow-x: auto;
+}
+
+main,
+section,
+article,
+header,
+footer,
+nav,
+div {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
 }
 
 button,
