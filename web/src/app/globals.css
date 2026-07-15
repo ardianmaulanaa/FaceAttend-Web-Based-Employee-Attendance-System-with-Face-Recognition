@@ -34,6 +34,7 @@ html {
   min-height: 100vh !important;
   height: auto !important;
   overflow-y: auto !important;
+  overscroll-behavior: none;
   background-color: #eef3ff !important;
   background:
     radial-gradient(
@@ -56,19 +57,8 @@ body {
   min-height: 100vh !important;
   height: auto !important;
   overflow: visible !important;
-  background-color: #eef3ff !important;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(255, 138, 0, 0.18),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at top right,
-      rgba(18, 60, 140, 0.2),
-      transparent 32%
-    ),
-    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -252,10 +242,13 @@ aside {
     linear-gradient(180deg, #0d1117 0%, #090c10 100%);
 }
 
-html.dark,
-.dark body {
+html.dark {
   background: var(--bg-gradient) !important;
   background-color: var(--background) !important;
+}
+.dark body {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 
