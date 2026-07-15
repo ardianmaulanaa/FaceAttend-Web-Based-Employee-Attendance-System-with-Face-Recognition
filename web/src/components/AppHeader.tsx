@@ -30,6 +30,7 @@ import {
   Sun,
   Search,
   TrendingUp,
+  Coins,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -141,6 +142,11 @@ const operationalMenus = [
     icon: CalendarDays,
   },
   {
+    href: "/admin/salary",
+    label: "Gaji & Payroll",
+    icon: Coins,
+  },
+  {
     href: "/admin/profil-karyawan",
     label: "Profil Karyawan",
     icon: UserRound,
@@ -175,6 +181,7 @@ const adminSuggestions = [
   { href: "/admin/employees", label: "Register Employee", icon: UserPlus, category: "Operasional", keywords: ["register employee", "tambah karyawan", "daftar karyawan baru", "pendaftaran", "buat akun"] },
   { href: "/admin/laporan-kehadiran", label: "Laporan Kehadiran", icon: FileImage, category: "Operasional", keywords: ["laporan kehadiran", "rekap", "excel", "kehadiran", "presensi", "export"] },
   { href: "/admin/cuti", label: "Laporan & Approval Cuti", icon: CalendarDays, category: "Operasional", keywords: ["laporan cuti", "persetujuan cuti", "approval cuti", "pengajuan", "izin"] },
+  { href: "/admin/salary", label: "Gaji & Payroll Admin", icon: Coins, category: "Operasional", keywords: ["salary", "gaji", "payroll", "slip", "potongan", "pph", "slip gaji", "massal", "kalkulasi"] },
   { href: "/admin/profil-karyawan", label: "Profil Karyawan", icon: UserRound, category: "Operasional", keywords: ["profil karyawan", "daftar karyawan", "data karyawan", "edit karyawan", "list user"] },
 ];
 
