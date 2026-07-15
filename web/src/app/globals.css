@@ -35,6 +35,7 @@ html {
   height: auto !important;
   overflow-y: auto !important;
   overscroll-behavior: none;
+  background-color: #eef3ff !important;
   background:
     radial-gradient(
       circle at top left,
@@ -46,7 +47,7 @@ html {
       rgba(18, 60, 140, 0.2),
       transparent 32%
     ),
-    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
+    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%) !important;
   scroll-behavior: smooth;
 }
 
@@ -57,6 +58,7 @@ body {
   height: auto !important;
   overflow-y: auto !important;
   overscroll-behavior: none;
+  background-color: #eef3ff !important;
   background:
     radial-gradient(
       circle at top left,
@@ -68,9 +70,7 @@ body {
       rgba(18, 60, 140, 0.2),
       transparent 32%
     ),
-    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%) !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
