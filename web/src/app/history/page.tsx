@@ -454,9 +454,11 @@ function FilterCard({
 function AttendanceRecordCard({
   item,
   delay = "0ms",
+  profile,
 }: {
   item: AttendanceRecord;
   delay?: string;
+  profile?: any;
 }) {
   const shortDate = formatShortDate(item.date).split(" ");
   const [claim, setClaim] = useState<ReimbursementClaim | null>(null);
@@ -485,6 +487,8 @@ function AttendanceRecordCard({
       amount: numAmount,
       note,
       status: "pending",
+      employeeName: profile?.name || "Karyawan",
+      employeeCode: profile?.email || "EMP-01",
     };
 
     const raw = localStorage.getItem("faceattend_reimbursements");
@@ -574,6 +578,7 @@ function AttendanceRecordCard({
               <span className={noteDetails.className}>{noteDetails.text}</span>
             </div>
 
+            {/* REIMBURSEMENT ACTION */}
             {!claim && !showClaimForm && (
               <button
                 type="button"
@@ -633,11 +638,13 @@ function HistoryContent({
   records,
   monthLabel,
   year,
+  profile,
 }: {
   isLoading: boolean;
   records: AttendanceRecord[];
   monthLabel: string;
   year: number;
+  profile?: any;
 }) {
   if (isLoading) {
     return (
@@ -660,7 +667,7 @@ function HistoryContent({
   }
 
   return records.map((item, index) => (
-    <AttendanceRecordCard key={item.id} item={item} delay={`${index * 55}ms`} />
+    <AttendanceRecordCard key={item.id} item={item} delay={`${index * 55}ms`} profile={profile} />
   ));
 }
 
@@ -672,6 +679,7 @@ export default function HistoryPage() {
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
 
   const currentMonthLabel = useMemo(
     () => months.find((item) => item.value === month)?.label || "",
@@ -702,6 +710,21 @@ export default function HistoryPage() {
       setIsLoading(false);
     }
   }
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data.user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void loadProfile();
+  }, []);
 
   useEffect(() => {
     void getHistory();
@@ -761,6 +784,7 @@ export default function HistoryPage() {
               records={records}
               monthLabel={currentMonthLabel}
               year={year}
+              profile={profile}
             />
           </div>
         </section>
