@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/api-auth";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    await requireAuth(req);
+
     const offices = await prisma.officeLocation.findMany({
       where: {
         status: "active",
@@ -33,13 +37,9 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Gagal mengambil data kantor.",
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error",
+        message: getApiErrorMessage(error, "Gagal mengambil data kantor."),
       },
-      { status: 500 }
+      { status: getApiErrorStatus(error) },
     );
   }
 }
