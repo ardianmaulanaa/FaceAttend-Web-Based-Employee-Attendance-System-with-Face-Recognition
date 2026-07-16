@@ -6,10 +6,10 @@ export const runtime = "nodejs";
 
 const db = prisma as any;
 
-type AllowedRole = "owner" | "admin" | "cs";
+type AllowedRole = "owner";
 
-const VIEW_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
-const MANAGE_ROLES: AllowedRole[] = ["owner", "admin"];
+const VIEW_ROLES: AllowedRole[] = ["owner"];
+const MANAGE_ROLES: AllowedRole[] = ["owner"];
 
 async function getCurrentUser(req: NextRequest) {
   const token = req.cookies.get("faceattend_token")?.value;
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message:
-            "Akses ditolak. Hanya owner atau admin yang dapat menambah divisi.",
+            "Akses ditolak. Hanya owner yang dapat menambah divisi.",
         },
         { status: 403 }
       );
@@ -379,7 +379,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Akses ditolak. Hanya owner atau admin yang dapat mengubah divisi.",
+          message:
+            "Akses ditolak. Hanya owner yang dapat mengubah divisi.",
         },
         { status: 403 }
       );
@@ -560,7 +561,7 @@ export async function DELETE(req: NextRequest) {
         {
           success: false,
           message:
-            "Akses ditolak. Hanya owner atau admin yang dapat menghapus divisi.",
+            "Akses ditolak. Hanya owner yang dapat menghapus divisi.",
         },
         { status: 403 }
       );

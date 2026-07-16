@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner" | "admin" | "cs";
+type AllowedRole = "owner";
 
-const ALLOWED_ROLES: AllowedRole[] = ["owner", "admin", "cs"];
+const ALLOWED_ROLES: AllowedRole[] = ["owner"];
 
 function getDateParts(date = new Date()) {
   return {
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          message: "Akses ditolak. Hanya owner, admin, atau cs yang diizinkan.",
+          message: "Akses ditolak. Hanya owner yang diizinkan.",
         },
         { status: 403 },
       );
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
       where: {
         status: "active",
         role: {
-          in: ["employee", "admin", "cs"],
+          in: ["employee", "owner"],
         },
       },
       select: {

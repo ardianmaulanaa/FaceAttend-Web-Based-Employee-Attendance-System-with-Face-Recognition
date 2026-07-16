@@ -166,16 +166,10 @@ function isMobileAttendanceDevice() {
   }
 
   const userAgent = navigator.userAgent.toLowerCase();
-  const mobileUserAgent =
-    /android|iphone|ipad|ipod|mobile|blackberry|iemobile|opera mini/.test(
-      userAgent,
-    );
 
-  const hasTouch = navigator.maxTouchPoints > 0;
-  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-  const smallScreen = window.innerWidth <= 900;
-
-  return mobileUserAgent || (hasTouch && coarsePointer && smallScreen);
+  return /iphone|ipod|android.*mobile|blackberry|iemobile|opera mini|mobile/.test(
+    userAgent,
+  );
 }
 
 function normalizeCurrentUser(
@@ -2467,7 +2461,7 @@ export default function AttendancePage() {
             <div className="attendance-row-enter mt-3 grid grid-cols-2 gap-2">
               <CameraControlButton
                 onClick={toggleCamera}
-                disabled={loading || cameraStarting}
+                disabled={loading || cameraStarting || isLaptopBlocked}
                 danger={cameraReady}
               >
                 <span className="flex items-center justify-center gap-1.5 w-full whitespace-nowrap">
@@ -2482,7 +2476,7 @@ export default function AttendancePage() {
 
               <CameraControlButton
                 onClick={startCamera}
-                disabled={loading || cameraStarting}
+                disabled={loading || cameraStarting || isLaptopBlocked}
               >
                 <span className="flex items-center justify-center gap-1.5 w-full whitespace-nowrap">
                   {cameraStarting ? (
@@ -2502,7 +2496,9 @@ export default function AttendancePage() {
                 label="Check-in"
                 subtitle="Masuk"
                 loading={checkInProcessing || isUserLoading}
-                disabled={loading || cameraStarting || isUserLoading}
+                disabled={
+                  loading || cameraStarting || isUserLoading || isLaptopBlocked
+                }
                 primary
                 icon={<LogIn size={22} />}
                 onClick={requestCheckIn}
@@ -2512,7 +2508,7 @@ export default function AttendancePage() {
                 label="Check-out"
                 subtitle="Keluar"
                 loading={checkOutProcessing}
-                disabled={loading || cameraStarting}
+                disabled={loading || cameraStarting || isLaptopBlocked}
                 icon={<LogOut size={22} />}
                 onClick={requestCheckOut}
               />
