@@ -588,7 +588,7 @@ export default function AppHeader({
         </div>
 
         <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-2 md:gap-4">
-          <div className="flex min-w-0 items-center gap-2 md:gap-4">
+          <div className="flex shrink-0 items-center gap-2 md:gap-4">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
@@ -599,12 +599,12 @@ export default function AppHeader({
             </button>
 
             <div className="min-w-0">
-              <h1 className="mt-1 truncate text-base sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950">
+              <h1 className="mt-0.5 text-sm sm:text-base md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950 leading-tight whitespace-nowrap">
                 {title}
               </h1>
 
               {subtitle ? (
-                <p className="mt-0.5 line-clamp-1 max-w-xl text-[10px] sm:text-xs md:text-sm font-semibold leading-5 text-slate-500">
+                <p className="mt-0.5 text-[9px] sm:text-xs md:text-sm font-semibold leading-tight text-slate-500 whitespace-nowrap">
                   {subtitle}
                 </p>
               ) : null}
@@ -612,7 +612,7 @@ export default function AppHeader({
           </div>
 
           {/* Quick Search Bar (Desktop) */}
-          <div ref={searchContainerRef} className="relative hidden md:block w-full max-w-xs lg:max-w-md xl:max-w-xl mx-4 z-50">
+          <div ref={searchContainerRef} className="relative hidden lg:block flex-1 min-w-[120px] max-w-xs lg:max-w-md xl:max-w-xl mx-4 z-50">
             <div className="relative flex items-center">
               <Search className={`absolute left-4 h-4 w-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-400'}`} />
               <input
@@ -715,7 +715,7 @@ export default function AppHeader({
             <button
               type="button"
               onClick={() => setIsMobileSearchOpen(true)}
-              className={`flex md:hidden h-10 w-10 items-center justify-center rounded-xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark"
+              className={`flex lg:hidden h-10 w-10 items-center justify-center rounded-xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark"
                 ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20"
                 : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"
                 }`}
@@ -1108,23 +1108,7 @@ export default function AppHeader({
           </div>
 
           <div className="border-t border-blue-50 p-4 space-y-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#eaf1ff] px-4 py-3 text-sm font-black text-[#123c8c] transition hover:bg-blue-50 active:scale-[0.98] dark:bg-[#162238] dark:text-[#3b82f6]"
-            >
-              {theme === "light" ? (
-                <>
-                  <Moon size={18} strokeWidth={2.5} />
-                  Mode Gelap
-                </>
-              ) : (
-                <>
-                  <Sun size={18} strokeWidth={2.5} />
-                  Mode Terang
-                </>
-              )}
-            </button>
+
 
             <Link
               href="/login"

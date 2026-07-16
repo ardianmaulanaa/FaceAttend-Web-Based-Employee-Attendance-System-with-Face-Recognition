@@ -10,7 +10,7 @@ import {
   Loader2,
   Search,
   TimerReset,
-  Coins,
+  Eye,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -35,14 +35,30 @@ type AttendanceRecord = {
   workMinutes: number;
 };
 
-type ReimbursementClaim = {
-  id: string;
-  attendanceId: string;
-  date: string;
-  amount: number;
-  note: string;
-  status: "pending" | "approved" | "rejected";
-};
+function getStatusStyle(status: string) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (
+    normalized === "present" ||
+    normalized === "hadir" ||
+    normalized.includes("masuk kerja")
+  ) {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  }
+
+  if (
+    normalized === "late" ||
+    normalized === "terlambat" ||
+    normalized.includes("cuti") ||
+    normalized.includes("sakit") ||
+    normalized.includes("izin") ||
+    normalized.includes("tidak")
+  ) {
+    return "bg-red-50 text-red-700 ring-red-100";
+  }
+
+  return "bg-slate-100 text-slate-600 ring-slate-200";
+}
 
 const months = [
   { value: 1, label: "Januari" },
@@ -454,182 +470,78 @@ function FilterCard({
 function AttendanceRecordCard({
   item,
   delay = "0ms",
-  profile,
 }: {
   item: AttendanceRecord;
   delay?: string;
-  profile?: any;
 }) {
-  const shortDate = formatShortDate(item.date).split(" ");
-  const [claim, setClaim] = useState<ReimbursementClaim | null>(null);
-  const [showClaimForm, setShowClaimForm] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    const raw = localStorage.getItem("faceattend_reimbursements");
-    if (raw) {
-      const claims: any[] = JSON.parse(raw);
-      const found = claims.find((c) => c.attendanceId === item.id);
-      if (found) setClaim(found);
-    }
-  }, [item.id]);
-
-  function handleClaimSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const numAmount = Number(amount);
-    if (!numAmount || numAmount <= 0) return;
-
-    const newClaim = {
-      id: `CLM-${Date.now()}`,
-      attendanceId: item.id,
-      date: item.date,
-      amount: numAmount,
-      note,
-      status: "pending",
-      employeeName: profile?.name || "Karyawan",
-      employeeCode: profile?.email || "EMP-01",
-    };
-
-    const raw = localStorage.getItem("faceattend_reimbursements");
-    const claims = raw ? JSON.parse(raw) : [];
-    claims.push(newClaim);
-    localStorage.setItem("faceattend_reimbursements", JSON.stringify(claims));
-
-    setClaim(newClaim as any);
-    setShowClaimForm(false);
-    setAmount("");
-    setNote("");
-  }
-
-  const noteDetails =
-    item.lateMinutes > 0
-      ? {
-          text: `Terlambat ${item.lateMinutes} menit`,
-          className: "text-orange-600",
-        }
-      : item.earlyLeaveMinutes > 0
-        ? {
-            text: `Pulang cepat ${item.earlyLeaveMinutes} menit`,
-            className: "text-amber-600",
-          }
-        : { text: "Normal", className: "text-emerald-600" };
+  const formattedDate = formatDateLabel(item.date);
+  const statusStyle = getStatusStyle(item.status);
 
   return (
-    <div
-      className="history-row-enter block rounded-3xl border border-blue-100 bg-white p-5 transition duration-200 hover:shadow-xl hover:shadow-slate-200/60"
-      style={{ animationDelay: delay }}
+    <Link
+      key={item.id}
+      href={`/history/${item.id}`}
+      className="history-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] dark:hover:bg-[#1c212a] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
+      style={{
+        animationDelay: delay,
+      }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 gap-4 flex-1">
-          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-            <p className="text-lg font-black leading-none">{shortDate[0]}</p>
-            <p className="mt-1 text-[10px] font-black uppercase leading-none">
-              {shortDate[1]}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Left: Date Info */}
+        <div className="flex min-w-0 items-center gap-3 md:w-[260px]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+            <CalendarDays size={22} strokeWidth={2.6} />
+          </div>
+
+          <div className="min-w-0">
+            <h4 className="truncate text-base font-black text-slate-950">
+              {formattedDate}
+            </h4>
+
+            <p className="mt-1 truncate text-xs font-bold text-slate-400">
+              ID: {item.id}
+            </p>
+          </div>
+        </div>
+
+        {/* Middle: Check-in / Check-out Times */}
+        <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
+          <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+            <p className="text-slate-400">Masuk</p>
+            <p className="mt-1 font-black text-slate-800">
+              {item.checkIn}
             </p>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-black capitalize text-slate-950 md:text-xl">
-              {formatDateLabel(item.date)}
-            </h2>
-
-            <div className="flex flex-wrap gap-2 mt-2">
-              <AppBadge variant={getStatusVariant(item.status)}>
-                {item.status}
-              </AppBadge>
-
-              {claim && (
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase shadow-sm ${
-                    claim.status === "approved"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : claim.status === "rejected"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-orange-100 text-orange-700 animate-pulse"
-                  }`}
-                >
-                  Reimbursement: Rp {claim.amount.toLocaleString("id-ID")} ({claim.status === "approved" ? "Disetujui" : claim.status === "rejected" ? "Ditolak" : "Pending"})
-                </span>
-              )}
-            </div>
-
-            <div className="mt-4 grid gap-2 text-sm font-bold text-slate-500 sm:grid-cols-3">
-              <div className="flex items-center gap-2">
-                <Clock3
-                  size={17}
-                  className="shrink-0 text-[#123c8c]"
-                  strokeWidth={2.6}
-                />
-                <span>
-                  {item.checkIn} - {item.checkOut}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <TimerReset
-                  size={17}
-                  className="shrink-0 text-[#123c8c]"
-                  strokeWidth={2.6}
-                />
-                <span>{formatWorkDuration(item.workMinutes)}</span>
-              </div>
-
-              <span className={noteDetails.className}>{noteDetails.text}</span>
-            </div>
-
-            {/* REIMBURSEMENT ACTION */}
-            {!claim && !showClaimForm && (
-              <button
-                type="button"
-                onClick={() => setShowClaimForm(true)}
-                className="mt-4 flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-blue-800"
-              >
-                <Coins size={14} /> Klaim Reimbursement Perjalanan
-              </button>
-            )}
-
-            {showClaimForm && (
-              <form onSubmit={handleClaimSubmit} className="mt-4 rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-3">
-                <p className="text-xs font-black text-slate-700">Form Klaim Bensin / Makan</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="number"
-                    placeholder="Nominal Klaim (Rp)"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 placeholder:text-slate-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Keterangan (contoh: Struk bensin visit)"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowClaimForm(false)}
-                    className="rounded-lg bg-slate-200 px-3 py-1.5 text-[10px] font-black text-slate-600"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-[10px] font-black text-white hover:bg-blue-700"
-                  >
-                    Kirim Klaim
-                  </button>
-                </div>
-              </form>
-            )}
+          <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+            <p className="text-slate-400">Keluar</p>
+            <p className="mt-1 font-black text-slate-800">
+              {item.checkOut}
+            </p>
           </div>
         </div>
+
+        {/* Right: Duration and Status Badge */}
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-[#123c8c]">
+            {formatWorkDuration(item.workMinutes)}
+          </span>
+
+          <span
+            className={`rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusStyle}`}
+          >
+            {item.status}
+          </span>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-start md:w-[220px] md:justify-end">
+          <span className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-[#123c8c] transition group-hover:bg-[#eaf1ff]">
+            <Eye size={15} />
+            Lihat detail
+          </span>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -638,13 +550,11 @@ function HistoryContent({
   records,
   monthLabel,
   year,
-  profile,
 }: {
   isLoading: boolean;
   records: AttendanceRecord[];
   monthLabel: string;
   year: number;
-  profile?: any;
 }) {
   if (isLoading) {
     return (
@@ -666,9 +576,13 @@ function HistoryContent({
     );
   }
 
-  return records.map((item, index) => (
-    <AttendanceRecordCard key={item.id} item={item} delay={`${index * 55}ms`} profile={profile} />
-  ));
+  return (
+    <div className="space-y-4">
+      {records.map((item, index) => (
+        <AttendanceRecordCard key={item.id} item={item} delay={`${index * 45}ms`} />
+      ))}
+    </div>
+  );
 }
 
 export default function HistoryPage() {
@@ -679,7 +593,6 @@ export default function HistoryPage() {
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
 
   const currentMonthLabel = useMemo(
     () => months.find((item) => item.value === month)?.label || "",
@@ -711,20 +624,7 @@ export default function HistoryPage() {
     }
   }
 
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const res = await fetch("/api/profile");
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data.user);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    void loadProfile();
-  }, []);
+
 
   useEffect(() => {
     void getHistory();
@@ -784,7 +684,6 @@ export default function HistoryPage() {
               records={records}
               monthLabel={currentMonthLabel}
               year={year}
-              profile={profile}
             />
           </div>
         </section>
