@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { requireAuth } from "@/lib/api-auth";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import {
@@ -93,7 +95,6 @@ async function getUserIdFromToken() {
 
   return String(userId);
 }
-
 function serializeOffice(
   office:
     | {
@@ -119,25 +120,12 @@ function serializeOffice(
   };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromToken();
+    const authUser = await requireAuth(req);
 
-    if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-          error: "Token tidak ditemukan atau tidak valid.",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
-
-    if (isDemoUserId(userId)) {
-      const demoUser = findDemoUserById(userId);
+    if (isDemoUserId(authUser.id)) {
+      const demoUser = findDemoUserById(authUser.id);
 
       if (!demoUser) {
         return NextResponse.json(
@@ -153,7 +141,9 @@ export async function GET() {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: {
+        id: authUser.id,
+      },
       select: {
         id: true,
         employee_code: true,
@@ -232,7 +222,7 @@ export async function GET() {
       >`
         SELECT profile_photo_url
         FROM users
-        WHERE id = ${userId}
+        WHERE id = ${authUser.id}
         LIMIT 1
       `;
 
@@ -270,11 +260,11 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Gagal mengambil data user.",
-        error: "Gagal mengambil data user.",
+        message: getApiErrorMessage(error, "Gagal mengambil data user."),
+        error: getApiErrorMessage(error, "Gagal mengambil data user."),
       },
       {
-        status: 500,
+        status: getApiErrorStatus(error),
       }
     );
   }
