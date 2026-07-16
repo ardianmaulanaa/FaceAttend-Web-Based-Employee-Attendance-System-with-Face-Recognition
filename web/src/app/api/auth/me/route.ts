@@ -1,52 +1,7 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET belum diatur di .env");
-  }
-
-  return new TextEncoder().encode(secret);
-}
-
-async function getTokenFromCookie() {
-  const cookieStore = await cookies();
-
-  return (
-    cookieStore.get("token")?.value ||
-    cookieStore.get("auth_token")?.value ||
-    cookieStore.get("authToken")?.value ||
-    cookieStore.get("faceattend_token")?.value ||
-    ""
-  );
-}
-
-async function getUserIdFromToken() {
-  const token = await getTokenFromCookie();
-
-  if (!token) {
-    return null;
-  }
-
-  const { payload } = await jwtVerify(token, getJwtSecret());
-
-  const userId =
-    payload.id ||
-    payload.userId ||
-    payload.user_id ||
-    payload.sub ||
-    null;
-
-  if (!userId) {
-    return null;
-  }
-
-  return String(userId);
-}
 
 function serializeOffice(
   office:
@@ -73,26 +28,13 @@ function serializeOffice(
   };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromToken();
-
-    if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-          error: "Token tidak ditemukan atau tidak valid.",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
+    const authUser = await requireAuth(req);
 
     const user = await prisma.user.findUnique({
       where: {
-        id: userId,
+        id: authUser.id,
       },
       select: {
         id: true,
@@ -193,11 +135,11 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Gagal mengambil data user.",
-        error: "Gagal mengambil data user.",
+        message: getApiErrorMessage(error, "Gagal mengambil data user."),
+        error: getApiErrorMessage(error, "Gagal mengambil data user."),
       },
       {
-        status: 500,
+        status: getApiErrorStatus(error),
       }
     );
   }

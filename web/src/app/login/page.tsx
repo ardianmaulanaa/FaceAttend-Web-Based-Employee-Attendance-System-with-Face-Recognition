@@ -214,6 +214,11 @@ function LoginMotionStyles() {
         transform: translateY(-1px);
       }
 
+      .login-presence-title {
+        background: none;
+        color: #123c8c;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .login-enter,
         .login-card-enter,
@@ -355,6 +360,7 @@ export default function LoginPage() {
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introHintVisible, setIntroHintVisible] = useState(false);
+  const [currentTime, setCurrentTime] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminDemoLoading, setIsAdminDemoLoading] = useState(false);
@@ -384,6 +390,26 @@ export default function LoginPage() {
         document.documentElement.classList.add("dark");
       }
     };
+  }, []);
+
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      setCurrentTime(
+        new Intl.DateTimeFormat("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+          timeZone: "Asia/Jakarta",
+        }).format(new Date()),
+      );
+    };
+
+    updateCurrentTime();
+
+    const timer = window.setInterval(updateCurrentTime, 1000);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -650,7 +676,7 @@ export default function LoginPage() {
 
               <div className="mt-14 max-w-2xl md:mt-16 lg:mt-28">
                 <p
-                  className="login-text-reveal text-xs font-black uppercase tracking-[0.35em] text-[#ff8a00] md:text-sm"
+                  className="login-text-reveal text-xs font-black uppercase tracking-[0.35em] text-[#123c8c] md:text-sm"
                   style={{
                     animationDelay: "120ms",
                   }}
@@ -664,8 +690,19 @@ export default function LoginPage() {
                     animationDelay: "180ms",
                   }}
                 >
-                  <span className="typewriter-title">Creativemu Presence</span>
+                  <span className="typewriter-title login-presence-title">
+                    Creativemu Presence
+                  </span>
                 </h2>
+
+                <p
+                  className="login-text-reveal mt-5 text-lg font-black tabular-nums tracking-[0.16em] text-[#123c8c] md:text-2xl"
+                  style={{
+                    animationDelay: "240ms",
+                  }}
+                >
+                  {currentTime || "--:--:--"} WIB
+                </p>
               </div>
             </div>
 

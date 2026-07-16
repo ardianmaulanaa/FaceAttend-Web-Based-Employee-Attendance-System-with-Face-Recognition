@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Camera,
   Eye,
+  FileDown,
   ImageIcon,
   Loader2,
   Search,
@@ -76,6 +77,14 @@ function getCurrentMonth() {
 
 function getCurrentYear() {
   return new Date().getFullYear();
+}
+
+function getMonthLabel(month: number) {
+  const date = new Date(getCurrentYear(), Math.max(0, month - 1), 1);
+
+  return new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+  }).format(date);
 }
 
 async function readJsonResponse(response: Response) {
@@ -286,6 +295,33 @@ export default function AdminAttendanceReportPage() {
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void getAttendanceReports();
+  }
+
+  function handleExportPdf() {
+    if (!reports.length || isLoading) return;
+
+    const params = new URLSearchParams();
+
+    if (selectedDate) {
+      params.set("date", selectedDate);
+    } else {
+      params.set("month", String(month));
+      params.set("year", String(year));
+    }
+
+    if (searchKeyword.trim()) {
+      params.set("search", searchKeyword.trim());
+    }
+
+    if (statusFilter !== "all") {
+      params.set("status", statusFilter);
+    }
+
+    window.open(
+      `/admin/laporan-kehadiran/print?${params.toString()}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   useEffect(() => {
@@ -503,7 +539,7 @@ export default function AdminAttendanceReportPage() {
             className="attendance-report-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
             style={{ animationDelay: "150ms" }}
           >
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
                   Rekap Absensi
@@ -514,9 +550,22 @@ export default function AdminAttendanceReportPage() {
                 </h2>
               </div>
 
-              <p className="text-sm font-semibold text-slate-500">
-                {reports.length} data ditemukan
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold text-slate-500">
+                  {reports.length} data ditemukan
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={isLoading || reports.length === 0}
+                  title="Export PDF"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FileDown size={17} strokeWidth={2.6} />
+                  PDF
+                </button>
+              </div>
             </div>
 
             <div className="mt-6">
