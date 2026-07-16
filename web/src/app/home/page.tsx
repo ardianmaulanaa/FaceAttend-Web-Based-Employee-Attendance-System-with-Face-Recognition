@@ -11,6 +11,8 @@ import {
   Megaphone,
   ScanFace,
   UserRound,
+  Award,
+  Coins,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -96,6 +98,13 @@ const quickMenus = [
     label: "Izin/Cuti",
     description: "Ajukan cuti, izin, sakit, atau keperluan lainnya.",
     icon: FileText,
+  },
+  {
+    href: "#",
+    label: "Payroll & Kinerja\n(Coming Soon)",
+    description: "Slip gaji bulanan dan poin kinerja kehadiran Anda.",
+    icon: Coins,
+    isComingSoon: true,
   },
 ];
 
@@ -280,20 +289,18 @@ function ProfileAvatar({
       <img
         src={user.profile_photo}
         alt={user.name || "Profile"}
-        className={`home-icon-pop ${sizeClass} shrink-0 rounded-full object-cover ${
-          size === "desktop" ? "ring-4 ring-white/70" : "ring-4 ring-white"
-        }`}
+        className={`home-icon-pop ${sizeClass} shrink-0 rounded-full object-cover ${size === "desktop" ? "ring-4 ring-white/70" : "ring-4 ring-white"
+          }`}
       />
     );
   }
 
   return (
     <div
-      className={`home-icon-pop ${sizeClass} flex shrink-0 items-center justify-center rounded-full font-black ${
-        variant === "blue"
+      className={`home-icon-pop ${sizeClass} flex shrink-0 items-center justify-center rounded-full font-black ${variant === "blue"
           ? "bg-white/15 text-white ring-4 ring-white/20"
           : "bg-[#eaf1ff] text-[#123c8c] ring-4 ring-white"
-      }`}
+        }`}
     >
       {user.name ? getInitialName(user.name) : ""}
     </div>
@@ -315,17 +322,15 @@ function AnnouncementButton({
     <Link
       href={href}
       onClick={onClick}
-      className={`home-icon-pop relative flex shrink-0 items-center justify-center rounded-2xl ring-1 transition hover:-translate-y-0.5 active:scale-[0.96] ${
-        desktop ? "h-16 w-16" : "h-12 w-12"
-      } ${
-        unread
+      className={`home-icon-pop relative flex shrink-0 items-center justify-center rounded-2xl ring-1 transition hover:-translate-y-0.5 active:scale-[0.96] ${desktop ? "h-16 w-16" : "h-12 w-12"
+        } ${unread
           ? desktop
             ? "bg-white text-[#123c8c] ring-white"
             : "bg-[#123c8c] text-white ring-[#123c8c]"
           : desktop
             ? "bg-white/10 text-white/70 ring-white/20"
             : "bg-white text-slate-400 ring-blue-100"
-      }`}
+        }`}
       aria-label="Pengumuman"
     >
       <Bell
@@ -336,9 +341,8 @@ function AnnouncementButton({
 
       {unread ? (
         <span
-          className={`home-pulse-dot absolute rounded-full bg-red-500 ring-2 ring-white ${
-            desktop ? "right-3 top-3 h-4 w-4" : "right-2 top-2 h-3 w-3"
-          }`}
+          className={`home-pulse-dot absolute rounded-full bg-red-500 ring-2 ring-white ${desktop ? "right-3 top-3 h-4 w-4" : "right-2 top-2 h-3 w-3"
+            }`}
         />
       ) : null}
     </Link>
@@ -379,18 +383,29 @@ function RoleBadges({ items }: { items: Array<string | undefined | null> }) {
 
 function QuickMenuGrid() {
   return (
-    <div className="grid grid-cols-4 gap-x-2 gap-y-3 md:grid-cols-4 md:gap-5">
-      {quickMenus.map(({ href, label, description, icon: Icon }, index) => (
+    <div className="grid grid-cols-3 gap-x-2 gap-y-3 md:grid-cols-5 md:gap-5">
+      {quickMenus.map(({ href, label, description, icon: Icon, isComingSoon }: any, index) => (
         <Link
           key={href}
           href={href}
-          className="home-card-enter group flex flex-col items-center rounded-3xl text-center transition hover:-translate-y-0.5 active:scale-[0.98] md:border md:border-blue-100 md:bg-[#f8fbff] md:p-6 md:hover:-translate-y-1 md:hover:bg-white md:hover:shadow-xl md:hover:shadow-slate-200/60"
+          onClick={(e) => {
+            if (isComingSoon) {
+              e.preventDefault();
+            }
+          }}
+          className={`home-card-enter group flex flex-col items-center rounded-3xl text-center transition ${isComingSoon
+            ? "cursor-not-allowed opacity-50"
+            : "hover:-translate-y-0.5 active:scale-[0.98] md:hover:-translate-y-1 md:hover:bg-white md:hover:shadow-xl md:hover:shadow-slate-200/60"
+            } md:border md:border-blue-100 md:bg-[#f8fbff] md:p-6`}
           style={{
             animationDelay: `${index * 70}ms`,
           }}
         >
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eaf1ff] transition group-hover:scale-105 md:h-20 md:w-20">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#123c8c] text-white shadow-lg shadow-blue-900/20 transition group-hover:rotate-[-2deg] md:h-14 md:w-14">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-lg transition ${isComingSoon
+              ? "bg-slate-400 shadow-none"
+              : "bg-[#123c8c] shadow-blue-900/20 group-hover:rotate-[-2deg]"
+              } md:h-14 md:w-14`}>
               <Icon size={22} strokeWidth={2.6} />
             </div>
           </div>
@@ -425,13 +440,12 @@ function AttendanceButton({
       onClick={(event) => {
         if (disabled) event.preventDefault();
       }}
-      className={`flex h-14 items-center justify-center rounded-2xl text-sm font-black transition md:h-20 md:text-lg ${
-        disabled
+      className={`flex h-14 items-center justify-center rounded-2xl text-sm font-black transition md:h-20 md:text-lg ${disabled
           ? "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 dark:border-[#30363d] dark:bg-[#161b22]/40 dark:text-[#30363d]"
           : variant === "primary"
             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 hover:bg-[#0f3274] active:scale-[0.98] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] dark:shadow-none"
             : "border border-blue-100 bg-white text-[#123c8c] hover:-translate-y-0.5 hover:bg-[#eaf1ff] active:scale-[0.98] dark:border-[#30363d] dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
-      }`}
+        }`}
     >
       {label}
     </Link>
@@ -615,247 +629,189 @@ export default function HomePage() {
       withBottomPadding={false}
     >
       <HomeMotionStyles />
-        <div className="hidden md:block">
-          <AppHeader
-            title="Home"
-            subtitle="Dashboard Absensi"
-            rightLabel={mainRoleLabel || undefined}
-            variant="employee"
-          />
-        </div>
+      <AppHeader
+        title="Home"
+        subtitle="Dashboard Absensi"
+        rightLabel={mainRoleLabel || undefined}
+        variant="employee"
+      />
 
-        <main className="w-full max-w-full overflow-x-hidden text-slate-950 md:pb-28">
-          <div className="home-float-glow pointer-events-none fixed -left-32 top-24 hidden h-72 w-72 rounded-full bg-orange-200/20 blur-3xl md:block" />
-          <div className="home-float-glow pointer-events-none fixed -right-32 bottom-24 hidden h-72 w-72 rounded-full bg-blue-300/20 blur-3xl md:block" />
+      <main className="w-full max-w-full overflow-x-hidden text-slate-950 md:pb-28">
+        <div className="home-float-glow pointer-events-none fixed -left-32 top-24 hidden h-72 w-72 rounded-full bg-orange-200/20 blur-3xl md:block" />
+        <div className="home-float-glow pointer-events-none fixed -right-32 bottom-24 hidden h-72 w-72 rounded-full bg-blue-300/20 blur-3xl md:block" />
 
-          <section
-            className="home-enter bg-transparent md:hidden"
-            style={{
-              paddingTop: "env(safe-area-inset-top, 0px)",
-            }}
-          >
-            <div className="mx-auto w-full max-w-7xl px-5 pt-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="home-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white keep-white p-2 ring-1 ring-blue-100/60 dark:ring-slate-800/10">
-                    <Image
-                      src="/images/creativemu-logo/creativemu.png"
-                      alt="Creativemu Logo"
-                      width={56}
-                      height={56}
-                      className="h-full w-full object-contain"
-                      priority
-                    />
-                  </div>
+        <section
+          className="home-enter bg-transparent md:hidden"
+        >
+          <div className="mx-auto w-full max-w-7xl px-5">
 
-                  <ProfileAvatar user={user} />
+            <div className="py-7 text-center">
+              <p
+                className="home-text-reveal text-xs font-black uppercase tracking-[0.24em] text-[#123c8c]"
+                style={{
+                  animationDelay: "120ms",
+                }}
+              >
+                Selamat Datang
+              </p>
 
-                  <div className="min-w-0">
-                    <p className="home-text-reveal text-[10px] font-black uppercase tracking-[0.24em] text-[#123c8c]">
-                      FaceAttend
-                    </p>
+              <h2
+                className="home-text-reveal mt-3 text-4xl font-black tracking-tight text-[#073456]"
+                style={{
+                  animationDelay: "170ms",
+                }}
+              >
+                {firstName ? `Halo, ${firstName}` : "Memuat profil..."}
+              </h2>
 
-                    <h1
-                      className="home-text-reveal mt-1 truncate text-base font-black text-[#073456]"
-                      style={{
-                        animationDelay: "60ms",
-                      }}
-                    >
-                      {user.name || "Memuat profil..."}
-                    </h1>
+              <p
+                className="home-text-reveal mt-3 text-lg font-bold text-slate-500"
+                style={{
+                  animationDelay: "220ms",
+                }}
+              >
+                Semoga harimu produktif.
+              </p>
+            </div>
+          </div>
+        </section>
 
-                    {mainRoleLabel ? (
-                      <p
-                        className="home-text-reveal truncate text-xs font-bold text-slate-500"
-                        style={{
-                          animationDelay: "100ms",
-                        }}
-                      >
-                        {mainRoleLabel}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
+        <section className="mx-auto hidden max-w-7xl px-10 pt-8 md:block lg:px-16">
+          <div className="home-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-8 text-white shadow-2xl shadow-blue-900/25">
+            <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
+            <div className="absolute bottom-[-7rem] right-24 h-60 w-60 rounded-full bg-blue-300/10" />
 
-                <div className="flex shrink-0 items-center gap-3">
-                  <WhatsAppButton />
+            <div className="relative z-10 flex items-center justify-between gap-8">
+              <div className="flex items-center gap-5">
+                <ProfileAvatar user={user} size="desktop" variant="blue" />
 
-                  <AnnouncementButton
-                    unread={hasUnreadAnnouncement}
-                    onClick={markAnnouncementsAsRead}
+                <div>
+                  <h1 className="home-text-reveal text-4xl font-black tracking-tight">
+                    {firstName ? `Halo, ${firstName}` : "Memuat profil..."}
+                  </h1>
+
+                  <p
+                    className="home-text-reveal mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100"
+                    style={{
+                      animationDelay: "80ms",
+                    }}
+                  >
+                  </p>
+
+                  <RoleBadges
+                    items={[
+                      user.shift?.name,
+                      employeeTitle,
+                      user.unit?.name,
+                      user.department?.name,
+                    ]}
                   />
                 </div>
               </div>
 
-              <div className="py-7 text-center">
-                <p
-                  className="home-text-reveal text-xs font-black uppercase tracking-[0.24em] text-[#123c8c]"
-                  style={{
-                    animationDelay: "120ms",
-                  }}
-                >
-                  Selamat Datang
-                </p>
-
-                <h2
-                  className="home-text-reveal mt-3 text-4xl font-black tracking-tight text-[#073456]"
-                  style={{
-                    animationDelay: "170ms",
-                  }}
-                >
-                  {firstName ? `Halo, ${firstName}` : "Memuat profil..."}
-                </h2>
-
-                <p
-                  className="home-text-reveal mt-3 text-lg font-bold text-slate-500"
-                  style={{
-                    animationDelay: "220ms",
-                  }}
-                >
-                  Semoga harimu produktif.
-                </p>
-              </div>
+              <AnnouncementButton
+                unread={hasUnreadAnnouncement}
+                desktop
+                onClick={markAnnouncementsAsRead}
+              />
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section className="mx-auto hidden max-w-7xl px-10 pt-8 md:block lg:px-16">
-            <div className="home-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-8 text-white shadow-2xl shadow-blue-900/25">
-              <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
-              <div className="absolute bottom-[-7rem] right-24 h-60 w-60 rounded-full bg-blue-300/10" />
+        <section className="mx-auto w-full max-w-7xl bg-transparent md:bg-white/80 md:dark:bg-[#161b22]/85 md:backdrop-blur-xl md:border md:border-white/50 md:dark:border-[#21262d]/50 px-5 pb-[8.5rem] pt-2 md:mt-8 md:rounded-[2.5rem] md:px-8 md:pb-10 md:pt-8 lg:px-10">
+          <div className="mb-6 md:mb-8">
+            <QuickMenuGrid />
+          </div>
 
-              <div className="relative z-10 flex items-center justify-between gap-8">
-                <div className="flex items-center gap-5">
-                  <ProfileAvatar user={user} size="desktop" variant="blue" />
+          <AppCard
+            padding="md"
+            className="home-card-enter rounded-[1.8rem] border-blue-100 bg-white p-5 shadow-sm transition hover:shadow-xl hover:shadow-slate-200/60 md:p-8"
+            style={{
+              animationDelay: "140ms",
+            }}
+          >
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-4xl font-black tracking-tight text-slate-950 md:text-6xl">
+                    {currentTime || "--:-- WIB"}
+                  </p>
 
-                  <div>
-                    <h1 className="home-text-reveal text-4xl font-black tracking-tight">
-                      {firstName ? `Halo, ${firstName}` : "Memuat profil..."}
-                    </h1>
-
-                    <p
-                      className="home-text-reveal mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100"
-                      style={{
-                        animationDelay: "80ms",
-                      }}
-                    >
-                      Kelola kehadiran, riwayat presensi, profil, dan pengajuan
-                      izin dalam satu dashboard karyawan.
-                    </p>
-
-                    <RoleBadges
-                      items={[
-                        user.shift?.name,
-                        employeeTitle,
-                        user.unit?.name,
-                        user.department?.name,
-                      ]}
-                    />
+                  <div className="rounded-full bg-[#eaf1ff] px-3 py-1 text-xs font-black text-[#123c8c] md:px-3 md:py-1.5">
+                    WIB
                   </div>
                 </div>
 
-                <AnnouncementButton
-                  unread={hasUnreadAnnouncement}
-                  desktop
-                  onClick={markAnnouncementsAsRead}
+                <p className="mt-3 text-sm font-bold text-slate-500 md:text-base">
+                  {currentDate || "Memuat tanggal..."}
+                </p>
+
+                <p className="mt-3 text-sm font-semibold text-slate-500 md:mt-5 md:text-lg">
+                  {workScheduleText}
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-slate-500 md:mt-3 md:text-lg">
+                  Status hari ini:{" "}
+                  <span className="font-black text-[#123c8c]">
+                    {attendanceToday.status}
+                  </span>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 lg:w-[460px]">
+                <AttendanceButton
+                  label="Masuk"
+                  href="/attendance"
+                  disabled={hasCheckedIn}
+                  variant="primary"
+                />
+
+                <AttendanceButton
+                  label="Keluar"
+                  href="/attendance"
+                  disabled={!hasCheckedIn || hasCheckedOut}
+                  variant="secondary"
                 />
               </div>
             </div>
-          </section>
+          </AppCard>
 
-          <section className="mx-auto w-full max-w-7xl bg-transparent md:bg-white/80 md:dark:bg-[#161b22]/85 md:backdrop-blur-xl md:border md:border-white/50 md:dark:border-[#21262d]/50 px-5 pb-[8.5rem] pt-2 md:mt-8 md:rounded-[2.5rem] md:px-8 md:pb-10 md:pt-8 lg:px-10">
-            <div className="mb-6 md:mb-8">
-              <QuickMenuGrid />
+          <div
+            className="home-card-enter mt-7 flex items-center justify-between md:mt-14"
+            style={{
+              animationDelay: "180ms",
+            }}
+          >
+            <div>
+              <h2 className="text-2xl font-black text-slate-950 md:text-2xl">
+                Pengumuman
+              </h2>
+
+              <p className="mt-1 hidden text-sm font-semibold text-slate-500 md:block">
+                Informasi terbaru dari perusahaan.
+              </p>
             </div>
 
-            <AppCard
-              padding="md"
-              className="home-card-enter rounded-[1.8rem] border-blue-100 bg-white p-5 shadow-sm transition hover:shadow-xl hover:shadow-slate-200/60 md:p-8"
-              style={{
-                animationDelay: "140ms",
-              }}
+            <Link
+              href="/pengumuman"
+              onClick={markAnnouncementsAsRead}
+              className="text-lg font-black text-[#123c8c] transition hover:text-[#0f3274] active:scale-[0.98] md:text-base"
             >
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-4xl font-black tracking-tight text-slate-950 md:text-6xl">
-                      {currentTime || "--:-- WIB"}
-                    </p>
+              Lihat Lainnya
+            </Link>
+          </div>
 
-                    <div className="rounded-full bg-[#eaf1ff] px-3 py-1 text-xs font-black text-[#123c8c] md:px-3 md:py-1.5">
-                      WIB
-                    </div>
-                  </div>
+          <div className="mt-4 md:mt-6">
+            <AnnouncementList
+              announcements={announcements}
+              hasAnnouncement={hasAnnouncement}
+              onRead={markAnnouncementsAsRead}
+            />
+          </div>
+        </section>
 
-                  <p className="mt-3 text-sm font-bold text-slate-500 md:text-base">
-                    {currentDate || "Memuat tanggal..."}
-                  </p>
-
-                  <p className="mt-3 text-sm font-semibold text-slate-500 md:mt-5 md:text-lg">
-                    {workScheduleText}
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold text-slate-500 md:mt-3 md:text-lg">
-                    Status hari ini:{" "}
-                    <span className="font-black text-[#123c8c]">
-                      {attendanceToday.status}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 lg:w-[460px]">
-                  <AttendanceButton
-                    label="Masuk"
-                    href="/attendance"
-                    disabled={hasCheckedIn}
-                    variant="primary"
-                  />
-
-                  <AttendanceButton
-                    label="Keluar"
-                    href="/attendance"
-                    disabled={!hasCheckedIn || hasCheckedOut}
-                    variant="secondary"
-                  />
-                </div>
-              </div>
-            </AppCard>
-
-            <div
-              className="home-card-enter mt-7 flex items-center justify-between md:mt-14"
-              style={{
-                animationDelay: "180ms",
-              }}
-            >
-              <div>
-                <h2 className="text-2xl font-black text-slate-950 md:text-2xl">
-                  Pengumuman
-                </h2>
-
-                <p className="mt-1 hidden text-sm font-semibold text-slate-500 md:block">
-                  Informasi terbaru dari perusahaan.
-                </p>
-              </div>
-
-              <Link
-                href="/pengumuman"
-                onClick={markAnnouncementsAsRead}
-                className="text-lg font-black text-[#123c8c] transition hover:text-[#0f3274] active:scale-[0.98] md:text-base"
-              >
-                Lihat Lainnya
-              </Link>
-            </div>
-
-            <div className="mt-4 md:mt-6">
-              <AnnouncementList
-                announcements={announcements}
-                hasAnnouncement={hasAnnouncement}
-                onRead={markAnnouncementsAsRead}
-              />
-            </div>
-          </section>
-
-          <BottomNav />
-        </main>
+        <BottomNav />
+      </main>
     </MobileShell>
   );
 }

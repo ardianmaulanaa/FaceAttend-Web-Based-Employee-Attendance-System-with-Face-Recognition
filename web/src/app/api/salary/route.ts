@@ -125,6 +125,18 @@ export async function POST(req: Request) {
       createdByAdminId: authPayload.id,
     });
 
+    // Create a database notification for the employee
+    await prisma.adminNotification.create({
+      data: {
+        user_id: employee.id,
+        type: "salary",
+        title: "Slip Gaji Baru",
+        message: `Slip gaji Anda untuk periode ${month} senilai Rp ${amount.toLocaleString("id-ID")} telah diterbitkan oleh admin.`,
+      },
+    }).catch((err) => {
+      console.error("Gagal membuat notifikasi gaji:", err);
+    });
+
     return NextResponse.json(
       {
         success: true,

@@ -10,6 +10,8 @@ import {
   Loader2,
   Megaphone,
   RefreshCcw,
+  Coins,
+  Award,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
@@ -63,6 +65,8 @@ function getMonthTitle() {
 
 function getNotificationIcon(type: string) {
   if (type === "announcement") return Megaphone;
+  if (type === "salary") return Coins;
+  if (type === "reward") return Award;
 
   return CalendarDays;
 }
@@ -72,6 +76,18 @@ function getNotificationStyle(type: string) {
     return {
       badge: "bg-violet-50 text-violet-700 ring-violet-100",
       icon: "bg-violet-50 text-violet-700 ring-violet-100",
+    };
+  }
+  if (type === "salary") {
+    return {
+      badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+      icon: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    };
+  }
+  if (type === "reward") {
+    return {
+      badge: "bg-amber-50 text-amber-700 ring-amber-100",
+      icon: "bg-amber-50 text-amber-700 ring-amber-100",
     };
   }
 
@@ -268,7 +284,7 @@ export default function EmployeeNotificationPage() {
                 Notifikasi Karyawan
               </h3>
               <p className="mt-1 text-sm font-semibold text-slate-500">
-                Daftar ini otomatis menampilkan notifikasi pada bulan berjalan.
+                Daftar ini otomatis menampilkan notifikasi terbaru.
               </p>
             </div>
 

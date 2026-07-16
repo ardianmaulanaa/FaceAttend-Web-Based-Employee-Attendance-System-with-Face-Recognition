@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EMPLOYEE_NOTIFICATION_TYPES = ["leave_status", "announcement"];
+const EMPLOYEE_NOTIFICATION_TYPES = ["leave_status", "announcement", "salary", "reward"];
 
 async function getCurrentUser(req: NextRequest) {
   const token = req.cookies.get("faceattend_token")?.value;
@@ -102,12 +102,16 @@ function formatDate(value: Date | string | null | undefined) {
 
 function getNotificationHref(type: string) {
   if (type === "announcement") return "/pengumuman";
+  if (type === "salary") return "/salary";
+  if (type === "reward") return "/salary";
 
   return "/cuti";
 }
 
 function getNotificationLabel(type: string) {
   if (type === "announcement") return "Pengumuman";
+  if (type === "salary") return "Slip Gaji & Payroll";
+  if (type === "reward") return "Reward & Poin";
 
   return "Cuti / Izin / Sakit";
 }
@@ -120,17 +124,11 @@ export async function GET(req: NextRequest) {
       return jsonError("Akun tidak aktif.", 403);
     }
 
-    const { start, end } = getCurrentMonthRange();
-
     const notifications = await prisma.adminNotification.findMany({
       where: {
         user_id: currentUser.id,
         type: {
           in: EMPLOYEE_NOTIFICATION_TYPES,
-        },
-        created_at: {
-          gte: start,
-          lt: end,
         },
       },
       select: {

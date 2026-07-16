@@ -11,6 +11,8 @@ import {
   UserRound,
   Search,
   ArrowRight,
+  Award,
+  Coins,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -22,6 +24,8 @@ const employeeSuggestions = [
   { href: "/attendance", label: "Attendance / Absen", icon: ScanFace, category: "Menu Utama", keywords: ["attendance", "absen", "kehadiran", "scan wajah", "face recognition", "masuk", "pulang"] },
   { href: "/history", label: "History Kehadiran", icon: History, category: "Menu Utama", keywords: ["history", "riwayat", "kehadiran", "presensi", "log", "daftar"] },
   { href: "/cuti", label: "Pengajuan Cuti / Izin", icon: CalendarDays, category: "Menu Utama", keywords: ["cuti", "izin", "sakit", "pengajuan", "leave", "sakit", "permohonan"] },
+  { href: "/salary", label: "Rewards & Poin", icon: Award, category: "Menu Utama", keywords: ["reward", "rewards", "poin", "leaderboard", "eom", "ranking", "apresiasi"] },
+  { href: "/salary", label: "Gaji & Slip Payroll", icon: Coins, category: "Menu Utama", keywords: ["salary", "gaji", "payroll", "slip", "pendapatan", "transfer"] },
   { href: "/pengumuman", label: "Info Pengumuman", icon: Megaphone, category: "Menu Utama", keywords: ["pengumuman", "info", "informasi", "megafon", "announcement", "kabar"] },
   { href: "/profile", label: "Profile Saya", icon: UserRound, category: "Menu Utama", keywords: ["profile", "profil", "akun", "saya", "user", "pengaturan", "data diri"] },
 ];

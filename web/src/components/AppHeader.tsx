@@ -31,6 +31,7 @@ import {
   Search,
   TrendingUp,
   Coins,
+  Award,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -67,6 +68,7 @@ const employeeNav = [
   { href: "/cuti", label: "Cuti", icon: CalendarDays },
   { href: "/pengumuman", label: "Info", icon: Megaphone },
   { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "#", label: "Payroll & Kinerja (Coming Soon)", icon: Coins, isComingSoon: true },
 ];
 
 const adminMenus = [
@@ -79,11 +81,6 @@ const adminMenus = [
     href: "/admin/monitor_perusahaan",
     label: "Monitor Perusahaan",
     icon: BarChart3,
-  },
-  {
-    href: "/admin/analytics",
-    label: "HR Analytics",
-    icon: TrendingUp,
   },
   {
     href: "/admin/pengumuman",
@@ -142,14 +139,27 @@ const operationalMenus = [
     icon: CalendarDays,
   },
   {
-    href: "/admin/salary",
-    label: "Gaji & Payroll",
-    icon: Coins,
-  },
-  {
     href: "/admin/profil-karyawan",
     label: "Profil Karyawan",
     icon: UserRound,
+  },
+  {
+    href: "#",
+    label: "Gaji & Payroll (Coming Soon)",
+    icon: Coins,
+    isComingSoon: true,
+  },
+  {
+    href: "#",
+    label: "Rewards Karyawan (Coming Soon)",
+    icon: Award,
+    isComingSoon: true,
+  },
+  {
+    href: "#",
+    label: "HR Analytics (Coming Soon)",
+    icon: TrendingUp,
+    isComingSoon: true,
   },
 ];
 
@@ -158,6 +168,7 @@ const employeeSuggestions = [
   { href: "/attendance", label: "Attendance / Absen", icon: ScanFace, category: "Menu Utama", keywords: ["attendance", "absen", "kehadiran", "scan wajah", "face recognition", "masuk", "pulang"] },
   { href: "/history", label: "History Kehadiran", icon: History, category: "Menu Utama", keywords: ["history", "riwayat", "kehadiran", "presensi", "log", "daftar"] },
   { href: "/cuti", label: "Pengajuan Cuti / Izin", icon: CalendarDays, category: "Menu Utama", keywords: ["cuti", "izin", "sakit", "pengajuan", "leave", "sakit", "permohonan"] },
+  { href: "/salary", label: "Payroll & Kinerja", icon: Coins, category: "Menu Utama", keywords: ["salary", "gaji", "payroll", "slip", "kinerja", "poin", "rewards", "riwayat", "pemasukan", "bonus"] },
   { href: "/pengumuman", label: "Info Pengumuman", icon: Megaphone, category: "Menu Utama", keywords: ["pengumuman", "info", "informasi", "megafon", "announcement", "kabar"] },
   { href: "/profile", label: "Profile Saya", icon: UserRound, category: "Menu Utama", keywords: ["profile", "profil", "akun", "saya", "user", "pengaturan", "data diri"] },
 ];
@@ -182,6 +193,7 @@ const adminSuggestions = [
   { href: "/admin/laporan-kehadiran", label: "Laporan Kehadiran", icon: FileImage, category: "Operasional", keywords: ["laporan kehadiran", "rekap", "excel", "kehadiran", "presensi", "export"] },
   { href: "/admin/cuti", label: "Laporan & Approval Cuti", icon: CalendarDays, category: "Operasional", keywords: ["laporan cuti", "persetujuan cuti", "approval cuti", "pengajuan", "izin"] },
   { href: "/admin/salary", label: "Gaji & Payroll Admin", icon: Coins, category: "Operasional", keywords: ["salary", "gaji", "payroll", "slip", "potongan", "pph", "slip gaji", "massal", "kalkulasi"] },
+  { href: "/admin/rewards", label: "Rewards Karyawan", icon: Award, category: "Operasional", keywords: ["reward", "rewards", "poin", "leaderboard", "eom", "employee of the month", "ranking", "penghargaan", "apresiasi"] },
   { href: "/admin/profil-karyawan", label: "Profil Karyawan", icon: UserRound, category: "Operasional", keywords: ["profil karyawan", "daftar karyawan", "data karyawan", "edit karyawan", "list user"] },
 ];
 
@@ -252,8 +264,10 @@ export default function AppHeader({
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isBellMenuOpen, setIsBellMenuOpen] = useState(false);
   const [attendanceNotifications, setAttendanceNotifications] = useState<any[]>([]);
+  const [employeeNotifications, setEmployeeNotifications] = useState<any[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const bellMenuRef = useRef<HTMLDivElement | null>(null);
+  const employeeBellMenuRef = useRef<HTMLDivElement | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
 
   // Search State & Refs
@@ -414,8 +428,6 @@ export default function AppHeader({
   }, [attendanceNotifications, readNotifIds]);
 
   useEffect(() => {
-    if (!isAdmin) return;
-
     async function loadNotifications() {
       try {
         setIsLoadingNotifications(true);
@@ -434,14 +446,43 @@ export default function AppHeader({
       }
     }
 
-    void loadNotifications();
-  }, [isAdmin, pathname]);
+    if (isAdmin && (isBellMenuOpen || pathname)) {
+      void loadNotifications();
+    }
+  }, [isAdmin, pathname, isBellMenuOpen]);
+
+  useEffect(() => {
+    async function loadEmployeeNotifications() {
+      try {
+        const response = await fetch("/api/notifications", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const result = await response.json();
+        if (response.ok && Array.isArray(result.notifications)) {
+          setEmployeeNotifications(result.notifications);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    if (!isAdmin && (isBellMenuOpen || pathname)) {
+      void loadEmployeeNotifications();
+    }
+  }, [isAdmin, pathname, isBellMenuOpen]);
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
       if (
         bellMenuRef.current &&
         !bellMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsBellMenuOpen(false);
+      }
+      if (
+        employeeBellMenuRef.current &&
+        !employeeBellMenuRef.current.contains(event.target as Node)
       ) {
         setIsBellMenuOpen(false);
       }
@@ -531,7 +572,7 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 border-b px-5 py-4 backdrop-blur-2xl transition-all duration-300 md:px-10 lg:px-16 ${hasScrolled
+        className={`fixed inset-x-0 top-0 z-40 border-b px-3.5 py-2.5 md:px-10 md:py-4 backdrop-blur-2xl transition-all duration-300 lg:px-16 ${hasScrolled
           ? "border-blue-100/80 bg-white/95 dark:border-[#21262d] dark:bg-[#161b22]/95 shadow-lg shadow-slate-300/30 dark:shadow-black/20"
           : "border-white/60 bg-white/90 dark:border-[#21262d]/60 dark:bg-[#161b22]/90 shadow-sm shadow-slate-200/40 dark:shadow-none"
           }`}
@@ -546,24 +587,24 @@ export default function AppHeader({
           />
         </div>
 
-        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="flex min-w-0 shrink-0 items-center gap-4">
+        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-2 md:gap-4">
+          <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-lg shadow-slate-200/70 ring-1 ring-blue-100 transition hover:bg-blue-50 active:scale-[0.96]"
+              className="flex h-10 w-10 md:h-12 md:w-12 shrink-0 items-center justify-center rounded-xl md:rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-lg shadow-slate-200/70 ring-1 ring-blue-100 transition hover:bg-blue-50 active:scale-[0.96]"
               aria-label="Buka menu"
             >
-              <Menu size={25} strokeWidth={3} />
+              <Menu size={20} className="md:w-[25px] md:h-[25px]" strokeWidth={3} />
             </button>
 
             <div className="min-w-0">
-              <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950 md:text-2xl lg:text-3xl">
+              <h1 className="mt-1 truncate text-base sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950">
                 {title}
               </h1>
 
               {subtitle ? (
-                <p className="mt-1 line-clamp-1 max-w-xl text-sm font-semibold leading-5 text-slate-500">
+                <p className="mt-0.5 line-clamp-1 max-w-xl text-[10px] sm:text-xs md:text-sm font-semibold leading-5 text-slate-500">
                   {subtitle}
                 </p>
               ) : null}
@@ -669,31 +710,31 @@ export default function AppHeader({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-3">
+          <div className="flex shrink-0 items-center justify-end gap-1.5 md:gap-3">
             {/* Mobile Search Trigger Button */}
             <button
               type="button"
               onClick={() => setIsMobileSearchOpen(true)}
-              className={`flex md:hidden h-12 w-12 items-center justify-center rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark"
+              className={`flex md:hidden h-10 w-10 items-center justify-center rounded-xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark"
                 ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20"
                 : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"
                 }`}
               aria-label="Cari menu"
             >
-              <Search size={20} strokeWidth={2.5} />
+              <Search size={16} strokeWidth={2.5} />
             </button>
 
             {/* Header Theme Toggle Button */}
             <button
               type="button"
               onClick={toggleTheme}
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
+              className={`flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
               title={theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"}
             >
               {theme === "light" ? (
-                <Moon size={20} strokeWidth={2.5} />
+                <Moon size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.5} />
               ) : (
-                <Sun size={20} strokeWidth={2.5} />
+                <Sun size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.5} />
               )}
             </button>
 
@@ -702,9 +743,9 @@ export default function AppHeader({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Hubungi via WhatsApp"
-              className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#3fb950] ring-[#30363d] shadow-black/20" : "bg-[#ecfff5] text-[#00a884] ring-[#baf7dc] hover:bg-[#dcfce7]"}`}
+              className={`relative flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl md:rounded-2xl shadow-sm ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#3fb950] ring-[#30363d] shadow-black/20" : "bg-[#ecfff5] text-[#00a884] ring-[#baf7dc] hover:bg-[#dcfce7]"}`}
             >
-              <PhoneCall className="h-5 w-5" strokeWidth={2.7} />
+              <PhoneCall className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2.7} />
             </a>
 
             {isAdmin ? (
@@ -712,19 +753,19 @@ export default function AppHeader({
                 <button
                   type="button"
                   onClick={() => setIsBellMenuOpen(!isBellMenuOpen)}
-                  className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
+                  className={`relative flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
                   aria-label="Notifications"
                 >
-                  <Bell size={22} strokeWidth={2.5} />
+                  <Bell size={18} className="md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 md:h-5 md:min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] md:text-[10px] font-black text-white">
                       {unreadNotifications.length}
                     </span>
                   )}
                 </button>
 
                 {isBellMenuOpen && (
-                  <div className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
+                  <div className={`absolute right-0 top-12 md:top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
                       Pemberitahuan Admin
                     </p>
@@ -800,44 +841,88 @@ export default function AppHeader({
                 )}
               </div>
             ) : (
-              <>
-                <Link
-                  href={notificationHref}
-                  className={`relative hidden h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm ring-1 transition active:scale-[0.96] sm:inline-flex ${isNotificationPage
-                    ? "bg-[#123c8c] text-white ring-[#123c8c] shadow-lg shadow-blue-900/20"
-                    : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
-                    }`}
+              <div ref={employeeBellMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsBellMenuOpen(!isBellMenuOpen)}
+                  className={`relative flex h-10 w-10 md:h-12 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
+                  aria-label="Notifications"
                 >
-                  <span className="relative">
-                    <Bell size={20} strokeWidth={2.7} />
-
-                    {hasNewNotification ? (
-                      <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff8a00] text-[10px] font-black leading-none text-white">
-                        {formatNotificationCount(notificationCount)}
-                      </span>
-                    ) : null}
-                  </span>
-
-                  <span className="hidden lg:inline">Notifikasi</span>
-                </Link>
-
-                <Link
-                  href={notificationHref}
-                  aria-label="Buka notifikasi"
-                  className={`relative flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 transition active:scale-[0.96] sm:hidden ${isNotificationPage
-                    ? "bg-[#123c8c] text-white ring-[#123c8c]"
-                    : "bg-white text-[#123c8c] ring-blue-100 hover:bg-[#eaf1ff]"
-                    }`}
-                >
-                  <Bell size={21} strokeWidth={2.7} />
-
-                  {hasNewNotification ? (
-                    <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff8a00] text-[10px] font-black leading-none text-white">
-                      {formatNotificationCount(notificationCount)}
+                  <Bell size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.7} />
+                  {notificationCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 md:h-5 md:min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] md:text-[10px] font-black text-white">
+                      {notificationCount}
                     </span>
-                  ) : null}
-                </Link>
-              </>
+                  )}
+                  <span className="hidden lg:inline font-black text-sm">Notifikasi</span>
+                </button>
+
+                {isBellMenuOpen && (
+                  <div className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                      Notifikasi Karyawan
+                    </p>
+
+                    {employeeNotifications.length === 0 ? (
+                      <p className="mt-3 text-sm font-semibold text-slate-400">Tidak ada notifikasi baru.</p>
+                    ) : (
+                      <>
+                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                          {employeeNotifications.slice(0, 5).map((notif) => {
+                            const isRead = notif.status === "read" || notif.isRead;
+                            return (
+                              <div
+                                key={notif.id}
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+
+                                  if (!isRead) {
+                                    await fetch(`/api/notifications`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ id: notif.id }),
+                                    }).catch(console.error);
+                                    
+                                    setEmployeeNotifications(prev =>
+                                      prev.map(n => n.id === notif.id ? { ...n, isRead: true, status: "read" } : n)
+                                    );
+                                    setNotificationCount(c => Math.max(0, c - 1));
+                                  }
+
+                                  setIsBellMenuOpen(false);
+                                  router.push(notif.href || "/notifikasi");
+                                }}
+                                className={`rounded-xl p-3 border transition text-left cursor-pointer ${
+                                  !isRead
+                                    ? "bg-blue-50/50 hover:bg-blue-50 border-blue-100/50 text-slate-900 dark:text-white"
+                                    : "bg-slate-50/50 hover:bg-slate-50 border-slate-100/50 text-slate-700 dark:text-slate-300"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <p className="text-xs font-black text-[#123c8c] dark:text-blue-400">{notif.title}</p>
+                                  {!isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />}
+                                </div>
+                                <p className="mt-1 text-[11px] font-semibold text-slate-500 leading-snug">{notif.message}</p>
+                                <p className="mt-1 text-[9px] text-slate-400">{notif.dateText || "Baru saja"}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 border-t pt-2 text-center">
+                          <Link
+                            href="/notifikasi"
+                            onClick={() => setIsBellMenuOpen(false)}
+                            className="text-xs font-bold text-[#123c8c] hover:underline"
+                          >
+                            Lihat Semua Notifikasi
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {rightLabel ? (
@@ -849,7 +934,7 @@ export default function AppHeader({
         </div>
       </header>
 
-      <div className={subtitle ? "h-[106px]" : "h-[88px]"} />
+      <div className={subtitle ? "h-[88px] md:h-[106px]" : "h-[70px] md:h-[88px]"} />
 
       {/* Backdrop: always rendered, animated via opacity */}
       <button
@@ -964,15 +1049,19 @@ export default function AppHeader({
                     {operationalMenus.map((menu) => {
                       const Icon = menu.icon;
                       const active = isActivePath(pathname, menu.href);
+                      const isComingSoon = (menu as any).isComingSoon;
 
                       return (
                         <button
-                          key={menu.href}
+                          key={menu.label}
                           type="button"
+                          disabled={isComingSoon}
                           onClick={() => handleNavigate(menu.href)}
                           className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
                             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                            : isComingSoon
+                              ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                              : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
                             }`}
                         >
                           <Icon size={18} strokeWidth={2.5} />
@@ -988,20 +1077,24 @@ export default function AppHeader({
                 <p className="px-3 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
                   Menu Karyawan
                 </p>
-
+ 
                 <nav className="mt-3 space-y-2">
                   {employeeNav.map((menu) => {
                     const Icon = menu.icon;
                     const active = isActivePath(pathname, menu.href);
+                    const isComingSoon = (menu as any).isComingSoon;
 
                     return (
                       <button
-                        key={menu.href}
+                        key={menu.label}
                         type="button"
+                        disabled={isComingSoon}
                         onClick={() => handleNavigate(menu.href)}
                         className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
                           ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                          : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                          : isComingSoon
+                            ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
                           }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />

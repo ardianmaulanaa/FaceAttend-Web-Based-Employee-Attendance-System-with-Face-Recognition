@@ -33,11 +33,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: {
         email: normalizedEmail,
       },
     });
+
+    if (!user && normalizedEmail.endsWith("@creativemu.co.id")) {
+      const fallbackEmail = normalizedEmail.replace("@creativemu.co.id", "@creativemu.com");
+      user = await prisma.user.findUnique({
+        where: {
+          email: fallbackEmail,
+        },
+      });
+    }
 
     if (!user) {
       return NextResponse.json(
