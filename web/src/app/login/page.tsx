@@ -3,7 +3,15 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, LogIn, ShieldCheck, X, Moon, Sun } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  LogIn,
+  ShieldCheck,
+  X,
+  Moon,
+  Sun,
+} from "lucide-react";
 import MobileShell from "@/components/MobileShell";
 import { AppButton, AppCard, AppInput } from "@/components/ui/AppUI";
 import { useTheme } from "@/context/ThemeContext";
@@ -315,6 +323,17 @@ function LoginMotionStyles() {
       .login-presence-title {
         background: none;
         color: #123c8c;
+      }
+
+      @media (max-width: 767px) {
+        .login-presence-title {
+          width: auto !important;
+          max-width: 100%;
+          overflow: visible;
+          white-space: normal;
+          border-right: 0 !important;
+          animation: none !important;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -749,7 +768,9 @@ export default function LoginPage() {
             type="button"
             onClick={toggleTheme}
             className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-white/80 text-[#123c8c] shadow-lg backdrop-blur-md transition hover:bg-white active:scale-95 dark:border-slate-800/80 dark:bg-[#161b22]/80 dark:text-[#58a6ff] dark:hover:bg-[#161b22]"
-            title={theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"}
+            title={
+              theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"
+            }
           >
             {theme === "light" ? (
               <Moon size={20} strokeWidth={2.5} />
@@ -831,8 +852,6 @@ export default function LoginPage() {
               padding="lg"
               className={`login-card-enter w-full max-w-md shadow-2xl backdrop-blur-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/30" : "border-white/70 bg-white/90 shadow-slate-300/60"}`}
             >
-
-
               <form suppressHydrationWarning noValidate onSubmit={handleSubmit}>
                 <div className="login-field-enter mb-7 md:mb-8">
                   <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
@@ -903,8 +922,8 @@ export default function LoginPage() {
                       {loginRetrySeconds > 0
                         ? `Tunggu ${loginRetrySeconds}s`
                         : isLoading
-                        ? "Memproses..."
-                        : "Masuk"}
+                          ? "Memproses..."
+                          : "Masuk"}
                     </AppButton>
                   </div>
 

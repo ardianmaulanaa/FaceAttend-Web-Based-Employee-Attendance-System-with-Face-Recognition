@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
-
 type AppHeaderProps = {
   title: string;
   subtitle?: string;
@@ -68,7 +67,12 @@ const employeeNav = [
   { href: "/cuti", label: "Cuti", icon: CalendarDays },
   { href: "/pengumuman", label: "Info", icon: Megaphone },
   { href: "/profile", label: "Profile", icon: UserRound },
-  { href: "#", label: "Payroll & Kinerja (Coming Soon)", icon: Coins, isComingSoon: true },
+  {
+    href: "#",
+    label: "Payroll & Kinerja (Coming Soon)",
+    icon: Coins,
+    isComingSoon: true,
+  },
 ];
 
 const adminMenus = [
@@ -169,37 +173,307 @@ const operationalMenus = [
 ];
 
 const employeeSuggestions = [
-  { href: "/home", label: "Home", icon: Home, category: "Menu Utama", keywords: ["home", "beranda", "dashboard", "utama"] },
-  { href: "/attendance", label: "Attendance / Absen", icon: ScanFace, category: "Menu Utama", keywords: ["attendance", "absen", "kehadiran", "scan wajah", "face recognition", "masuk", "pulang"] },
-  { href: "/history", label: "History Kehadiran", icon: History, category: "Menu Utama", keywords: ["history", "riwayat", "kehadiran", "presensi", "log", "daftar"] },
-  { href: "/cuti", label: "Pengajuan Cuti / Izin", icon: CalendarDays, category: "Menu Utama", keywords: ["cuti", "izin", "sakit", "pengajuan", "leave", "sakit", "permohonan"] },
-  { href: "/salary", label: "Payroll & Kinerja", icon: Coins, category: "Menu Utama", keywords: ["salary", "gaji", "payroll", "slip", "kinerja", "poin", "rewards", "riwayat", "pemasukan", "bonus"] },
-  { href: "/pengumuman", label: "Info Pengumuman", icon: Megaphone, category: "Menu Utama", keywords: ["pengumuman", "info", "informasi", "megafon", "announcement", "kabar"] },
-  { href: "/profile", label: "Profile Saya", icon: UserRound, category: "Menu Utama", keywords: ["profile", "profil", "akun", "saya", "user", "pengaturan", "data diri"] },
+  {
+    href: "/home",
+    label: "Home",
+    icon: Home,
+    category: "Menu Utama",
+    keywords: ["home", "beranda", "dashboard", "utama"],
+  },
+  {
+    href: "/attendance",
+    label: "Attendance / Absen",
+    icon: ScanFace,
+    category: "Menu Utama",
+    keywords: [
+      "attendance",
+      "absen",
+      "kehadiran",
+      "scan wajah",
+      "face recognition",
+      "masuk",
+      "pulang",
+    ],
+  },
+  {
+    href: "/history",
+    label: "History Kehadiran",
+    icon: History,
+    category: "Menu Utama",
+    keywords: ["history", "riwayat", "kehadiran", "presensi", "log", "daftar"],
+  },
+  {
+    href: "/cuti",
+    label: "Pengajuan Cuti / Izin",
+    icon: CalendarDays,
+    category: "Menu Utama",
+    keywords: [
+      "cuti",
+      "izin",
+      "sakit",
+      "pengajuan",
+      "leave",
+      "sakit",
+      "permohonan",
+    ],
+  },
+  {
+    href: "/salary",
+    label: "Payroll & Kinerja",
+    icon: Coins,
+    category: "Menu Utama",
+    keywords: [
+      "salary",
+      "gaji",
+      "payroll",
+      "slip",
+      "kinerja",
+      "poin",
+      "rewards",
+      "riwayat",
+      "pemasukan",
+      "bonus",
+    ],
+  },
+  {
+    href: "/pengumuman",
+    label: "Info Pengumuman",
+    icon: Megaphone,
+    category: "Menu Utama",
+    keywords: [
+      "pengumuman",
+      "info",
+      "informasi",
+      "megafon",
+      "announcement",
+      "kabar",
+    ],
+  },
+  {
+    href: "/profile",
+    label: "Profile Saya",
+    icon: UserRound,
+    category: "Menu Utama",
+    keywords: [
+      "profile",
+      "profil",
+      "akun",
+      "saya",
+      "user",
+      "pengaturan",
+      "data diri",
+    ],
+  },
 ];
 
 const adminSuggestions = [
   // Menu Utama
-  { href: "/admin/dashboard", label: "Dashboard Admin", icon: LayoutDashboard, category: "Menu Utama", keywords: ["dashboard", "beranda", "ringkasan", "summary", "admin"] },
-  { href: "/admin/monitor_perusahaan", label: "Monitor Perusahaan", icon: BarChart3, category: "Menu Utama", keywords: ["monitor perusahaan", "pemantauan", "kehadiran real-time", "karyawan", "live", "pantau"] },
-  { href: "/admin/analytics", label: "HR Analytics Dashboard", icon: TrendingUp, category: "Menu Utama", keywords: ["hr analytics", "analitik", "grafik", "prediksi", "kedisiplinan", "reward", "sanksi", "promosi"] },
-  { href: "/admin/pengumuman", label: "Pengumuman Admin", icon: Megaphone, category: "Menu Utama", keywords: ["pengumuman", "info", "buat pengumuman", "broadcast", "pengumuman baru"] },
+  {
+    href: "/admin/dashboard",
+    label: "Dashboard Admin",
+    icon: LayoutDashboard,
+    category: "Menu Utama",
+    keywords: ["dashboard", "beranda", "ringkasan", "summary", "admin"],
+  },
+  {
+    href: "/admin/monitor_perusahaan",
+    label: "Monitor Perusahaan",
+    icon: BarChart3,
+    category: "Menu Utama",
+    keywords: [
+      "monitor perusahaan",
+      "pemantauan",
+      "kehadiran real-time",
+      "karyawan",
+      "live",
+      "pantau",
+    ],
+  },
+  {
+    href: "/admin/analytics",
+    label: "HR Analytics Dashboard",
+    icon: TrendingUp,
+    category: "Menu Utama",
+    keywords: [
+      "hr analytics",
+      "analitik",
+      "grafik",
+      "prediksi",
+      "kedisiplinan",
+      "reward",
+      "sanksi",
+      "promosi",
+    ],
+  },
+  {
+    href: "/admin/pengumuman",
+    label: "Pengumuman Admin",
+    icon: Megaphone,
+    category: "Menu Utama",
+    keywords: [
+      "pengumuman",
+      "info",
+      "buat pengumuman",
+      "broadcast",
+      "pengumuman baru",
+    ],
+  },
 
   // Master Data
-  { href: "/admin/shifts", label: "Shift Kerja", icon: Clock3, category: "Master Data", keywords: ["shift", "jadwal", "piket", "jam kerja", "waktu", "pagi", "siang", "malam"] },
-  { href: "/admin/work-schedules", label: "Jam Kerja Schedule", icon: CalendarClock, category: "Master Data", keywords: ["jam kerja", "jadwal kerja", "schedule", "work schedule", "hari kerja"] },
-  { href: "/admin/kantor", label: "Kantor & Lokasi", icon: Building2, category: "Master Data", keywords: ["kantor", "lokasi", "gps", "koordinat", "cabang", "alamat", "radius"] },
-  { href: "/admin/departments", label: "Divisi / Department", icon: Network, category: "Master Data", keywords: ["divisi", "department", "departemen", "bagian", "struktur"] },
-  { href: "/admin/units", label: "Unit Kerja", icon: Building2, category: "Master Data", keywords: ["unit", "unit kerja", "bagian", "kelompok", "cabang"] },
-  { href: "/admin/positions", label: "Jabatan Pekerjaan", icon: UserRoundCog, category: "Master Data", keywords: ["jabatan", "posisi", "role", "pangkat", "job", "title"] },
+  {
+    href: "/admin/shifts",
+    label: "Shift Kerja",
+    icon: Clock3,
+    category: "Master Data",
+    keywords: [
+      "shift",
+      "jadwal",
+      "piket",
+      "jam kerja",
+      "waktu",
+      "pagi",
+      "siang",
+      "malam",
+    ],
+  },
+  {
+    href: "/admin/work-schedules",
+    label: "Jam Kerja Schedule",
+    icon: CalendarClock,
+    category: "Master Data",
+    keywords: [
+      "jam kerja",
+      "jadwal kerja",
+      "schedule",
+      "work schedule",
+      "hari kerja",
+    ],
+  },
+  {
+    href: "/admin/kantor",
+    label: "Kantor & Lokasi",
+    icon: Building2,
+    category: "Master Data",
+    keywords: [
+      "kantor",
+      "lokasi",
+      "gps",
+      "koordinat",
+      "cabang",
+      "alamat",
+      "radius",
+    ],
+  },
+  {
+    href: "/admin/departments",
+    label: "Divisi / Department",
+    icon: Network,
+    category: "Master Data",
+    keywords: ["divisi", "department", "departemen", "bagian", "struktur"],
+  },
+  {
+    href: "/admin/units",
+    label: "Unit Kerja",
+    icon: Building2,
+    category: "Master Data",
+    keywords: ["unit", "unit kerja", "bagian", "kelompok", "cabang"],
+  },
+  {
+    href: "/admin/positions",
+    label: "Jabatan Pekerjaan",
+    icon: UserRoundCog,
+    category: "Master Data",
+    keywords: ["jabatan", "posisi", "role", "pangkat", "job", "title"],
+  },
 
   // Operasional
-  { href: "/admin/employees", label: "Register Employee", icon: UserPlus, category: "Operasional", keywords: ["register employee", "tambah karyawan", "daftar karyawan baru", "pendaftaran", "buat akun"] },
-  { href: "/admin/laporan-kehadiran", label: "Laporan Kehadiran", icon: FileImage, category: "Operasional", keywords: ["laporan kehadiran", "rekap", "excel", "kehadiran", "presensi", "export"] },
-  { href: "/admin/cuti", label: "Laporan & Approval Cuti", icon: CalendarDays, category: "Operasional", keywords: ["laporan cuti", "persetujuan cuti", "approval cuti", "pengajuan", "izin"] },
-  { href: "/admin/salary", label: "Gaji & Payroll Admin", icon: Coins, category: "Operasional", keywords: ["salary", "gaji", "payroll", "slip", "potongan", "pph", "slip gaji", "massal", "kalkulasi"] },
-  { href: "/admin/rewards", label: "Rewards Karyawan", icon: Award, category: "Operasional", keywords: ["reward", "rewards", "poin", "leaderboard", "eom", "employee of the month", "ranking", "penghargaan", "apresiasi"] },
-  { href: "/admin/profil-karyawan", label: "Profil Karyawan", icon: UserRound, category: "Operasional", keywords: ["profil karyawan", "daftar karyawan", "data karyawan", "edit karyawan", "list user"] },
+  {
+    href: "/admin/employees",
+    label: "Register Employee",
+    icon: UserPlus,
+    category: "Operasional",
+    keywords: [
+      "register employee",
+      "tambah karyawan",
+      "daftar karyawan baru",
+      "pendaftaran",
+      "buat akun",
+    ],
+  },
+  {
+    href: "/admin/laporan-kehadiran",
+    label: "Laporan Kehadiran",
+    icon: FileImage,
+    category: "Operasional",
+    keywords: [
+      "laporan kehadiran",
+      "rekap",
+      "excel",
+      "kehadiran",
+      "presensi",
+      "export",
+    ],
+  },
+  {
+    href: "/admin/cuti",
+    label: "Laporan & Approval Cuti",
+    icon: CalendarDays,
+    category: "Operasional",
+    keywords: [
+      "laporan cuti",
+      "persetujuan cuti",
+      "approval cuti",
+      "pengajuan",
+      "izin",
+    ],
+  },
+  {
+    href: "/admin/salary",
+    label: "Gaji & Payroll Admin",
+    icon: Coins,
+    category: "Operasional",
+    keywords: [
+      "salary",
+      "gaji",
+      "payroll",
+      "slip",
+      "potongan",
+      "pph",
+      "slip gaji",
+      "massal",
+      "kalkulasi",
+    ],
+  },
+  {
+    href: "/admin/rewards",
+    label: "Rewards Karyawan",
+    icon: Award,
+    category: "Operasional",
+    keywords: [
+      "reward",
+      "rewards",
+      "poin",
+      "leaderboard",
+      "eom",
+      "employee of the month",
+      "ranking",
+      "penghargaan",
+      "apresiasi",
+    ],
+  },
+  {
+    href: "/admin/profil-karyawan",
+    label: "Profil Karyawan",
+    icon: UserRound,
+    category: "Operasional",
+    keywords: [
+      "profil karyawan",
+      "daftar karyawan",
+      "data karyawan",
+      "edit karyawan",
+      "list user",
+    ],
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -268,7 +542,9 @@ export default function AppHeader({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isBellMenuOpen, setIsBellMenuOpen] = useState(false);
-  const [attendanceNotifications, setAttendanceNotifications] = useState<any[]>([]);
+  const [attendanceNotifications, setAttendanceNotifications] = useState<any[]>(
+    [],
+  );
   const [employeeNotifications, setEmployeeNotifications] = useState<any[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const bellMenuRef = useRef<HTMLDivElement | null>(null);
@@ -317,7 +593,10 @@ export default function AppHeader({
   const saveSearchQuery = (query: string) => {
     const trimmed = query.trim();
     if (!trimmed) return;
-    const updated = [trimmed, ...searchHistory.filter((q) => q !== trimmed)].slice(0, 8);
+    const updated = [
+      trimmed,
+      ...searchHistory.filter((q) => q !== trimmed),
+    ].slice(0, 8);
     setSearchHistory(updated);
     localStorage.setItem("faceattend_search_history", JSON.stringify(updated));
   };
@@ -386,21 +665,27 @@ export default function AppHeader({
     }
   }, [isMobileSearchOpen]);
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, isMobile = false) => {
+  const handleSearchKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    isMobile = false,
+  ) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveSuggestionIndex((prev) =>
-        prev < filteredHistory.length - 1 ? prev + 1 : 0
+        prev < filteredHistory.length - 1 ? prev + 1 : 0,
       );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveSuggestionIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredHistory.length - 1
+        prev > 0 ? prev - 1 : filteredHistory.length - 1,
       );
     } else if (e.key === "Enter") {
       e.preventDefault();
       let targetQuery = searchQuery;
-      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < filteredHistory.length) {
+      if (
+        activeSuggestionIndex >= 0 &&
+        activeSuggestionIndex < filteredHistory.length
+      ) {
         targetQuery = filteredHistory[activeSuggestionIndex];
       }
       triggerSearch(targetQuery);
@@ -429,7 +714,9 @@ export default function AppHeader({
   }, []);
 
   const unreadNotifications = useMemo(() => {
-    return attendanceNotifications.filter((notif) => !readNotifIds.includes(notif.id));
+    return attendanceNotifications.filter(
+      (notif) => !readNotifIds.includes(notif.id),
+    );
   }, [attendanceNotifications, readNotifIds]);
 
   useEffect(() => {
@@ -593,10 +880,11 @@ export default function AppHeader({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 border-b px-3.5 py-2.5 md:px-10 md:py-4 backdrop-blur-2xl transition-all duration-300 lg:px-16 ${hasScrolled
-          ? "border-blue-100/80 bg-white/95 dark:border-[#21262d] dark:bg-[#161b22]/95 shadow-lg shadow-slate-300/30 dark:shadow-black/20"
-          : "border-white/60 bg-white/90 dark:border-[#21262d]/60 dark:bg-[#161b22]/90 shadow-sm shadow-slate-200/40 dark:shadow-none"
-          }`}
+        className={`fixed inset-x-0 top-0 z-40 border-b px-3.5 py-2.5 md:px-10 md:py-4 backdrop-blur-2xl transition-all duration-300 lg:px-16 ${
+          hasScrolled
+            ? "border-blue-100/80 bg-white/95 dark:border-[#21262d] dark:bg-[#161b22]/95 shadow-lg shadow-slate-300/30 dark:shadow-black/20"
+            : "border-white/60 bg-white/90 dark:border-[#21262d]/60 dark:bg-[#161b22]/90 shadow-sm shadow-slate-200/40 dark:shadow-none"
+        }`}
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div
@@ -609,23 +897,27 @@ export default function AppHeader({
         </div>
 
         <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-2 md:gap-4">
-          <div className="flex shrink-0 items-center gap-2 md:gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
               className="flex h-10 w-10 md:h-12 md:w-12 shrink-0 items-center justify-center rounded-xl md:rounded-2xl bg-[#eaf1ff] text-[#123c8c] shadow-lg shadow-slate-200/70 ring-1 ring-blue-100 transition hover:bg-blue-50 active:scale-[0.96]"
               aria-label="Buka menu"
             >
-              <Menu size={20} className="md:w-[25px] md:h-[25px]" strokeWidth={3} />
+              <Menu
+                size={20}
+                className="md:w-[25px] md:h-[25px]"
+                strokeWidth={3}
+              />
             </button>
 
             <div className="min-w-0">
-              <h1 className="mt-0.5 text-sm sm:text-base md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950 leading-tight truncate max-w-[150px] sm:max-w-[240px] md:max-w-[400px] lg:max-w-none">
+              <h1 className="mt-0.5 text-sm sm:text-base md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950 leading-tight truncate max-w-[56vw] sm:max-w-[62vw] md:max-w-[400px] lg:max-w-none">
                 {title}
               </h1>
 
               {subtitle ? (
-                <p className="mt-0.5 text-[9px] sm:text-xs md:text-sm font-semibold leading-tight text-slate-500 truncate max-w-[150px] sm:max-w-[240px] md:max-w-[400px] lg:max-w-none">
+                <p className="mt-0.5 text-[9px] sm:text-xs md:text-sm font-semibold leading-tight text-slate-500 truncate max-w-[56vw] sm:max-w-[62vw] md:max-w-[400px] lg:max-w-none">
                   {subtitle}
                 </p>
               ) : null}
@@ -633,9 +925,14 @@ export default function AppHeader({
           </div>
 
           {/* Quick Search Bar (Desktop) */}
-          <div ref={searchContainerRef} className="relative hidden lg:block flex-1 min-w-[120px] max-w-xs lg:max-w-md xl:max-w-xl mx-4 z-50">
+          <div
+            ref={searchContainerRef}
+            className="relative hidden lg:block flex-1 min-w-[120px] max-w-xs lg:max-w-md xl:max-w-xl mx-4 z-50"
+          >
             <div className="relative flex items-center">
-              <Search className={`absolute left-4 h-4 w-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-400'}`} />
+              <Search
+                className={`absolute left-4 h-4 w-4 ${theme === "dark" ? "text-slate-400" : "text-slate-400"}`}
+              />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -644,18 +941,20 @@ export default function AppHeader({
                 onFocus={() => setIsSearchFocused(true)}
                 onKeyDown={(e) => handleSearchKeyDown(e, false)}
                 placeholder="Cari data..."
-                className={`w-full rounded-2xl py-2.5 pl-11 pr-12 text-sm font-semibold border outline-none transition-all duration-200 ${theme === 'dark'
-                  ? 'bg-[#21262d]/50 border-[#30363d] text-slate-100 placeholder-slate-500 focus:bg-[#161b22] focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]'
-                  : 'bg-[#f6f8ff] border-blue-100 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#123c8c] focus:ring-1 focus:ring-[#123c8c]'
-                  }`}
+                className={`w-full rounded-2xl py-2.5 pl-11 pr-12 text-sm font-semibold border outline-none transition-all duration-200 ${
+                  theme === "dark"
+                    ? "bg-[#21262d]/50 border-[#30363d] text-slate-100 placeholder-slate-500 focus:bg-[#161b22] focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                    : "bg-[#f6f8ff] border-blue-100 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#123c8c] focus:ring-1 focus:ring-[#123c8c]"
+                }`}
               />
               <button
                 type="button"
                 onClick={() => triggerSearch(searchQuery)}
-                className={`absolute right-3 p-1.5 rounded-xl transition ${theme === 'dark'
-                  ? 'text-slate-400 hover:text-[#58a6ff] hover:bg-[#30363d]'
-                  : 'text-slate-500 hover:text-[#123c8c] hover:bg-blue-50'
-                  }`}
+                className={`absolute right-3 p-1.5 rounded-xl transition ${
+                  theme === "dark"
+                    ? "text-slate-400 hover:text-[#58a6ff] hover:bg-[#30363d]"
+                    : "text-slate-500 hover:text-[#123c8c] hover:bg-blue-50"
+                }`}
                 aria-label="Cari"
               >
                 <Search size={16} strokeWidth={2.5} />
@@ -664,12 +963,18 @@ export default function AppHeader({
 
             {/* Suggestions Dropdown */}
             {isSearchFocused && (
-              <div className={`absolute left-0 right-0 mt-2 max-h-[300px] overflow-y-auto rounded-2xl border p-2 shadow-2xl transition-all duration-200 ${theme === 'dark'
-                ? 'border-[#30363d] bg-[#161b22] shadow-black/40'
-                : 'border-blue-100 bg-white shadow-slate-300/40'
-                }`}>
-                <div className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
+              <div
+                className={`absolute left-0 right-0 mt-2 max-h-[300px] overflow-y-auto rounded-2xl border p-2 shadow-2xl transition-all duration-200 ${
+                  theme === "dark"
+                    ? "border-[#30363d] bg-[#161b22] shadow-black/40"
+                    : "border-blue-100 bg-white shadow-slate-300/40"
+                }`}
+              >
+                <div
+                  className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
+                    theme === "dark" ? "text-slate-500" : "text-slate-400"
+                  }`}
+                >
                   Riwayat Pencarian
                 </div>
 
@@ -685,14 +990,15 @@ export default function AppHeader({
                         <div
                           key={item}
                           onMouseEnter={() => setActiveSuggestionIndex(index)}
-                          className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-150 cursor-pointer ${isActive
-                            ? theme === 'dark'
-                              ? 'bg-[#1f6feb] text-white'
-                              : 'bg-[#123c8c] text-white shadow-md shadow-blue-900/10'
-                            : theme === 'dark'
-                              ? 'text-slate-300 hover:bg-[#21262d] hover:text-[#58a6ff]'
-                              : 'text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]'
-                            }`}
+                          className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? theme === "dark"
+                                ? "bg-[#1f6feb] text-white"
+                                : "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                              : theme === "dark"
+                                ? "text-slate-300 hover:bg-[#21262d] hover:text-[#58a6ff]"
+                                : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                          }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
                             setSearchQuery(item);
@@ -701,7 +1007,11 @@ export default function AppHeader({
                           }}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <Clock3 size={16} strokeWidth={2.5} className="shrink-0 opacity-60" />
+                            <Clock3
+                              size={16}
+                              strokeWidth={2.5}
+                              className="shrink-0 opacity-60"
+                            />
                             <span className="truncate">{item}</span>
                           </div>
                           <button
@@ -712,12 +1022,13 @@ export default function AppHeader({
                               e.stopPropagation();
                             }}
                             onClick={(e) => deleteHistoryItem(e, item)}
-                            className={`p-1 rounded-lg transition-all ${isActive
-                              ? 'text-white/80 hover:text-white hover:bg-white/10'
-                              : theme === 'dark'
-                                ? 'text-slate-500 hover:text-red-400 hover:bg-red-500/10'
-                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                              }`}
+                            className={`p-1 rounded-lg transition-all ${
+                              isActive
+                                ? "text-white/80 hover:text-white hover:bg-white/10"
+                                : theme === "dark"
+                                  ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            }`}
                             title="Hapus dari riwayat"
                           >
                             <X size={14} strokeWidth={3} />
@@ -736,10 +1047,11 @@ export default function AppHeader({
             <button
               type="button"
               onClick={() => setIsMobileSearchOpen(true)}
-              className={`flex lg:hidden h-10 w-10 items-center justify-center rounded-xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark"
-                ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20"
-                : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"
-                }`}
+              className={`flex lg:hidden h-10 w-10 items-center justify-center rounded-xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${
+                theme === "dark"
+                  ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20"
+                  : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"
+              }`}
               aria-label="Cari menu"
             >
               <Search size={16} strokeWidth={2.5} />
@@ -750,12 +1062,24 @@ export default function AppHeader({
               type="button"
               onClick={toggleTheme}
               className={`flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
-              title={theme === "light" ? "Aktifkan Mode Gelap" : "Aktifkan Mode Terang"}
+              title={
+                theme === "light"
+                  ? "Aktifkan Mode Gelap"
+                  : "Aktifkan Mode Terang"
+              }
             >
               {theme === "light" ? (
-                <Moon size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.5} />
+                <Moon
+                  size={16}
+                  className="md:w-[20px] md:h-[20px]"
+                  strokeWidth={2.5}
+                />
               ) : (
-                <Sun size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.5} />
+                <Sun
+                  size={16}
+                  className="md:w-[20px] md:h-[20px]"
+                  strokeWidth={2.5}
+                />
               )}
             </button>
 
@@ -777,7 +1101,11 @@ export default function AppHeader({
                   className={`relative flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
                   aria-label="Notifications"
                 >
-                  <Bell size={18} className="md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
+                  <Bell
+                    size={18}
+                    className="md:w-[22px] md:h-[22px]"
+                    strokeWidth={2.5}
+                  />
                   {unreadNotifications.length > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-4 min-w-4 md:h-5 md:min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] md:text-[10px] font-black text-white">
                       {unreadNotifications.length}
@@ -786,15 +1114,21 @@ export default function AppHeader({
                 </button>
 
                 {isBellMenuOpen && (
-                  <div className={`absolute right-0 top-12 md:top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
+                  <div
+                    className={`absolute right-0 top-12 md:top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
+                  >
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
                       Pemberitahuan Admin
                     </p>
 
                     {isLoadingNotifications ? (
-                      <p className="mt-3 text-sm font-semibold text-slate-400">Memuat...</p>
+                      <p className="mt-3 text-sm font-semibold text-slate-400">
+                        Memuat...
+                      </p>
                     ) : attendanceNotifications.length === 0 ? (
-                      <p className="mt-3 text-sm font-semibold text-slate-400">Tidak ada notifikasi baru.</p>
+                      <p className="mt-3 text-sm font-semibold text-slate-400">
+                        Tidak ada notifikasi baru.
+                      </p>
                     ) : (
                       <>
                         <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
@@ -810,7 +1144,10 @@ export default function AppHeader({
                                   if (!isRead) {
                                     const nextIds = [...readNotifIds, notif.id];
                                     setReadNotifIds(nextIds);
-                                    localStorage.setItem("read_notification_ids", JSON.stringify(nextIds));
+                                    localStorage.setItem(
+                                      "read_notification_ids",
+                                      JSON.stringify(nextIds),
+                                    );
                                   }
 
                                   if (notif.type === "leave-request") {
@@ -818,13 +1155,16 @@ export default function AppHeader({
                                     router.push("/admin/cuti");
                                   }
                                 }}
-                                className={`relative rounded-xl p-3 transition text-left ${notif.type === "leave-request"
-                                  ? "bg-red-50 hover:bg-red-100/70 cursor-pointer border border-red-100"
-                                  : "bg-[#f6f8ff]"
-                                  }`}
+                                className={`relative rounded-xl p-3 transition text-left ${
+                                  notif.type === "leave-request"
+                                    ? "bg-red-50 hover:bg-red-100/70 cursor-pointer border border-red-100"
+                                    : "bg-[#f6f8ff]"
+                                }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <p className="text-xs font-black text-[#123c8c]">{notif.employeeName}</p>
+                                  <p className="text-xs font-black text-[#123c8c]">
+                                    {notif.employeeName}
+                                  </p>
                                   <div className="flex items-center gap-1.5">
                                     {!isRead && (
                                       <span className="h-2 w-2 rounded-full bg-red-500" />
@@ -836,9 +1176,13 @@ export default function AppHeader({
                                     )}
                                   </div>
                                 </div>
-                                <p className="mt-1 text-xs font-semibold text-slate-600 leading-snug">{notif.message}</p>
+                                <p className="mt-1 text-xs font-semibold text-slate-600 leading-snug">
+                                  {notif.message}
+                                </p>
                                 <p className="mt-1 text-[10px] font-semibold text-slate-400">
-                                  {new Date(notif.happenedAt).toLocaleTimeString("id-ID", {
+                                  {new Date(
+                                    notif.happenedAt,
+                                  ).toLocaleTimeString("id-ID", {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
@@ -869,28 +1213,39 @@ export default function AppHeader({
                   className={`relative flex h-10 w-10 md:h-12 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl md:rounded-2xl shadow-lg ring-1 transition hover:scale-[1.05] active:scale-[0.96] ${theme === "dark" ? "bg-[#21262d] text-[#58a6ff] ring-[#30363d] shadow-black/20" : "bg-[#eaf1ff] text-[#123c8c] ring-blue-100 shadow-slate-200/70 hover:bg-blue-50"}`}
                   aria-label="Notifications"
                 >
-                  <Bell size={16} className="md:w-[20px] md:h-[20px]" strokeWidth={2.7} />
+                  <Bell
+                    size={16}
+                    className="md:w-[20px] md:h-[20px]"
+                    strokeWidth={2.7}
+                  />
                   {notificationCount > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-4 min-w-4 md:h-5 md:min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] md:text-[10px] font-black text-white">
                       {notificationCount}
                     </span>
                   )}
-                  <span className="hidden lg:inline font-black text-sm">Notifikasi</span>
+                  <span className="hidden lg:inline font-black text-sm">
+                    Notifikasi
+                  </span>
                 </button>
 
                 {isBellMenuOpen && (
-                  <div className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}>
+                  <div
+                    className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
+                  >
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
                       Notifikasi Karyawan
                     </p>
 
                     {employeeNotifications.length === 0 ? (
-                      <p className="mt-3 text-sm font-semibold text-slate-400">Tidak ada notifikasi baru.</p>
+                      <p className="mt-3 text-sm font-semibold text-slate-400">
+                        Tidak ada notifikasi baru.
+                      </p>
                     ) : (
                       <>
                         <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
                           {employeeNotifications.slice(0, 5).map((notif) => {
-                            const isRead = notif.status === "read" || notif.isRead;
+                            const isRead =
+                              notif.status === "read" || notif.isRead;
                             return (
                               <div
                                 key={notif.id}
@@ -901,30 +1256,51 @@ export default function AppHeader({
                                   if (!isRead) {
                                     await fetch(`/api/notifications`, {
                                       method: "PATCH",
-                                      headers: { "Content-Type": "application/json" },
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
                                       body: JSON.stringify({ id: notif.id }),
                                     }).catch(console.error);
 
-                                    setEmployeeNotifications(prev =>
-                                      prev.map(n => n.id === notif.id ? { ...n, isRead: true, status: "read" } : n)
+                                    setEmployeeNotifications((prev) =>
+                                      prev.map((n) =>
+                                        n.id === notif.id
+                                          ? {
+                                              ...n,
+                                              isRead: true,
+                                              status: "read",
+                                            }
+                                          : n,
+                                      ),
                                     );
-                                    setNotificationCount(c => Math.max(0, c - 1));
+                                    setNotificationCount((c) =>
+                                      Math.max(0, c - 1),
+                                    );
                                   }
 
                                   setIsBellMenuOpen(false);
                                   router.push(notif.href || "/notifikasi");
                                 }}
-                                className={`rounded-xl p-3 border transition text-left cursor-pointer ${!isRead
+                                className={`rounded-xl p-3 border transition text-left cursor-pointer ${
+                                  !isRead
                                     ? "bg-blue-50/50 hover:bg-blue-50 border-blue-100/50 text-slate-900 dark:text-white"
                                     : "bg-slate-50/50 hover:bg-slate-50 border-slate-100/50 text-slate-700 dark:text-slate-300"
-                                  }`}
+                                }`}
                               >
                                 <div className="flex items-center justify-between gap-1.5">
-                                  <p className="text-xs font-black text-[#123c8c] dark:text-blue-400">{notif.title}</p>
-                                  {!isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />}
+                                  <p className="text-xs font-black text-[#123c8c] dark:text-blue-400">
+                                    {notif.title}
+                                  </p>
+                                  {!isRead && (
+                                    <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                                  )}
                                 </div>
-                                <p className="mt-1 text-[11px] font-semibold text-slate-500 leading-snug">{notif.message}</p>
-                                <p className="mt-1 text-[9px] text-slate-400">{notif.dateText || "Baru saja"}</p>
+                                <p className="mt-1 text-[11px] font-semibold text-slate-500 leading-snug">
+                                  {notif.message}
+                                </p>
+                                <p className="mt-1 text-[9px] text-slate-400">
+                                  {notif.dateText || "Baru saja"}
+                                </p>
                               </div>
                             );
                           })}
@@ -954,7 +1330,9 @@ export default function AppHeader({
         </div>
       </header>
 
-      <div className={subtitle ? "h-[88px] md:h-[106px]" : "h-[70px] md:h-[88px]"} />
+      <div
+        className={subtitle ? "h-[88px] md:h-[106px]" : "h-[70px] md:h-[88px]"}
+      />
 
       {/* Backdrop: always rendered, animated via opacity */}
       <button
@@ -964,9 +1342,9 @@ export default function AppHeader({
         className={`sidebar-backdrop ${isSidebarOpen ? "open" : ""}`}
       />
 
-      <aside className={`sidebar-drawer ${isSidebarOpen ? "open" : ""} fixed left-0 top-0 z-[1001] h-dvh w-[82vw] max-w-80 border-r border-indigo-100/70 dark:border-[#21262d] bg-[#f4f2ff] dark:bg-[#161b22] shadow-2xl shadow-slate-950/20`}>
-
-
+      <aside
+        className={`sidebar-drawer ${isSidebarOpen ? "open" : ""} fixed left-0 top-0 z-[1001] h-dvh w-[82vw] max-w-80 border-r border-indigo-100/70 dark:border-[#21262d] bg-[#f4f2ff] dark:bg-[#161b22] shadow-2xl shadow-slate-950/20`}
+      >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-blue-50 px-5 py-5">
             <div className="flex items-center gap-3">
@@ -1019,10 +1397,11 @@ export default function AppHeader({
                         key={menu.href}
                         type="button"
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
-                          ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                          : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                          }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                          active
+                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                        }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
@@ -1047,10 +1426,11 @@ export default function AppHeader({
                           key={menu.href}
                           type="button"
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${active
-                            ? "bg-[#eaf1ff] text-[#123c8c]"
-                            : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
-                            }`}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
+                            active
+                              ? "bg-[#eaf1ff] text-[#123c8c]"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
+                          }`}
                         >
                           <Icon size={15} strokeWidth={2.5} />
                           {menu.label}
@@ -1077,12 +1457,13 @@ export default function AppHeader({
                           type="button"
                           disabled={isComingSoon}
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
-                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                            : isComingSoon
-                              ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
-                              : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                            }`}
+                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                            active
+                              ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                              : isComingSoon
+                                ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                                : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                          }`}
                         >
                           <Icon size={18} strokeWidth={2.5} />
                           {menu.label}
@@ -1110,12 +1491,13 @@ export default function AppHeader({
                         type="button"
                         disabled={isComingSoon}
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
-                          ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                          : isComingSoon
-                            ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
-                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                          }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                          active
+                            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
+                            : isComingSoon
+                              ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                              : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                        }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />
                         {menu.label}
@@ -1143,13 +1525,18 @@ export default function AppHeader({
       {/* Mobile Search Modal/Overlay */}
       {isMobileSearchOpen && (
         <div className="fixed inset-0 z-[1100] flex flex-col bg-slate-900/40 dark:bg-black/60 backdrop-blur-md">
-          <div className={`flex flex-col h-full max-h-[85vh] w-full rounded-b-3xl border-b p-5 shadow-2xl transition-all duration-300 ${theme === 'dark'
-            ? 'border-[#30363d] bg-[#161b22]'
-            : 'border-blue-100 bg-white'
-            }`}>
+          <div
+            className={`flex flex-col h-full max-h-[85vh] w-full rounded-b-3xl border-b p-5 shadow-2xl transition-all duration-300 ${
+              theme === "dark"
+                ? "border-[#30363d] bg-[#161b22]"
+                : "border-blue-100 bg-white"
+            }`}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="relative flex-1 flex items-center">
-                <Search className={`absolute left-4 h-4 w-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-400'}`} />
+                <Search
+                  className={`absolute left-4 h-4 w-4 ${theme === "dark" ? "text-slate-400" : "text-slate-400"}`}
+                />
                 <input
                   ref={mobileSearchInputRef}
                   type="text"
@@ -1157,10 +1544,11 @@ export default function AppHeader({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => handleSearchKeyDown(e, true)}
                   placeholder="Cari data..."
-                  className={`w-full rounded-2xl py-2.5 pl-11 pr-12 text-sm font-semibold border outline-none transition-all duration-200 ${theme === 'dark'
-                    ? 'bg-[#21262d] border-[#30363d] text-slate-100 placeholder-slate-500 focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]'
-                    : 'bg-[#f6f8ff] border-blue-100 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#123c8c] focus:ring-1 focus:ring-[#123c8c]'
-                    }`}
+                  className={`w-full rounded-2xl py-2.5 pl-11 pr-12 text-sm font-semibold border outline-none transition-all duration-200 ${
+                    theme === "dark"
+                      ? "bg-[#21262d] border-[#30363d] text-slate-100 placeholder-slate-500 focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                      : "bg-[#f6f8ff] border-blue-100 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#123c8c] focus:ring-1 focus:ring-[#123c8c]"
+                  }`}
                 />
                 <button
                   type="button"
@@ -1168,10 +1556,11 @@ export default function AppHeader({
                     triggerSearch(searchQuery);
                     setIsMobileSearchOpen(false);
                   }}
-                  className={`absolute right-3 p-1.5 rounded-xl transition ${theme === 'dark'
-                    ? 'text-slate-400 hover:text-[#58a6ff] hover:bg-[#30363d]'
-                    : 'text-slate-500 hover:text-[#123c8c] hover:bg-blue-50'
-                    }`}
+                  className={`absolute right-3 p-1.5 rounded-xl transition ${
+                    theme === "dark"
+                      ? "text-slate-400 hover:text-[#58a6ff] hover:bg-[#30363d]"
+                      : "text-slate-500 hover:text-[#123c8c] hover:bg-blue-50"
+                  }`}
                   aria-label="Cari"
                 >
                   <Search size={16} strokeWidth={2.5} />
@@ -1180,10 +1569,11 @@ export default function AppHeader({
               <button
                 type="button"
                 onClick={() => setIsMobileSearchOpen(false)}
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition active:scale-[0.96] ${theme === 'dark'
-                  ? 'bg-[#21262d] text-slate-300 hover:bg-[#30363d]'
-                  : 'bg-[#eaf1ff] text-[#123c8c] hover:bg-blue-100'
-                  }`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition active:scale-[0.96] ${
+                  theme === "dark"
+                    ? "bg-[#21262d] text-slate-300 hover:bg-[#30363d]"
+                    : "bg-[#eaf1ff] text-[#123c8c] hover:bg-blue-100"
+                }`}
                 aria-label="Tutup pencarian"
               >
                 <X size={20} strokeWidth={2.8} />
@@ -1191,8 +1581,11 @@ export default function AppHeader({
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4">
-              <div className={`px-2 py-1 text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
-                }`}>
+              <div
+                className={`px-2 py-1 text-[10px] font-black uppercase tracking-wider ${
+                  theme === "dark" ? "text-slate-500" : "text-slate-400"
+                }`}
+              >
                 Riwayat Pencarian
               </div>
 
@@ -1207,14 +1600,15 @@ export default function AppHeader({
                     return (
                       <div
                         key={item}
-                        className={`flex items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all duration-150 cursor-pointer ${isActive
-                          ? theme === 'dark'
-                            ? 'bg-[#1f6feb] text-white'
-                            : 'bg-[#123c8c] text-white shadow-md shadow-blue-900/10'
-                          : theme === 'dark'
-                            ? 'bg-[#21262d]/40 text-slate-300 hover:bg-[#21262d]'
-                            : 'bg-[#f6f8ff] text-slate-600 hover:bg-[#eaf1ff]'
-                          }`}
+                        className={`flex items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                          isActive
+                            ? theme === "dark"
+                              ? "bg-[#1f6feb] text-white"
+                              : "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                            : theme === "dark"
+                              ? "bg-[#21262d]/40 text-slate-300 hover:bg-[#21262d]"
+                              : "bg-[#f6f8ff] text-slate-600 hover:bg-[#eaf1ff]"
+                        }`}
                         onClick={() => {
                           setSearchQuery(item);
                           triggerSearch(item);
@@ -1222,7 +1616,11 @@ export default function AppHeader({
                         }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Clock3 size={18} strokeWidth={2.5} className="shrink-0 opacity-60" />
+                          <Clock3
+                            size={18}
+                            strokeWidth={2.5}
+                            className="shrink-0 opacity-60"
+                          />
                           <span className="truncate">{item}</span>
                         </div>
                         <button
@@ -1232,12 +1630,13 @@ export default function AppHeader({
                             e.stopPropagation();
                             deleteHistoryItem(e, item);
                           }}
-                          className={`p-1.5 rounded-xl transition-all ${isActive
-                            ? 'text-white/80 hover:text-white hover:bg-white/10'
-                            : theme === 'dark'
-                              ? 'text-slate-500 hover:text-red-400 hover:bg-red-500/10'
-                              : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                            }`}
+                          className={`p-1.5 rounded-xl transition-all ${
+                            isActive
+                              ? "text-white/80 hover:text-white hover:bg-white/10"
+                              : theme === "dark"
+                                ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                                : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          }`}
                           title="Hapus dari riwayat"
                         >
                           <X size={16} strokeWidth={3} />
@@ -1249,7 +1648,10 @@ export default function AppHeader({
               )}
             </div>
           </div>
-          <div className="flex-1" onClick={() => setIsMobileSearchOpen(false)} />
+          <div
+            className="flex-1"
+            onClick={() => setIsMobileSearchOpen(false)}
+          />
         </div>
       )}
     </>
