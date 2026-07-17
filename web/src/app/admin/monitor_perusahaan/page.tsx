@@ -471,9 +471,22 @@ function AnimatedHistogram({
   maxValue: number;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [mobileShowAll, setMobileShowAll] = useState(false);
   const safeMaxValue = Math.max(maxValue, 1);
   const activePoint =
     activeIndex !== null && points[activeIndex] ? points[activeIndex] : null;
+
+  // Mobile: filter to only non-zero points unless "show all" is toggled
+  const nonZeroPoints = points.filter((p) => p.value > 0);
+  const mobilePoints = mobileShowAll
+    ? points
+    : nonZeroPoints.length > 0
+      ? nonZeroPoints
+      : points;
+  const hasHiddenZeros =
+    !mobileShowAll &&
+    nonZeroPoints.length > 0 &&
+    nonZeroPoints.length < points.length;
 
   return (
     <>
@@ -498,6 +511,17 @@ function AnimatedHistogram({
           }
         }
 
+        @keyframes mobileBarFill {
+          from {
+            width: 0%;
+          }
+        }
+
+        .chart-scroll-container {
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
         .chart-scroll-container::-webkit-scrollbar {
           height: 6px;
         }
@@ -513,127 +537,189 @@ function AnimatedHistogram({
         }
       `}</style>
 
-      <div className="monitor-row-enter mt-6 rounded-[1.65rem] border border-blue-100 bg-[#123c8c] p-3 text-white shadow-xl shadow-blue-900/15 md:rounded-[2rem] md:p-5 w-full">
+      <div className="monitor-row-enter mt-6 w-full rounded-[1.25rem] border border-blue-100 bg-[#123c8c] p-3 text-white shadow-xl shadow-blue-900/15 sm:rounded-[1.65rem] md:rounded-[2rem] md:p-5">
         <div className="w-full">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100 md:text-xs">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-blue-100 sm:text-[10px] md:text-xs">
                 Histogram Monitor
               </p>
 
-              <h4 className="mt-1 truncate text-xl font-black tracking-tight text-white md:text-2xl">
+              <h4 className="mt-1 truncate text-lg font-black tracking-tight text-white sm:text-xl md:text-2xl">
                 {metricLabel} per Tanggal
               </h4>
             </div>
 
-            <div className="w-fit rounded-2xl bg-white/10 px-3 py-2 text-xs font-black text-blue-50 ring-1 ring-white/10 md:px-4 md:py-3 md:text-sm">
+            <div className="w-fit rounded-xl bg-white/10 px-2.5 py-1.5 text-[10px] font-black text-blue-50 ring-1 ring-white/10 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-xs md:px-4 md:py-3 md:text-sm">
               Maksimum: {safeMaxValue} {unit}
             </div>
           </div>
 
-          <div className="relative mt-5 h-[255px] rounded-[1.35rem] border border-white/10 bg-[#0f3578] px-4 pb-12 pt-6 shadow-inner md:h-[300px] md:rounded-[1.6rem] md:px-5 md:pb-14 md:pt-8">
-            {/* Scrollable container for the actual chart bars & grid */}
-            <div className="chart-scroll-container overflow-x-auto w-full h-[calc(100%-1rem)] pb-4">
-              <div className="min-w-[640px] md:min-w-[850px] h-full relative">
-                {/* Grid Lines Container */}
-                <div className="pointer-events-none absolute inset-x-4 bottom-12 h-[120px] md:inset-x-5 md:bottom-14 md:h-[160px]">
-                  {Array.from({ length: 5 }).map((_, index) => {
-                    const percent = index * 25;
-                    const value = Math.round((safeMaxValue * percent) / 100);
+          {/* ====== MOBILE VIEW: Horizontal bar rows (hidden on md+) ====== */}
+          <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-[#0f3578] p-3 shadow-inner md:hidden">
+            <div className="space-y-1.5">
+              {mobilePoints.map((point, index) => {
+                const widthPercent = Math.max(
+                  (point.value / safeMaxValue) * 100,
+                  point.value > 0 ? 6 : 0,
+                );
 
-                    return (
+                return (
+                  <div
+                    key={`mobile-${metricLabel}-${point.label}`}
+                    className="monitor-row-enter flex items-center gap-2"
+                    style={{ animationDelay: `${index * 25}ms` }}
+                  >
+                    {/* Date label */}
+                    <span className="w-7 shrink-0 text-right text-[11px] font-black text-blue-100/80">
+                      {point.label}
+                    </span>
+
+                    {/* Bar track */}
+                    <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-white/5">
                       <div
-                        key={percent}
-                        className="absolute left-0 right-0 border-t border-white/14"
-                        style={{ bottom: `${percent}%` }}
-                      >
-                        <span className="absolute -top-2 right-0 rounded-full bg-[#0f3578] px-1.5 text-[9px] font-black text-blue-100/75 md:px-2 md:text-[10px]">
-                          {value}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                        className="absolute inset-y-0 left-0 rounded-lg bg-gradient-to-r from-blue-300/90 to-blue-200/80 transition-all duration-500 ease-out"
+                        style={{
+                          width: `${widthPercent}%`,
+                          animation: "mobileBarFill 600ms ease-out",
+                          animationDelay: `${index * 30}ms`,
+                          animationFillMode: "backwards",
+                        }}
+                      />
 
-                {/* Bars Flex Container */}
-                <div className="absolute z-10 flex h-[120px] items-end gap-1 inset-x-4 bottom-12 md:inset-x-5 md:bottom-14 md:h-[160px] md:gap-4">
+                      {/* Value inside bar */}
+                      {point.value > 0 ? (
+                        <span
+                          className="absolute inset-y-0 flex items-center text-[10px] font-black"
+                          style={{
+                            left:
+                              widthPercent > 20
+                                ? "8px"
+                                : `calc(${widthPercent}% + 6px)`,
+                            color: widthPercent > 20 ? "#0f3578" : "#93c5fd",
+                          }}
+                        >
+                          {point.value} {unit}
+                        </span>
+                      ) : (
+                        <span className="absolute inset-y-0 left-2 flex items-center text-[10px] font-medium text-blue-200/40">
+                          0
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Toggle show all / show active only */}
+            {hasHiddenZeros ? (
+              <button
+                type="button"
+                onClick={() => setMobileShowAll(!mobileShowAll)}
+                className="mt-3 w-full rounded-lg bg-white/8 px-3 py-2 text-[10px] font-black text-blue-200 ring-1 ring-white/10 transition hover:bg-white/12 active:scale-[0.98]"
+              >
+                {mobileShowAll
+                  ? `Sembunyikan tanggal kosong`
+                  : `Tampilkan semua ${points.length} tanggal`}
+              </button>
+            ) : null}
+
+            {/* Summary info */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="rounded-full bg-white/8 px-2.5 py-1 text-[9px] font-black text-blue-50/70 ring-1 ring-white/8">
+                {nonZeroPoints.length} dari {points.length} tanggal ada data
+              </div>
+
+              <div className="rounded-full bg-white/8 px-2.5 py-1 text-[9px] font-black text-blue-100 ring-1 ring-white/8">
+                Total: {points.reduce((s, p) => s + p.value, 0)} {unit}
+              </div>
+            </div>
+          </div>
+
+          {/* ====== DESKTOP VIEW: Cleaner horizontal bars for web (hidden below md) ====== */}
+          <div className="relative mt-5 hidden rounded-[1.6rem] border border-white/10 bg-[#0f3578] shadow-inner md:block dark:border-white/15 dark:bg-[#111a2a]">
+            <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="chart-scroll-container max-h-[360px] overflow-y-auto pr-1">
+                <div className="space-y-2.5">
                   {points.map((point, index) => {
-                    const heightPercent = Math.max(
+                    const widthPercent = Math.max(
                       (point.value / safeMaxValue) * 100,
-                      point.value > 0 ? 8 : 2.5
+                      point.value > 0 ? 5 : 0,
                     );
                     const isActive = activeIndex === index;
 
                     return (
-                      <div
+                      <button
                         key={`${metricLabel}-${point.label}`}
-                        className="relative flex h-full w-3 shrink-0 flex-col items-center justify-end md:w-4"
+                        type="button"
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onMouseLeave={() => setActiveIndex(null)}
+                        onFocus={() => setActiveIndex(index)}
+                        onBlur={() => setActiveIndex(null)}
+                        onClick={() => setActiveIndex(isActive ? null : index)}
+                        className={`monitor-row-enter grid w-full grid-cols-[44px_minmax(0,1fr)_90px] items-center gap-3 rounded-xl px-2 py-2 text-left transition duration-200 ${
+                          isActive
+                            ? "bg-white/14 ring-1 ring-white/20"
+                            : "bg-white/6 hover:bg-white/10"
+                        }`}
+                        style={{ animationDelay: `${index * 16}ms` }}
+                        aria-label={`${metricLabel} tanggal ${point.label}: ${point.value} ${unit}`}
                       >
-                        <button
-                          type="button"
-                          onMouseEnter={() => setActiveIndex(index)}
-                          onMouseLeave={() => setActiveIndex(null)}
-                          onFocus={() => setActiveIndex(index)}
-                          onBlur={() => setActiveIndex(null)}
-                          onClick={() => setActiveIndex(index)}
-                          className={`monitor-bar-enter relative w-full rounded-t-md outline-none transition duration-300 ease-out ${
-                            isActive
-                              ? "scale-x-110 bg-blue-200"
-                              : "bg-blue-300/95 hover:bg-blue-200"
-                          }`}
-                          style={{
-                            height: `${heightPercent}%`,
-                            animationDelay: `${index * 18}ms`,
-                            animationName: isActive ? "histogramBarGlow" : undefined,
-                            animationDuration: isActive ? "160ms" : undefined,
-                            animationTimingFunction: isActive ? "ease-out" : undefined,
-                            animationFillMode: isActive ? "forwards" : undefined,
-                          }}
-                          aria-label={`${metricLabel} tanggal ${point.label}: ${point.value} ${unit}`}
-                        >
-                          {isActive ? (
-                            <div
-                              className="absolute left-1/2 z-30 w-24 -translate-x-1/2 rounded-xl border border-white/40 bg-white/70 px-2 py-1.5 text-center shadow-lg shadow-blue-950/10 backdrop-blur-md"
-                              style={{
-                                bottom: `calc(${heightPercent}% + 10px)`,
-                                animation:
-                                  "histogramTooltipIn 160ms ease-out forwards",
-                              }}
-                            >
-                              <p className="text-base font-black leading-none text-[#123c8c]">
-                                {point.value}
-                              </p>
-                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
-                                {unit}
-                              </p>
-                            </div>
-                          ) : null}
-                        </button>
-
-                        <p className="mt-2 text-[8px] font-bold text-blue-50/80 md:text-[9px]">
+                        <span className="text-xs font-black text-blue-100">
                           {point.label}
-                        </p>
+                        </span>
 
-                        <p className="text-[8px] font-black text-white md:text-[9px]">
-                          {point.value}
-                        </p>
-                      </div>
+                        <span className="relative h-8 overflow-hidden rounded-lg bg-white/12">
+                          <span
+                            className={`absolute inset-y-0 left-0 rounded-lg transition-all duration-500 ease-out ${
+                              isActive
+                                ? "bg-gradient-to-r from-blue-100 to-blue-200"
+                                : "bg-gradient-to-r from-blue-300/95 to-blue-200/90"
+                            }`}
+                            style={{ width: `${widthPercent}%` }}
+                          />
+                        </span>
+
+                        <span className="truncate text-right text-xs font-black text-white">
+                          {point.value} {unit}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {activePoint ? (
-              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
-                {metricLabel} tanggal {activePoint.label}: {activePoint.value}{" "}
-                {unit}
+              <div className="rounded-2xl border border-white/12 bg-white/8 p-3 ring-1 ring-white/8">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-100/80">
+                  Ringkasan Web
+                </p>
+
+                <p className="mt-2 text-sm font-black text-white">
+                  {points.length} tanggal dipantau
+                </p>
+
+                <p className="mt-1 text-xs font-semibold text-blue-100/80">
+                  Total: {points.reduce((sum, item) => sum + item.value, 0)}{" "}
+                  {unit}
+                </p>
+
+                <p className="mt-1 text-xs font-semibold text-blue-100/80">
+                  Rata-rata:{" "}
+                  {(
+                    points.reduce((sum, item) => sum + item.value, 0) /
+                    Math.max(points.length, 1)
+                  ).toFixed(1)}{" "}
+                  {unit}
+                </p>
+
+                <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-blue-50 ring-1 ring-white/10">
+                  {activePoint
+                    ? `${metricLabel} tgl ${activePoint.label}: ${activePoint.value} ${unit}`
+                    : "Hover bar untuk detail harian"}
+                </div>
               </div>
-            ) : (
-              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50/80 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
-                Hover / tap batang untuk melihat info
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -730,13 +816,15 @@ function PieProgressCard({
   const currentRotation = 360 * (animatedPercentage / 100);
 
   return (
-    <div className="monitor-row-enter rounded-3xl border border-blue-100 bg-white p-5 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40">
+    <div className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-3 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 sm:rounded-3xl sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-black text-slate-950">{animatedValue}</p>
+          <p className="mt-1.5 text-2xl font-black text-slate-950 sm:mt-2 sm:text-3xl">
+            {animatedValue}
+          </p>
           <p className="mt-1 text-xs font-bold text-slate-500">{description}</p>
         </div>
 
@@ -745,20 +833,20 @@ function PieProgressCard({
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-4">
+      <div className="mt-3 flex items-center gap-3 sm:mt-5 sm:gap-4">
         <div
-          className="relative h-24 w-24 rounded-full transition-transform duration-300"
+          className="relative h-20 w-20 shrink-0 rounded-full transition-transform duration-300 sm:h-24 sm:w-24"
           style={{
             background: `conic-gradient(${theme === "dark" ? "#388bfd" : "#123c8c"} 0% ${visualPercentage}%, ${theme === "dark" ? "#30363d" : "#dbeafe"} ${visualPercentage}% 100%)`,
             transform: `rotate(${currentRotation}deg)`,
           }}
         >
           <div
-            className="absolute inset-[10px] flex items-center justify-center rounded-full bg-white pie-progress-circle"
+            className="absolute inset-[8px] flex items-center justify-center rounded-full bg-white pie-progress-circle sm:inset-[10px]"
             style={{ transform: `rotate(-${currentRotation}deg)` }}
           >
             <div className="text-center">
-              <p className="text-lg font-black text-slate-950">
+              <p className="text-base font-black text-slate-950 sm:text-lg">
                 {animatedPercentage.toFixed(1)}%
               </p>
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
@@ -769,14 +857,14 @@ function PieProgressCard({
         </div>
 
         <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center justify-between rounded-2xl bg-[#f8fbff] px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-blue-100 pie-capsule-terpakai">
+          <div className="flex items-center justify-between rounded-xl bg-[#f8fbff] px-2.5 py-1.5 text-xs font-bold text-slate-600 ring-1 ring-blue-100 pie-capsule-terpakai sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm">
             <span>Terpakai</span>
             <span className="font-black text-[#123c8c]">
               {animatedPercentage.toFixed(1)}%
             </span>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100 pie-capsule-sisa">
+          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-500 ring-1 ring-slate-100 pie-capsule-sisa sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm">
             <span>Sisa</span>
             <span className="font-black text-slate-700">
               {rest.toFixed(1)}%
@@ -876,16 +964,16 @@ export default function AdminCompanyMonitorPage() {
         },
         dailyChart: Array.isArray(monitorResult?.dailyChart)
           ? monitorResult.dailyChart.map((item: DailyChartPoint) => ({
-            ...item,
-            present: toSafeNumber(item?.present),
-            late: toSafeNumber(item?.late),
-            wfh: toSafeNumber(item?.wfh),
-            visit: toSafeNumber(item?.visit),
-            cuti: toSafeNumber(item?.cuti),
-            pending: toSafeNumber(item?.pending),
-            active: toSafeNumber(item?.active),
-            todayRecords: toSafeNumber(item?.todayRecords),
-          }))
+              ...item,
+              present: toSafeNumber(item?.present),
+              late: toSafeNumber(item?.late),
+              wfh: toSafeNumber(item?.wfh),
+              visit: toSafeNumber(item?.visit),
+              cuti: toSafeNumber(item?.cuti),
+              pending: toSafeNumber(item?.pending),
+              active: toSafeNumber(item?.active),
+              todayRecords: toSafeNumber(item?.todayRecords),
+            }))
           : [],
         alerts: Array.isArray(monitorResult?.alerts)
           ? monitorResult.alerts
@@ -1035,24 +1123,33 @@ export default function AdminCompanyMonitorPage() {
       <AppHeader title="Monitor Perusahaan" variant="admin" />
 
       <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff]">
-        <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
-          <div className="monitor-enter overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-slate-300/30">
+        <section className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 sm:py-5 md:space-y-6 md:px-10 md:py-6 lg:px-16">
+          <div className="monitor-enter overflow-hidden rounded-[1.25rem] border border-blue-100 bg-white shadow-xl shadow-slate-300/30 sm:rounded-[1.5rem] md:rounded-[2rem]">
             <div className="grid gap-0 xl:grid-cols-[0.95fr_1.05fr]">
-              <div className="bg-[#123c8c] p-6 text-white md:p-8">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                    <BarChart3 size={25} strokeWidth={2.6} />
+              <div className="bg-[#123c8c] p-4 text-white sm:p-6 md:p-8">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 sm:h-12 sm:w-12 sm:rounded-2xl">
+                    <BarChart3
+                      size={22}
+                      strokeWidth={2.6}
+                      className="sm:hidden"
+                    />
+                    <BarChart3
+                      size={25}
+                      strokeWidth={2.6}
+                      className="hidden sm:block"
+                    />
                   </div>
 
                   <div>
-                    <h2 className="mt-1 text-3xl font-black tracking-tight md:text-4xl">
+                    <h2 className="text-xl font-black tracking-tight sm:mt-1 sm:text-3xl md:text-4xl">
                       Snapshot Perusahaan
                     </h2>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-5 p-5 md:p-6">
+              <div className="space-y-4 p-3 sm:space-y-5 sm:p-5 md:p-6">
                 <div
                   className="monitor-row-enter"
                   style={{ animationDelay: "60ms" }}
@@ -1061,7 +1158,7 @@ export default function AdminCompanyMonitorPage() {
                     Mode Tampilan
                   </p>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-[#f6f8ff] p-1.5 ring-1 ring-blue-100">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-xl bg-[#f6f8ff] p-1 ring-1 ring-blue-100 sm:mt-3 sm:gap-2 sm:rounded-2xl sm:p-1.5">
                     {displayModeOptions.map((option) => {
                       const active = displayMode === option.value;
 
@@ -1070,10 +1167,11 @@ export default function AdminCompanyMonitorPage() {
                           key={option.value}
                           type="button"
                           onClick={() => setDisplayMode(option.value)}
-                          className={`h-11 rounded-xl text-sm font-black transition active:scale-[0.98] ${active
+                          className={`h-9 rounded-lg text-xs font-black transition active:scale-[0.98] sm:h-11 sm:rounded-xl sm:text-sm ${
+                            active
                               ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                               : "text-slate-500 hover:bg-white hover:text-[#123c8c]"
-                            }`}
+                          }`}
                         >
                           {option.label}
                         </button>
@@ -1083,7 +1181,7 @@ export default function AdminCompanyMonitorPage() {
                 </div>
 
                 <div
-                  className="monitor-row-enter grid gap-3 md:grid-cols-2"
+                  className="monitor-row-enter grid gap-2 sm:gap-3 md:grid-cols-2"
                   style={{ animationDelay: "100ms" }}
                 >
                   <div>
@@ -1094,7 +1192,7 @@ export default function AdminCompanyMonitorPage() {
                     <select
                       value={month}
                       onChange={(event) => setMonth(Number(event.target.value))}
-                      className="monitor-field mt-2 h-12 w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 text-sm font-black text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                      className="monitor-field mt-1.5 h-10 w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 text-xs font-black text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 sm:mt-2 sm:h-12 sm:rounded-2xl sm:px-4 sm:text-sm"
                     >
                       {monthOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -1113,20 +1211,20 @@ export default function AdminCompanyMonitorPage() {
                       type="number"
                       value={year}
                       onChange={(event) => setYear(Number(event.target.value))}
-                      className="monitor-field mt-2 h-12 w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 text-sm font-black text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                      className="monitor-field mt-1.5 h-10 w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 text-xs font-black text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 sm:mt-2 sm:h-12 sm:rounded-2xl sm:px-4 sm:text-sm"
                     />
                   </div>
                 </div>
 
                 <div
-                  className="monitor-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4"
+                  className="monitor-row-enter rounded-xl border border-blue-100 bg-[#f8fbff] p-3 sm:rounded-2xl sm:p-4"
                   style={{ animationDelay: "140ms" }}
                 >
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#123c8c]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#123c8c] sm:text-xs sm:tracking-[0.16em]">
                     Kategori Grafik Aktif
                   </p>
 
-                  <p className="mt-2 text-2xl font-black text-slate-950">
+                  <p className="mt-1.5 text-xl font-black text-slate-950 sm:mt-2 sm:text-2xl">
                     {getMetricLabel(selectedMetric)}
                   </p>
                 </div>
@@ -1135,7 +1233,7 @@ export default function AdminCompanyMonitorPage() {
           </div>
 
           {isLoading ? (
-            <div className="monitor-enter flex min-h-[320px] items-center justify-center rounded-3xl border border-blue-100 bg-white">
+            <div className="monitor-enter flex min-h-[240px] items-center justify-center rounded-2xl border border-blue-100 bg-white sm:min-h-[320px] sm:rounded-3xl">
               <div className="text-center">
                 <Loader2 className="mx-auto animate-spin text-[#123c8c]" />
                 <p className="mt-3 text-sm font-black text-slate-600">
@@ -1144,14 +1242,14 @@ export default function AdminCompanyMonitorPage() {
               </div>
             </div>
           ) : errorMessage ? (
-            <div className="monitor-enter rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
+            <div className="monitor-enter rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-700 sm:rounded-3xl sm:p-5 sm:text-sm">
               {errorMessage}
             </div>
           ) : data ? (
             <>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                 <div
-                  className="monitor-row-enter rounded-2xl border border-amber-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
+                  className="monitor-row-enter rounded-xl border border-amber-100 bg-white p-3 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 sm:rounded-2xl sm:p-4"
                   style={{ animationDelay: "60ms" }}
                 >
                   <div className="flex items-center gap-2 text-amber-700">
@@ -1161,13 +1259,13 @@ export default function AdminCompanyMonitorPage() {
                     </p>
                   </div>
 
-                  <p className="mt-2 text-2xl font-black text-amber-700">
+                  <p className="mt-1.5 text-xl font-black text-amber-700 sm:mt-2 sm:text-2xl">
                     {formatMinutes(data.summary.totalLateMinutesMonth)}
                   </p>
                 </div>
 
                 <div
-                  className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
+                  className="monitor-row-enter rounded-xl border border-blue-100 bg-white p-3 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 sm:rounded-2xl sm:p-4"
                   style={{ animationDelay: "100ms" }}
                 >
                   <div className="flex items-center gap-2 text-[#123c8c]">
@@ -1177,14 +1275,14 @@ export default function AdminCompanyMonitorPage() {
                     </p>
                   </div>
 
-                  <p className="mt-2 text-2xl font-black text-slate-950">
+                  <p className="mt-1.5 text-xl font-black text-slate-950 sm:mt-2 sm:text-2xl">
                     {formatMinutes(data.summary.totalWorkMinutesMonth)}
                   </p>
                 </div>
               </div>
 
               <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                className="monitor-enter rounded-2xl border border-white/70 bg-white/95 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5"
                 style={{ animationDelay: "100ms" }}
               >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -1196,17 +1294,17 @@ export default function AdminCompanyMonitorPage() {
                       </p>
                     </div>
 
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">
+                    <h3 className="mt-1.5 text-lg font-black text-slate-950 sm:mt-2 sm:text-2xl">
                       Ringkasan WFH dan Kunjungan
                     </h3>
                   </div>
 
-                  <div className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-black text-[#123c8c] ring-1 ring-blue-100">
+                  <div className="rounded-xl bg-[#f8fbff] px-3 py-2 text-xs font-black text-[#123c8c] ring-1 ring-blue-100 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                     Total data hari ini: {data.summary.todayRecords}
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-4 md:grid-cols-2">
                   {flexibleModeCards.map((item, index) => {
                     const icon =
                       item.key === "wfh" ? (
@@ -1218,7 +1316,7 @@ export default function AdminCompanyMonitorPage() {
                     return (
                       <div
                         key={item.key}
-                        className="monitor-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60"
+                        className="monitor-row-enter rounded-xl border border-blue-100 bg-[#f8fbff] p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 sm:rounded-2xl sm:p-4"
                         style={{
                           animationDelay: `${index * 70}ms`,
                         }}
@@ -1228,7 +1326,7 @@ export default function AdminCompanyMonitorPage() {
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                               {item.label}
                             </p>
-                            <p className="mt-2 text-3xl font-black text-slate-950">
+                            <p className="mt-1.5 text-2xl font-black text-slate-950 sm:mt-2 sm:text-3xl">
                               {item.value}
                             </p>
                           </div>
@@ -1262,7 +1360,7 @@ export default function AdminCompanyMonitorPage() {
 
               {displayMode === "chart" ? (
                 <div
-                  className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                  className="monitor-enter rounded-2xl border border-white/70 bg-white/95 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5"
                   style={{ animationDelay: "140ms" }}
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -1275,11 +1373,11 @@ export default function AdminCompanyMonitorPage() {
                         </p>
                       </div>
 
-                      <h3 className="mt-2 text-2xl font-black text-slate-950">
+                      <h3 className="mt-1.5 text-lg font-black text-slate-950 sm:mt-2 sm:text-2xl">
                         Grafik Bar Berdasarkan Kategori
                       </h3>
 
-                      <p className="mt-2 text-sm font-semibold text-slate-500 md:text-base">
+                      <p className="mt-1.5 text-xs font-semibold text-slate-500 sm:mt-2 sm:text-sm md:text-base">
                         Total waktu terlambat bulan ini:{" "}
                         <span className="font-black text-slate-700">
                           {formatMinutes(data.summary.totalLateMinutesMonth)}
@@ -1294,7 +1392,7 @@ export default function AdminCompanyMonitorPage() {
                       ) : null}
                     </div>
 
-                    <div className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-black text-[#123c8c] ring-1 ring-blue-100">
+                    <div className="rounded-xl bg-[#f8fbff] px-3 py-2 text-xs font-black text-[#123c8c] ring-1 ring-blue-100 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                       {getMetricLabel(selectedMetric)}
                     </div>
                   </div>
@@ -1308,10 +1406,11 @@ export default function AdminCompanyMonitorPage() {
                           key={option.value}
                           type="button"
                           onClick={() => setSelectedMetric(option.value)}
-                          className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-black transition active:scale-[0.98] ${active
+                          className={`inline-flex h-8 items-center justify-center rounded-full px-3 text-[10px] font-black transition active:scale-[0.98] sm:h-10 sm:px-4 sm:text-xs ${
+                            active
                               ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                               : "bg-[#f6f8ff] text-slate-500 ring-1 ring-blue-100 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                            }`}
+                          }`}
                         >
                           {active ? (
                             <CheckCircle2
@@ -1334,17 +1433,26 @@ export default function AdminCompanyMonitorPage() {
                   />
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {summaryCards.map((item, index) => {
                     const isHadir = item.label === "Hadir";
-                    const isLateOrCuti = item.label === "Terlambat" || item.label === "Cuti";
-                    const valueColor = isHadir ? "text-emerald-600" : isLateOrCuti ? "text-red-600" : "text-slate-950";
-                    const noteColor = isHadir ? "text-emerald-600" : isLateOrCuti ? "text-red-600" : "text-[#123c8c]";
+                    const isLateOrCuti =
+                      item.label === "Terlambat" || item.label === "Cuti";
+                    const valueColor = isHadir
+                      ? "text-emerald-600"
+                      : isLateOrCuti
+                        ? "text-red-600"
+                        : "text-slate-950";
+                    const noteColor = isHadir
+                      ? "text-emerald-600"
+                      : isLateOrCuti
+                        ? "text-red-600"
+                        : "text-[#123c8c]";
 
                     return (
                       <div
                         key={item.label}
-                        className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
+                        className="monitor-row-enter rounded-xl border border-blue-100 bg-white p-3 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 sm:rounded-2xl sm:p-4"
                         style={{
                           animationDelay: `${index * 55}ms`,
                         }}
@@ -1353,7 +1461,9 @@ export default function AdminCompanyMonitorPage() {
                           {item.label}
                         </p>
 
-                        <p className={`mt-2 text-3xl font-black ${valueColor}`}>
+                        <p
+                          className={`mt-1.5 text-2xl font-black sm:mt-2 sm:text-3xl ${valueColor}`}
+                        >
                           <AnimatedCounter value={item.value} />
                         </p>
 
@@ -1367,7 +1477,7 @@ export default function AdminCompanyMonitorPage() {
               )}
 
               <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                className="monitor-enter rounded-2xl border border-white/70 bg-white/95 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5"
                 style={{ animationDelay: "180ms" }}
               >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -1379,13 +1489,13 @@ export default function AdminCompanyMonitorPage() {
                       </p>
                     </div>
 
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">
+                    <h3 className="mt-1.5 text-lg font-black text-slate-950 sm:mt-2 sm:text-2xl">
                       Pie Chart Terpisah per Kategori
                     </h3>
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-4 md:grid-cols-2">
                   <PieProgressCard
                     label="WFH"
                     value={getSummaryModeValue(
@@ -1421,13 +1531,13 @@ export default function AdminCompanyMonitorPage() {
               </div>
 
               <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                className="monitor-enter rounded-2xl border border-white/70 bg-white/95 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5"
                 style={{ animationDelay: "220ms" }}
               >
                 <div className="flex items-center gap-2 text-amber-700">
                   <AlertTriangle size={18} />
 
-                  <h3 className="text-lg font-black text-slate-950">
+                  <h3 className="text-base font-black text-slate-950 sm:text-lg">
                     Perlu Tindak Lanjut
                   </h3>
                 </div>
@@ -1437,7 +1547,7 @@ export default function AdminCompanyMonitorPage() {
                     Tidak ada alert belum check-out hari ini.
                   </p>
                 ) : (
-                  <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  <div className="mt-3 grid gap-2 sm:mt-4 md:grid-cols-2">
                     {data.alerts.map((alert, index) => (
                       <div
                         key={alert.id}
@@ -1461,25 +1571,24 @@ export default function AdminCompanyMonitorPage() {
               </div>
 
               <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                className="monitor-enter rounded-2xl border border-white/70 bg-white/95 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5"
                 style={{ animationDelay: "260ms" }}
               >
                 <div className="flex items-center gap-2 text-amber-700">
                   <Clock3 size={18} />
 
-                  <h3 className="text-lg font-black text-slate-950">
+                  <h3 className="text-base font-black text-slate-950 sm:text-lg">
                     Rekap Karyawan Terlambat
                   </h3>
                 </div>
-
 
                 {data.lateReasons.length === 0 ? (
                   <p className="mt-4 text-sm font-semibold text-slate-500">
                     Belum ada data keterlambatan pada periode ini.
                   </p>
                 ) : (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="w-full min-w-[620px] text-left text-sm">
+                  <div className="-mx-1 mt-3 overflow-x-auto px-1 sm:mt-4">
+                    <table className="w-full min-w-[480px] text-left text-xs sm:min-w-[620px] sm:text-sm">
                       <thead>
                         <tr className="border-b border-slate-100 text-xs uppercase tracking-[0.14em] text-slate-500">
                           <th className="py-3 pr-4">Tanggal</th>
@@ -1521,10 +1630,10 @@ export default function AdminCompanyMonitorPage() {
                 )}
               </div>
 
-              <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30">
+              <div className="rounded-2xl border border-white/70 bg-white/90 p-3 shadow-xl shadow-slate-300/30 sm:rounded-3xl sm:p-5">
                 <div className="flex items-center gap-2 text-[#123c8c]">
                   <ClipboardList size={18} />
-                  <h3 className="text-lg font-black text-slate-950">
+                  <h3 className="text-base font-black text-slate-950 sm:text-lg">
                     Bukti Kunjungan Kerja Lapangan
                   </h3>
                 </div>
@@ -1534,8 +1643,8 @@ export default function AdminCompanyMonitorPage() {
                     Belum ada data bukti kunjungan pada periode ini.
                   </p>
                 ) : (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-[760px] w-full text-left text-sm">
+                  <div className="-mx-1 mt-3 overflow-x-auto px-1 sm:mt-4">
+                    <table className="min-w-[580px] w-full text-left text-xs sm:min-w-[760px] sm:text-sm">
                       <thead>
                         <tr className="border-b border-slate-100 text-xs uppercase tracking-[0.14em] text-slate-500">
                           <th className="py-3 pr-4">Tanggal</th>
@@ -1563,7 +1672,8 @@ export default function AdminCompanyMonitorPage() {
                               {item.title}
                             </td>
                             <td className="py-3 pr-4 text-slate-600">
-                              {item.clientName ? `${item.clientName} - ` : ""}{item.address || "-"}
+                              {item.clientName ? `${item.clientName} - ` : ""}
+                              {item.address || "-"}
                             </td>
                             <td className="py-3 pr-4 text-slate-600">
                               {item.startTime}
@@ -1582,7 +1692,9 @@ export default function AdminCompanyMonitorPage() {
                                   Lihat Foto
                                 </a>
                               ) : (
-                                <span className="text-xs text-slate-400">Tidak ada</span>
+                                <span className="text-xs text-slate-400">
+                                  Tidak ada
+                                </span>
                               )}
                             </td>
                           </tr>
