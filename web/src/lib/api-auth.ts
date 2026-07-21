@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { deactivateExpiredEmployee } from "@/lib/employment-period";
 import { prisma } from "@/lib/prisma";
 
 export type AppRole = "owner" | "employee";
@@ -56,11 +57,16 @@ export async function requireAuth(req: NextRequest): Promise<AuthUser> {
       email: true,
       role: true,
       status: true,
+      employment_end_date: true,
     },
   });
 
   if (!user) {
     throw new Error("User tidak ditemukan.");
+  }
+
+  if (await deactivateExpiredEmployee(user)) {
+    throw new Error("Masa kerja akun sudah berakhir.");
   }
 
   if (String(user.status || "").toLowerCase() !== "active") {

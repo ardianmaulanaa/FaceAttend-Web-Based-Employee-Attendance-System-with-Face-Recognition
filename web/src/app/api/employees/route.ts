@@ -60,10 +60,16 @@ const employeeSelect = {
   id: true,
   name: true,
   email: true,
-  role: true,
   employee_type: true,
   phone: true,
   status: true,
+  employment_status: true,
+  employment_start_date: true,
+  employment_end_date: true,
+  birth_place: true,
+  birth_date: true,
+  bank_account_number: true,
+  nik: true,
   profile_photo: true,
   jabatan_id: true,
   department_id: true,
@@ -113,6 +119,41 @@ function jsonError(message: string, status = 400) {
     },
     { status }
   );
+}
+
+function normalizeOptionalText(value: unknown) {
+  const text = String(value || "").trim();
+
+  return text || null;
+}
+
+function normalizeOptionalDate(value: unknown, label = "Tanggal") {
+  const text = String(value || "").trim();
+
+  if (!text) return null;
+
+  const date = new Date(`${text}T00:00:00.000Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${label} tidak valid.`);
+  }
+
+  return date;
+}
+
+function ensureValidEmploymentPeriod(
+  startDate: Date | null,
+  endDate: Date | null,
+) {
+  if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
+    throw new Error("Tanggal mulai masa kerja tidak boleh melewati tanggal akhir.");
+  }
+}
+
+function ensureNumericField(value: string | null, label: string) {
+  if (value && !/^\d+$/.test(value)) {
+    throw new Error(`${label} hanya dapat diisi angka.`);
+  }
 }
 
 function getPrismaCode(error: unknown) {
@@ -370,6 +411,21 @@ export async function POST(req: NextRequest) {
 
     const employeeType = String(body.employee_type || "utama").trim();
     const status = String(body.status || "active").trim();
+    const employmentStatus = normalizeOptionalText(body.employment_status);
+    const employmentStartDate = normalizeOptionalDate(
+      body.employment_start_date,
+      "Tanggal mulai masa kerja"
+    );
+    const employmentEndDate = normalizeOptionalDate(
+      body.employment_end_date,
+      "Tanggal akhir masa kerja"
+    );
+    const birthPlace = normalizeOptionalText(body.birth_place);
+    const birthDate = normalizeOptionalDate(body.birth_date, "Tanggal lahir");
+    const bankAccountNumber = normalizeOptionalText(
+      body.bank_account_number || body.no_rekening
+    );
+    const nik = normalizeOptionalText(body.nik);
 
     const registeredOfficeId = String(
       body.registered_office_id || body.office_id || ""
@@ -416,6 +472,10 @@ export async function POST(req: NextRequest) {
       return jsonError("Status karyawan tidak valid.");
     }
 
+    ensureNumericField(bankAccountNumber, "No rekening");
+    ensureNumericField(nik, "NIK");
+    ensureValidEmploymentPeriod(employmentStartDate, employmentEndDate);
+
     await validateEmployeeHierarchy({
       registeredOfficeId,
       departmentId,
@@ -448,6 +508,13 @@ export async function POST(req: NextRequest) {
         employee_type: employeeType,
         phone: phone || null,
         status,
+        employment_status: employmentStatus,
+        employment_start_date: employmentStartDate,
+        employment_end_date: employmentEndDate,
+        birth_place: birthPlace,
+        birth_date: birthDate,
+        bank_account_number: bankAccountNumber,
+        nik,
         registered_office_id: registeredOfficeId,
         department_id: departmentId,
         jabatan_id: jabatanId,
@@ -470,6 +537,15 @@ export async function POST(req: NextRequest) {
 
     if (isPrismaUniqueError(error)) {
       return jsonError("Email sudah digunakan.", 409);
+    }
+
+    if (
+      error instanceof Error &&
+      (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("Tanggal") ||
+        error.message.includes("masa kerja"))
+    ) {
+      return jsonError(error.message, 400);
     }
 
     return NextResponse.json(
@@ -508,6 +584,21 @@ export async function PATCH(req: NextRequest) {
 
     const employeeType = String(body.employee_type || "utama").trim();
     const status = String(body.status || "active").trim();
+    const employmentStatus = normalizeOptionalText(body.employment_status);
+    const employmentStartDate = normalizeOptionalDate(
+      body.employment_start_date,
+      "Tanggal mulai masa kerja"
+    );
+    const employmentEndDate = normalizeOptionalDate(
+      body.employment_end_date,
+      "Tanggal akhir masa kerja"
+    );
+    const birthPlace = normalizeOptionalText(body.birth_place);
+    const birthDate = normalizeOptionalDate(body.birth_date, "Tanggal lahir");
+    const bankAccountNumber = normalizeOptionalText(
+      body.bank_account_number || body.no_rekening
+    );
+    const nik = normalizeOptionalText(body.nik);
 
     const registeredOfficeId = String(
       body.registered_office_id || body.office_id || ""
@@ -554,6 +645,10 @@ export async function PATCH(req: NextRequest) {
       return jsonError("Status karyawan tidak valid.");
     }
 
+    ensureNumericField(bankAccountNumber, "No rekening");
+    ensureNumericField(nik, "NIK");
+    ensureValidEmploymentPeriod(employmentStartDate, employmentEndDate);
+
     const existingEmployee = await prisma.user.findUnique({
       where: {
         id,
@@ -598,6 +693,13 @@ export async function PATCH(req: NextRequest) {
       phone: string | null;
       employee_type: string;
       status: string;
+      employment_status: string | null;
+      employment_start_date: Date | null;
+      employment_end_date: Date | null;
+      birth_place: string | null;
+      birth_date: Date | null;
+      bank_account_number: string | null;
+      nik: string | null;
       registered_office_id: string;
       department_id: string;
       jabatan_id: string;
@@ -613,6 +715,13 @@ export async function PATCH(req: NextRequest) {
       phone: phone || null,
       employee_type: employeeType,
       status,
+      employment_status: employmentStatus,
+      employment_start_date: employmentStartDate,
+      employment_end_date: employmentEndDate,
+      birth_place: birthPlace,
+      birth_date: birthDate,
+      bank_account_number: bankAccountNumber,
+      nik,
       registered_office_id: registeredOfficeId,
       department_id: departmentId,
       jabatan_id: jabatanId,
@@ -645,6 +754,15 @@ export async function PATCH(req: NextRequest) {
 
     if (isPrismaUniqueError(error)) {
       return jsonError("Email sudah digunakan.", 409);
+    }
+
+    if (
+      error instanceof Error &&
+      (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("Tanggal") ||
+        error.message.includes("masa kerja"))
+    ) {
+      return jsonError(error.message, 400);
     }
 
     return NextResponse.json(

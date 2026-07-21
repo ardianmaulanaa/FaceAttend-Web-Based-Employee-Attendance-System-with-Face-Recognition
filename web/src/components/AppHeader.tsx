@@ -12,6 +12,7 @@ import {
   CalendarClock,
   CalendarDays,
   Clock3,
+  ClipboardList,
   FileImage,
   History,
   Home,
@@ -54,12 +55,12 @@ type NotificationResponse = {
 };
 
 const employeeNav = [
-  { href: "/home", label: "Beranda", icon: Home },
-  { href: "/attendance", label: "Presensi", icon: CalendarCheck },
+  { href: "/beranda", label: "Beranda", icon: Home },
+  { href: "/presensi", label: "Presensi", icon: CalendarCheck },
   { href: "/pengumuman", label: "Pengumuman", icon: Megaphone },
   { href: "/history", label: "Riwayat", icon: History },
   { href: "/cuti", label: "Cuti", icon: CalendarDays },
-  { href: "/profile", label: "Profil", icon: UserRound },
+  { href: "/profil", label: "Profil", icon: UserRound },
 ];
 
 const adminMenus = [
@@ -128,6 +129,11 @@ const operationalMenus = [
     href: "/admin/cuti",
     label: "Laporan Cuti",
     icon: CalendarDays,
+  },
+  {
+    href: "/admin/rekap-kehadiran-karyawan",
+    label: "Rekap Kehadiran Karyawan",
+    icon: ClipboardList,
   },
 ];
 
@@ -356,8 +362,6 @@ export default function AppHeader({
                   </span>
                 ) : null}
               </span>
-
-              <span className="hidden lg:inline">Notifikasi</span>
             </Link>
 
             <Link

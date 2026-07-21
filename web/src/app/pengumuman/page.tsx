@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Loader2, Megaphone } from "lucide-react";
+import { CalendarDays, FileText, Loader2, Megaphone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
@@ -10,6 +10,12 @@ type Announcement = {
   id: string;
   title: string;
   content?: string;
+  document_url?: string | null;
+  document_name?: string | null;
+  document_size?: number | null;
+  documentUrl?: string | null;
+  documentName?: string | null;
+  documentSize?: number | null;
   status?: string;
   created_at?: string;
   createdAt?: string;
@@ -38,6 +44,16 @@ function formatDate(value?: string) {
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+function formatFileSize(value?: number | null) {
+  if (!value || value < 1) return "";
+
+  if (value >= 1024 * 1024) {
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(value / 1024))} KB`;
 }
 
 function AnnouncementMotionStyles() {
@@ -282,6 +298,47 @@ export default function AnnouncementPage() {
                         Tidak ada isi pengumuman.
                       </p>
                     )}
+
+                    {announcement.document_url || announcement.documentUrl ? (
+                      <a
+                        href={
+                          announcement.document_url ||
+                          announcement.documentUrl ||
+                          "#"
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex max-w-full items-center gap-3 rounded-2xl border border-blue-100 bg-[#eaf1ff] px-4 py-3 text-sm font-black text-[#123c8c] transition hover:-translate-y-0.5 hover:bg-blue-100 active:scale-[0.98]"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white">
+                          <FileText size={20} strokeWidth={2.6} />
+                        </span>
+                        <span className="min-w-0 text-left">
+                          <span className="block truncate">
+                            {announcement.document_name ||
+                              announcement.documentName ||
+                              "Dokumen Pengumuman.pdf"}
+                          </span>
+                          {formatFileSize(
+                            announcement.document_size ||
+                              announcement.documentSize,
+                          ) ? (
+                            <span className="mt-0.5 block text-xs font-bold text-blue-500">
+                              PDF
+                              {" | "}
+                              {formatFileSize(
+                                announcement.document_size ||
+                                  announcement.documentSize,
+                              )}
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 block text-xs font-bold text-blue-500">
+                              PDF
+                            </span>
+                          )}
+                        </span>
+                      </a>
+                    ) : null}
                   </article>
                 );
               })}

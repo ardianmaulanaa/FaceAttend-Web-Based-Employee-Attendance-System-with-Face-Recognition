@@ -384,11 +384,7 @@ export default function AdminNotificationsPage() {
     <MobileShell variant="admin">
       <NotificationMotionStyles />
 
-      <AppHeader
-        title="Notifikasi"
-        subtitle="Laporan sakit, cuti, izin, WFH, WFC, dan kunjungan"
-        variant="admin"
-      />
+      <AppHeader title="Notifikasi" variant="admin" />
 
       <main className="mx-auto max-w-7xl space-y-6 px-5 py-6 pb-28 md:px-10 lg:px-16">
         <section className="notification-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
@@ -405,11 +401,6 @@ export default function AdminNotificationsPage() {
               <h1 className="mt-5 text-3xl font-black tracking-tight md:text-4xl">
                 Pusat Notifikasi
               </h1>
-
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-100">
-                Cuti, sakit, dan izin diambil dari tabel LeaveRequest. WFH, WFC,
-                dan kunjungan diambil dari tabel AdminNotification.
-              </p>
             </div>
 
             <button

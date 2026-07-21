@@ -522,7 +522,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.replace(result.redirectTo || "/home");
+      router.replace(result.redirectTo || "/beranda");
       router.refresh();
     } catch (error) {
       console.error("LOGIN_ERROR:", error);

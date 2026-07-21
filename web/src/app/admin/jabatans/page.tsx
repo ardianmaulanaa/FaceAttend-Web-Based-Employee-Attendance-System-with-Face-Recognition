@@ -1,8 +1,17 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  AlertTriangle,
   Building2,
+  CheckCircle2,
   Edit,
   Loader2,
   MapPin,
@@ -52,6 +61,12 @@ type JabatanForm = {
   status: string;
 };
 
+type JabatanAlert = {
+  title: string;
+  message: string;
+  type: "success" | "error" | "warning";
+};
+
 const initialForm: JabatanForm = {
   name: "",
   office_id: "",
@@ -79,6 +94,43 @@ function formatStatus(status: string) {
   if (status === "inactive") return "Nonaktif";
 
   return status;
+}
+
+function normalizeJabatanName(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function getJabatanAlertTheme(type: JabatanAlert["type"]) {
+  if (type === "success") {
+    return {
+      shell: "from-emerald-50 via-white to-blue-50",
+      iconWrap: "bg-emerald-100 text-emerald-600",
+      badge: "bg-white/70 text-emerald-600",
+      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20",
+      icon: CheckCircle2,
+      label: "BERHASIL",
+    };
+  }
+
+  if (type === "error") {
+    return {
+      shell: "from-red-50 via-white to-blue-50",
+      iconWrap: "bg-red-100 text-red-600",
+      badge: "bg-white/70 text-red-600",
+      button: "bg-red-600 hover:bg-red-700 shadow-red-900/20",
+      icon: AlertTriangle,
+      label: "GAGAL",
+    };
+  }
+
+  return {
+    shell: "from-orange-50 via-white to-blue-50",
+    iconWrap: "bg-orange-100 text-orange-600",
+    badge: "bg-white/70 text-orange-600",
+    button: "bg-[#526fae] hover:bg-[#46629d] shadow-blue-900/20",
+    icon: AlertTriangle,
+    label: "PERHATIAN",
+  };
 }
 
 async function readJsonResponse(response: Response) {
@@ -158,6 +210,22 @@ function JabatanMotionStyles() {
         transform-origin: center bottom;
       }
 
+      @keyframes jabatanToastEnter {
+        0% {
+          opacity: 0;
+          transform: translateX(18px) scale(0.98);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+
+      .jabatan-toast-enter {
+        animation: jabatanToastEnter 260ms ease-out both;
+      }
+
       .jabatan-field {
         transition:
           border-color 180ms ease,
@@ -169,7 +237,8 @@ function JabatanMotionStyles() {
         .jabatan-enter,
         .jabatan-row-enter,
         .jabatan-modal-backdrop,
-        .jabatan-modal-panel {
+        .jabatan-modal-panel,
+        .jabatan-toast-enter {
           animation: none !important;
           opacity: 1 !important;
           transform: none !important;
@@ -197,6 +266,11 @@ export default function JabatansPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJabatan, setEditingJabatan] = useState<Jabatan | null>(null);
+  const [jabatanAlert, setJabatanAlert] = useState<JabatanAlert | null>(null);
+  const [isAlertClosing, setIsAlertClosing] = useState(false);
+  const alertCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const activeOffices = useMemo(() => {
     return offices.filter((office) => office.status !== "inactive");
@@ -240,7 +314,8 @@ export default function JabatansPage() {
 
       const jabatanOfficeId =
         jabatan.department?.office_id || jabatan.department?.office?.id || "";
-      const jabatanDepartmentId = jabatan.department_id || jabatan.department?.id || "";
+      const jabatanDepartmentId =
+        jabatan.department_id || jabatan.department?.id || "";
 
       if (
         keyword &&
@@ -278,6 +353,49 @@ export default function JabatansPage() {
     });
   }, [jabatans, search, statusFilter, officeFilter, departmentFilter]);
 
+  const jabatanAlertTheme = jabatanAlert
+    ? getJabatanAlertTheme(jabatanAlert.type)
+    : null;
+  const JabatanAlertIcon = jabatanAlertTheme?.icon || AlertTriangle;
+
+  const showJabatanAlert = useCallback(
+    (title: string, message: string, type: JabatanAlert["type"]) => {
+      if (alertCloseTimeoutRef.current) {
+        clearTimeout(alertCloseTimeoutRef.current);
+      }
+
+      setIsAlertClosing(false);
+      setJabatanAlert({
+        title,
+        message,
+        type,
+      });
+
+      alertCloseTimeoutRef.current = setTimeout(() => {
+        setIsAlertClosing(true);
+
+        alertCloseTimeoutRef.current = setTimeout(() => {
+          setJabatanAlert(null);
+          setIsAlertClosing(false);
+        }, 260);
+      }, 3600);
+    },
+    [],
+  );
+
+  const closeJabatanAlert = useCallback(() => {
+    if (alertCloseTimeoutRef.current) {
+      clearTimeout(alertCloseTimeoutRef.current);
+    }
+
+    setIsAlertClosing(true);
+
+    alertCloseTimeoutRef.current = setTimeout(() => {
+      setJabatanAlert(null);
+      setIsAlertClosing(false);
+    }, 260);
+  }, []);
+
   async function loadJabatans() {
     try {
       setIsLoading(true);
@@ -297,7 +415,9 @@ export default function JabatansPage() {
       const data = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || "Gagal mengambil jabatan.");
+        throw new Error(
+          data.error || data.message || "Gagal mengambil jabatan.",
+        );
       }
 
       setJabatans(data.jabatans || data.data || []);
@@ -307,7 +427,9 @@ export default function JabatansPage() {
       console.error("LOAD_UNITS_ERROR:", error);
 
       setErrorMessage(
-        error instanceof Error ? error.message : "Gagal mengambil data jabatan.",
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil data jabatan.",
       );
     } finally {
       setIsLoading(false);
@@ -317,6 +439,14 @@ export default function JabatansPage() {
   useEffect(() => {
     void loadJabatans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (alertCloseTimeoutRef.current) {
+        clearTimeout(alertCloseTimeoutRef.current);
+      }
+    };
   }, []);
 
   function openCreateModal() {
@@ -358,22 +488,56 @@ export default function JabatansPage() {
     const name = form.name.trim();
 
     if (!form.office_id) {
-      alert("Kantor wajib dipilih.");
+      showJabatanAlert(
+        "Data belum lengkap",
+        "Kantor wajib dipilih.",
+        "warning",
+      );
       return;
     }
 
     if (!form.department_id) {
-      alert("Divisi wajib dipilih.");
+      showJabatanAlert(
+        "Data belum lengkap",
+        "Divisi wajib dipilih.",
+        "warning",
+      );
       return;
     }
 
     if (!name) {
-      alert("Nama jabatan wajib diisi.");
+      showJabatanAlert(
+        "Data belum lengkap",
+        "Nama jabatan wajib diisi.",
+        "warning",
+      );
       return;
     }
 
     if (!["active", "inactive"].includes(form.status)) {
-      alert("Status jabatan tidak valid.");
+      showJabatanAlert(
+        "Status tidak valid",
+        "Status jabatan tidak valid.",
+        "warning",
+      );
+      return;
+    }
+
+    const duplicateJabatan = jabatans.find((jabatan) => {
+      if (editingJabatan?.id === jabatan.id) return false;
+
+      return (
+        jabatan.department_id === form.department_id &&
+        normalizeJabatanName(jabatan.name) === normalizeJabatanName(name)
+      );
+    });
+
+    if (duplicateJabatan) {
+      showJabatanAlert(
+        "Nama jabatan sudah ada",
+        "Gunakan nama jabatan lain karena nama ini sudah terdaftar pada divisi yang dipilih.",
+        "warning",
+      );
       return;
     }
 
@@ -397,15 +561,31 @@ export default function JabatansPage() {
       const data = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || "Gagal menyimpan jabatan.");
+        throw new Error(
+          data.error || data.message || "Gagal menyimpan jabatan.",
+        );
       }
 
       await loadJabatans();
       closeModal();
+      showJabatanAlert(
+        "Jabatan tersimpan",
+        data.message || "Data jabatan berhasil disimpan.",
+        "success",
+      );
     } catch (error) {
       console.error("SAVE_UNIT_ERROR:", error);
 
-      alert(error instanceof Error ? error.message : "Gagal menyimpan jabatan.");
+      const message =
+        error instanceof Error ? error.message : "Gagal menyimpan jabatan.";
+
+      showJabatanAlert(
+        message.toLowerCase().includes("sudah ada")
+          ? "Nama jabatan sudah ada"
+          : "Gagal menyimpan jabatan",
+        message,
+        message.toLowerCase().includes("sudah ada") ? "warning" : "error",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -416,8 +596,10 @@ export default function JabatansPage() {
     const totalPositions = jabatan._count?.positions || 0;
 
     if (totalUsers > 0 || totalPositions > 0) {
-      alert(
+      showJabatanAlert(
+        "Jabatan masih digunakan",
         "Jabatan ini masih memiliki posisi atau digunakan oleh karyawan. Ubah status menjadi Nonaktif jika tidak ingin digunakan.",
+        "warning",
       );
       return;
     }
@@ -438,15 +620,25 @@ export default function JabatansPage() {
       const data = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || "Gagal menghapus jabatan.");
+        throw new Error(
+          data.error || data.message || "Gagal menghapus jabatan.",
+        );
       }
 
-      alert("Jabatan berhasil dihapus.");
+      showJabatanAlert(
+        "Jabatan dihapus",
+        "Jabatan berhasil dihapus.",
+        "success",
+      );
       await loadJabatans();
     } catch (error) {
       console.error("DELETE_UNIT_ERROR:", error);
 
-      alert(error instanceof Error ? error.message : "Gagal menghapus jabatan.");
+      showJabatanAlert(
+        "Gagal menghapus jabatan",
+        error instanceof Error ? error.message : "Gagal menghapus jabatan.",
+        "error",
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -638,7 +830,8 @@ export default function JabatansPage() {
                             </p>
 
                             <p className="mt-1 text-xs font-semibold text-slate-400">
-                              {jabatan.department?.office?.name || "Tanpa Kantor"}{" "}
+                              {jabatan.department?.office?.name ||
+                                "Tanpa Kantor"}{" "}
                               • {jabatan.department?.name || "Tanpa Divisi"} •{" "}
                               {jabatan._count?.positions || 0} posisi
                             </p>
@@ -910,21 +1103,6 @@ export default function JabatansPage() {
                   <option value="active">Aktif</option>
                   <option value="inactive">Nonaktif</option>
                 </select>
-
-                <p className="mt-2 text-xs font-semibold text-slate-400">
-                  Pilih Nonaktif jika jabatan tidak digunakan sementara.
-                </p>
-              </div>
-
-              <div
-                className="jabatan-row-enter rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4"
-                style={{ animationDelay: "120ms" }}
-              >
-                <p className="text-sm font-black text-[#123c8c]">Relasi Jabatan</p>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Jabatan berada di bawah divisi. Contoh: Kantor Pusat Bandung →
-                  Technology → Backend Development → Backend Developer.
-                </p>
               </div>
 
               <div
@@ -952,6 +1130,72 @@ export default function JabatansPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {jabatanAlert && jabatanAlertTheme ? (
+        <div
+          className={`jabatan-toast-enter fixed right-4 top-4 z-[140] w-[calc(100vw-2rem)] max-w-md transition-all duration-300 ease-out md:right-7 md:top-7 ${
+            isAlertClosing
+              ? "translate-x-8 scale-95 opacity-0"
+              : "translate-x-0 scale-100 opacity-100"
+          }`}
+        >
+          <div
+            className={`overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-br ${jabatanAlertTheme.shell} shadow-2xl shadow-slate-900/20 backdrop-blur-xl transition-all duration-300 ease-out ${
+              isAlertClosing
+                ? "translate-y-2 opacity-0"
+                : "translate-y-0 opacity-100"
+            }`}
+          >
+            <div className="relative p-5">
+              <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-orange-200/30 blur-3xl" />
+              <div className="absolute -right-12 -bottom-12 h-40 w-40 rounded-full bg-blue-300/30 blur-3xl" />
+
+              <div className="relative flex items-start gap-4">
+                <div
+                  className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${jabatanAlertTheme.iconWrap} shadow-lg shadow-slate-300/40`}
+                >
+                  <JabatanAlertIcon size={32} strokeWidth={3} />
+                </div>
+
+                <div className="min-w-0 flex-1 pt-1">
+                  <div
+                    className={`inline-flex rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] ${jabatanAlertTheme.badge}`}
+                  >
+                    {jabatanAlertTheme.label}
+                  </div>
+
+                  <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950">
+                    {jabatanAlert.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+                    {jabatanAlert.message}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeJabatanAlert}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-800 active:scale-[0.96]"
+                  aria-label="Tutup alert"
+                >
+                  <X size={22} strokeWidth={2.8} />
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-white/60 bg-white/70 p-4">
+              <button
+                type="button"
+                onClick={closeJabatanAlert}
+                className={`w-full rounded-2xl px-6 py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] ${jabatanAlertTheme.button}`}
+              >
+                Mengerti
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

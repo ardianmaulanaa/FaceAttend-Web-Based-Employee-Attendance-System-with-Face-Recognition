@@ -44,6 +44,13 @@ export async function GET(req: NextRequest) {
         role: true,
         phone: true,
         status: true,
+        employment_status: true,
+        employment_start_date: true,
+        employment_end_date: true,
+        birth_place: true,
+        birth_date: true,
+        bank_account_number: true,
+        nik: true,
         profile_photo: true,
 
         jabatan: {
@@ -119,6 +126,13 @@ export async function GET(req: NextRequest) {
         role: user.role,
         phone: user.phone,
         status: user.status,
+        employment_status: user.employment_status,
+        employment_start_date: user.employment_start_date,
+        employment_end_date: user.employment_end_date,
+        birth_place: user.birth_place,
+        birth_date: user.birth_date,
+        bank_account_number: user.bank_account_number,
+        nik: user.nik,
         profile_photo: user.profile_photo,
 
         jabatan: user.jabatan,

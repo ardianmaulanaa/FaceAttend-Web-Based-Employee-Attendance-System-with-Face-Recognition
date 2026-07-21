@@ -14,7 +14,9 @@ import {
   Clock3,
   Eye,
   EyeOff,
+  CreditCard,
   Image as ImageIcon,
+  IdCard,
   Loader2,
   LockKeyhole,
   LogOut,
@@ -48,6 +50,13 @@ type ProfileUser = {
   role: string;
   phone: string | null;
   status: string;
+  employment_status: string | null;
+  employment_start_date: string | null;
+  employment_end_date: string | null;
+  birth_place: string | null;
+  birth_date: string | null;
+  bank_account_number: string | null;
+  nik: string | null;
   profile_photo: string | null;
   jabatan?: {
     id: string;
@@ -86,6 +95,10 @@ type PasswordForm = {
 type EditProfileForm = {
   name: string;
   phone: string;
+  birth_place: string;
+  birth_date: string;
+  bank_account_number: string;
+  nik: string;
 };
 
 type ProfileView = "menu" | "personal-detail";
@@ -105,6 +118,10 @@ const initialPasswordForm: PasswordForm = {
 const initialEditProfileForm: EditProfileForm = {
   name: "",
   phone: "",
+  birth_place: "",
+  birth_date: "",
+  bank_account_number: "",
+  nik: "",
 };
 
 const dayLabels: Record<string, string> = {
@@ -157,6 +174,17 @@ function formatStatus(status: string) {
   return statusMap[status] || status;
 }
 
+function formatEmploymentPeriod(user: ProfileUser) {
+  const startDate = formatDate(user.employment_start_date);
+  const endDate = formatDate(user.employment_end_date);
+
+  if (startDate === "-" && endDate === "-") return "-";
+  if (startDate === "-") return `Sampai ${endDate}`;
+  if (endDate === "-") return `Mulai ${startDate}`;
+
+  return `${startDate} - ${endDate}`;
+}
+
 function formatDay(day: string) {
   return dayLabels[day] || day;
 }
@@ -165,8 +193,33 @@ function normalizePhoneInput(value: string) {
   return value.replace(/\D/g, "").slice(0, 12);
 }
 
+function normalizeNumericInput(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 function isValidPhoneNumber(value: string) {
   return /^\d{10,12}$/.test(value);
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDateInput(value?: string | null) {
+  if (!value) return "";
+
+  return String(value).slice(0, 10);
 }
 
 function getProfileAlertTheme(type: NonNullable<ProfileAlert>["type"]) {
@@ -609,6 +662,28 @@ export default function ProfilePage() {
     }));
   }
 
+  function handleNumericProfileInputChange(
+    field: "bank_account_number" | "nik",
+    value: string,
+  ) {
+    const normalizedValue = normalizeNumericInput(value);
+
+    if (value !== normalizedValue) {
+      showProfileAlert(
+        field === "nik" ? "NIK tidak valid" : "No rekening tidak valid",
+        field === "nik"
+          ? "NIK hanya dapat diisi angka."
+          : "No rekening hanya dapat diisi angka.",
+        "warning",
+      );
+    }
+
+    setEditProfileForm((prev) => ({
+      ...prev,
+      [field]: normalizedValue,
+    }));
+  }
+
   async function loadProfile() {
     try {
       setLoading(true);
@@ -645,6 +720,10 @@ export default function ProfilePage() {
     setEditProfileForm({
       name: user.name || "",
       phone: user.phone || "",
+      birth_place: user.birth_place || "",
+      birth_date: formatDateInput(user.birth_date),
+      bank_account_number: user.bank_account_number || "",
+      nik: user.nik || "",
     });
 
     setIsEditProfileModalOpen(true);
@@ -660,6 +739,8 @@ export default function ProfilePage() {
 
     const name = editProfileForm.name.trim();
     const phone = editProfileForm.phone.trim();
+    const bankAccountNumber = editProfileForm.bank_account_number.trim();
+    const nik = editProfileForm.nik.trim();
 
     if (!name) {
       showProfileAlert(
@@ -688,10 +769,28 @@ export default function ProfilePage() {
       return;
     }
 
+    if (nik && !/^\d+$/.test(nik)) {
+      showProfileAlert(
+        "NIK tidak valid",
+        "NIK hanya dapat diisi angka.",
+        "warning",
+      );
+      return;
+    }
+
+    if (bankAccountNumber && !/^\d+$/.test(bankAccountNumber)) {
+      showProfileAlert(
+        "No rekening tidak valid",
+        "No rekening hanya dapat diisi angka.",
+        "warning",
+      );
+      return;
+    }
+
     try {
       setIsUpdatingProfile(true);
 
-      const response = await fetch("/api/profile", {
+      const response = await fetch("/api/profil", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -699,6 +798,10 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name,
           phone,
+          birth_place: editProfileForm.birth_place.trim(),
+          birth_date: editProfileForm.birth_date,
+          bank_account_number: bankAccountNumber,
+          nik,
         }),
       });
 
@@ -719,13 +822,19 @@ export default function ProfilePage() {
               ...currentUser,
               name: data.user?.name || name,
               phone: data.user?.phone || phone || null,
+              birth_place:
+                data.user?.birth_place ?? editProfileForm.birth_place.trim(),
+              birth_date: data.user?.birth_date ?? editProfileForm.birth_date,
+              bank_account_number:
+                data.user?.bank_account_number ?? bankAccountNumber,
+              nik: data.user?.nik ?? nik,
             }
           : currentUser,
       );
 
       showProfileAlert(
         "Profil berhasil diperbarui",
-        "Nama dan nomor telepon berhasil disimpan.",
+        "Data profil berhasil disimpan.",
         "success",
       );
       closeEditProfileModal();
@@ -798,7 +907,7 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const response = await fetch("/api/profile/photo", {
+      const response = await fetch("/api/profil/photo", {
         method: "POST",
         body: formData,
       });
@@ -892,7 +1001,7 @@ export default function ProfilePage() {
     try {
       setIsChangingPassword(true);
 
-      const response = await fetch("/api/profile/change-password", {
+      const response = await fetch("/api/profil/change-password", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -984,9 +1093,39 @@ export default function ProfilePage() {
         icon: BadgeCheck,
       },
       {
+        label: "Status Kepegawaian",
+        value: user.employment_status || "-",
+        icon: BadgeCheck,
+      },
+      {
+        label: "Masa Kerja",
+        value: formatEmploymentPeriod(user),
+        icon: CalendarDays,
+      },
+      {
         label: "Role Akun",
         value: formatRole(user.role),
         icon: ShieldCheck,
+      },
+      {
+        label: "Tempat Lahir",
+        value: user.birth_place || "-",
+        icon: MapPin,
+      },
+      {
+        label: "Tanggal Lahir",
+        value: formatDate(user.birth_date),
+        icon: CalendarDays,
+      },
+      {
+        label: "NIK",
+        value: user.nik || "-",
+        icon: IdCard,
+      },
+      {
+        label: "No Rekening",
+        value: user.bank_account_number || "-",
+        icon: CreditCard,
       },
       {
         label: "Kantor Terdaftar",
@@ -1039,11 +1178,6 @@ export default function ProfilePage() {
         <AppHeader
           title={
             activeView === "personal-detail" ? "Detail Personal" : "Profil"
-          }
-          subtitle={
-            activeView === "personal-detail"
-              ? "Informasi lengkap data karyawan"
-              : "Pengaturan akun dan data pribadi"
           }
           rightLabel={headerRightLabel}
           variant="employee"
@@ -1372,16 +1506,155 @@ export default function ProfilePage() {
                 </div>
 
                 <div
-                  className="profile-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500"
+                  className="profile-row-enter"
                   style={{ animationDelay: "80ms" }}
                 >
-                  Email, status, role, kantor, divisi, jabatan, posisi, dan shift
-                  terdaftar hanya dapat diubah oleh admin.
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tempat Lahir
+                  </label>
+
+                  <div className="relative">
+                    <MapPin
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={editProfileForm.birth_place}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          birth_place: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: Jakarta"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className="profile-row-enter"
+                  style={{ animationDelay: "120ms" }}
+                >
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tanggal Lahir
+                  </label>
+
+                  <div className="relative">
+                    <CalendarDays
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      type="date"
+                      value={editProfileForm.birth_date}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          birth_date: event.target.value,
+                        }))
+                      }
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className="profile-row-enter"
+                  style={{ animationDelay: "160ms" }}
+                >
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    NIK
+                  </label>
+
+                  <div className="relative">
+                    <IdCard
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={editProfileForm.nik}
+                      onChange={(event) =>
+                        handleNumericProfileInputChange(
+                          "nik",
+                          event.target.value,
+                        )
+                      }
+                      onPaste={(event) => {
+                        const pastedText = event.clipboardData.getData("text");
+
+                        if (/\D/.test(pastedText)) {
+                          showProfileAlert(
+                            "NIK tidak valid",
+                            "NIK hanya dapat diisi angka.",
+                            "warning",
+                          );
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Masukkan NIK"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className="profile-row-enter"
+                  style={{ animationDelay: "200ms" }}
+                >
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    No Rekening
+                  </label>
+
+                  <div className="relative">
+                    <CreditCard
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      value={editProfileForm.bank_account_number}
+                      onChange={(event) =>
+                        handleNumericProfileInputChange(
+                          "bank_account_number",
+                          event.target.value,
+                        )
+                      }
+                      onPaste={(event) => {
+                        const pastedText = event.clipboardData.getData("text");
+
+                        if (/\D/.test(pastedText)) {
+                          showProfileAlert(
+                            "No rekening tidak valid",
+                            "No rekening hanya dapat diisi angka.",
+                            "warning",
+                          );
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Masukkan no rekening"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className="profile-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500"
+                  style={{ animationDelay: "240ms" }}
+                >
+                  Email, status akun, status kepegawaian, masa kerja, role,
+                  kantor, divisi, jabatan, posisi, dan shift terdaftar hanya
+                  dapat diubah oleh admin.
                 </div>
 
                 <div
                   className="profile-row-enter flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end"
-                  style={{ animationDelay: "120ms" }}
+                  style={{ animationDelay: "280ms" }}
                 >
                   <button
                     type="button"

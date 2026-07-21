@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createToken, verifyPassword } from "@/lib/auth";
+import { deactivateExpiredEmployee } from "@/lib/employment-period";
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
@@ -188,6 +189,16 @@ export async function POST(req: Request) {
       );
     }
 
+    if (await deactivateExpiredEmployee(user)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Masa kerja akun sudah berakhir. Akun otomatis nonaktif.",
+        },
+        { status: 403 }
+      );
+    }
+
     if (user.status !== "active") {
       return NextResponse.json(
         { success: false, message: "Akun tidak aktif" },
@@ -217,7 +228,7 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    const redirectTo = user.role === "owner" ? "/admin/dashboard" : "/home";
+    const redirectTo = user.role === "owner" ? "/admin/dashboard" : "/beranda";
 
     const response = NextResponse.json({
       success: true,

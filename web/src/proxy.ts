@@ -4,10 +4,10 @@ import { jwtVerify } from "jose";
 const ADMIN_ROLES = new Set(["owner"]);
 const EMPLOYEE_ROLES = new Set(["employee"]);
 const EMPLOYEE_PATHS = [
-  "/home",
-  "/attendance",
+  "/beranda",
+  "/presensi",
   "/history",
-  "/profile",
+  "/profil",
   "/cuti",
   "/notifikasi",
   "/pengumuman",
@@ -43,7 +43,7 @@ function redirectToLogin(req: NextRequest, pathname: string) {
 
 function redirectToHome(req: NextRequest) {
   const homeUrl = req.nextUrl.clone();
-  homeUrl.pathname = "/home";
+  homeUrl.pathname = "/beranda";
   homeUrl.search = "";
 
   return NextResponse.redirect(homeUrl);
@@ -115,10 +115,10 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
-    "/home/:path*",
-    "/attendance/:path*",
+    "/beranda/:path*",
+    "/presensi/:path*",
     "/history/:path*",
-    "/profile/:path*",
+    "/profil/:path*",
     "/cuti/:path*",
     "/notifikasi/:path*",
     "/pengumuman/:path*",

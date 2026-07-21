@@ -148,15 +148,29 @@ function isPermissionDeniedError(error: unknown) {
 }
 
 function isMobileAttendanceDevice() {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
+  if (typeof navigator === "undefined" || typeof window === "undefined") {
     return false;
   }
 
-  const userAgent = navigator.userAgent.toLowerCase();
+  const userAgent = navigator.userAgent || "";
+  const userAgentData = navigator as Navigator & {
+    userAgentData?: { mobile?: boolean; platform?: string };
+  };
+  const platform =
+    userAgentData.userAgentData?.platform || navigator.platform || "";
+  const isPhoneUserAgent =
+    /iPhone|iPod|Windows Phone|BlackBerry|IEMobile|Opera Mini/i.test(
+      userAgent,
+    ) || /Android.+Mobile/i.test(userAgent);
+  const isDesktopPlatform = /Mac|Win|Linux|CrOS/i.test(platform);
+  const hasTouchInput =
+    navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches;
+  const isSmallScreen = Math.min(window.screen.width, window.screen.height) <= 820;
+  const isMobileClientHint = userAgentData.userAgentData?.mobile === true;
 
-  return /iphone|ipod|android.*mobile|blackberry|iemobile|opera mini|mobile/.test(
-    userAgent,
-  );
+  if (isDesktopPlatform) return false;
+
+  return hasTouchInput && isSmallScreen && (isPhoneUserAgent || isMobileClientHint);
 }
 
 function normalizeCurrentUser(
@@ -2240,7 +2254,6 @@ export default function AttendancePage() {
       <div className="hidden md:block">
         <AppHeader
           title="Presensi Wajah"
-          subtitle="Ambil foto dan lokasi GPS untuk presensi"
           rightLabel={
             isLaptopBlocked
               ? "MOBILE ONLY"

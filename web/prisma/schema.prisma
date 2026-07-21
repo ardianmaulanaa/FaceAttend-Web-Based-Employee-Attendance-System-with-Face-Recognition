@@ -21,8 +21,15 @@ model User {
   // utama, magang
   employee_type String @default("utama") @db.VarChar(20)
 
-  phone  String? @db.VarChar(20)
-  status String  @default("active") @db.VarChar(20)
+  phone               String?   @db.VarChar(20)
+  status              String    @default("active") @db.VarChar(20)
+  employment_status   String?   @db.VarChar(100)
+  employment_start_date DateTime? @db.Date
+  employment_end_date   DateTime? @db.Date
+  birth_place         String?   @db.VarChar(100)
+  birth_date          DateTime? @db.Date
+  bank_account_number String?   @db.VarChar(50)
+  nik                 String?   @db.VarChar(30)
 
   profile_photo           String? @db.Text
   profile_photo_public_id String? @db.VarChar(255)
@@ -440,6 +447,12 @@ model Announcement {
 
   title   String @db.VarChar(150)
   content String @db.Text
+
+  document_url       String? @db.Text
+  document_public_id String? @db.VarChar(255)
+  document_name      String? @db.VarChar(255)
+  document_mime      String? @db.VarChar(100)
+  document_size      Int?
 
   // all, employee, admin, cs
   target String @default("all") @db.VarChar(20)

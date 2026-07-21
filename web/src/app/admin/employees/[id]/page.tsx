@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarDays,
   Clock3,
+  CreditCard,
   IdCard,
   Loader2,
   Mail,
@@ -73,7 +74,6 @@ type Employee = {
   id: string;
   name: string;
   email: string;
-  role: string;
   jabatan: JabatanRelation;
   department: DepartmentRelation;
   position: PositionRelation;
@@ -81,6 +81,13 @@ type Employee = {
   registered_office: OfficeRelation;
   phone: string | null;
   status: "active" | "inactive";
+  employment_status: string | null;
+  employment_start_date: string | null;
+  employment_end_date: string | null;
+  birth_place: string | null;
+  birth_date: string | null;
+  bank_account_number: string | null;
+  nik: string | null;
   created_at: string;
 
   profile_photo?: string | null;
@@ -170,6 +177,17 @@ function formatDate(value?: string | null) {
 
 function formatStatus(status: "active" | "inactive") {
   return status === "active" ? "Aktif" : "Nonaktif";
+}
+
+function formatEmploymentPeriod(employee: Employee) {
+  const startDate = formatDate(employee.employment_start_date);
+  const endDate = formatDate(employee.employment_end_date);
+
+  if (startDate === "-" && endDate === "-") return "-";
+  if (startDate === "-") return `Sampai ${endDate}`;
+  if (endDate === "-") return `Mulai ${startDate}`;
+
+  return `${startDate} - ${endDate}`;
 }
 
 function EmployeeDetailMotionStyles() {
@@ -451,10 +469,6 @@ export default function AdminEmployeeDetailPage() {
                         >
                           {formatStatus(employee.status)}
                         </span>
-
-                        <span className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
-                          {employee.role || "employee"}
-                        </span>
                       </div>
 
                       {profilePhoto ? (
@@ -496,11 +510,27 @@ export default function AdminEmployeeDetailPage() {
                   />
 
                   <DetailCard
+                    icon={IdCard}
+                    label="NIK"
+                    value={employee.nik || "-"}
+                    description="Nomor Induk Kependudukan"
+                    delay={220}
+                  />
+
+                  <DetailCard
+                    icon={CreditCard}
+                    label="No Rekening"
+                    value={employee.bank_account_number || "-"}
+                    description="Nomor rekening payroll karyawan"
+                    delay={240}
+                  />
+
+                  <DetailCard
                     icon={CalendarDays}
                     label="Tanggal Dibuat"
                     value={formatDate(employee.created_at)}
                     description="Tanggal akun employee didaftarkan"
-                    delay={200}
+                    delay={260}
                   />
                 </div>
               </div>
@@ -567,6 +597,36 @@ export default function AdminEmployeeDetailPage() {
                       : "Akun sedang nonaktif."
                   }
                   delay={280}
+                />
+
+                <DetailCard
+                  icon={BadgeCheck}
+                  label="Status Kepegawaian"
+                  value={employee.employment_status || "-"}
+                  description="Data status kepegawaian dari profil karyawan"
+                  delay={320}
+                />
+
+                <DetailCard
+                  icon={CalendarDays}
+                  label="Masa Kerja"
+                  value={formatEmploymentPeriod(employee)}
+                  description="Akun otomatis nonaktif setelah tanggal akhir lewat"
+                  delay={340}
+                />
+
+                <DetailCard
+                  icon={MapPin}
+                  label="Tempat Lahir"
+                  value={employee.birth_place || "-"}
+                  delay={380}
+                />
+
+                <DetailCard
+                  icon={CalendarDays}
+                  label="Tanggal Lahir"
+                  value={formatDate(employee.birth_date)}
+                  delay={420}
                 />
               </div>
             </section>

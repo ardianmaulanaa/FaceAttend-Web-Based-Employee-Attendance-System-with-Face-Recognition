@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCloudinary } from "@/lib/cloudinary";
+import { isPhoneAttendanceRequest } from "@/lib/attendance-device";
 import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
@@ -42,18 +43,6 @@ type ParsedAttendanceBody = {
   visitAddress: string;
   visitNote: string;
 };
-
-function isMobileAttendanceRequest(req: NextRequest) {
-  const secChMobile = req.headers.get("sec-ch-ua-mobile");
-
-  if (secChMobile === "?1") return true;
-
-  const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
-
-  return /iphone|ipod|android.*mobile|blackberry|iemobile|opera mini|mobile/.test(
-    userAgent,
-  );
-}
 
 async function getUserIdFromRequest(req: NextRequest) {
   const authUser = await requireAuth(req);
@@ -462,17 +451,17 @@ async function parseAttendanceBody(
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(req);
-
-    if (!isMobileAttendanceRequest(req)) {
+    if (!isPhoneAttendanceRequest(req)) {
       return NextResponse.json(
         {
           error:
-            "Presensi hanya dapat dilakukan melalui browser HP. Laptop atau desktop tidak diizinkan.",
+            "Presensi hanya bisa dilakukan melalui handphone. Silakan buka FaceAttend dari browser HP.",
         },
         { status: 403 },
       );
     }
+
+    const userId = await getUserIdFromRequest(req);
 
     const {
       photoBuffer,

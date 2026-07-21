@@ -295,6 +295,20 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     "tanggalLahir",
     "tanggal_lahir",
   ]);
+  const birthPlace = findOptionalText(body, [
+    "birthPlace",
+    "birth_place",
+    "tempatLahir",
+    "tempat_lahir",
+  ]);
+  const bankAccountNumber = findOptionalText(body, [
+    "bankAccountNumber",
+    "bank_account_number",
+    "noRekening",
+    "no_rekening",
+    "rekening",
+  ]);
+  const nik = findOptionalText(body, ["nik"]);
 
   if (name !== undefined && !name) {
     return NextResponse.json(
@@ -326,6 +340,26 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     );
   }
 
+  if (bankAccountNumber !== undefined && bankAccountNumber && !/^\d+$/.test(bankAccountNumber)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "No rekening hanya dapat diisi angka.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (nik !== undefined && nik && !/^\d+$/.test(nik)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "NIK hanya dapat diisi angka.",
+      },
+      { status: 400 }
+    );
+  }
+
   addUpdate("name", name);
 
   addUpdate("phone", phone);
@@ -340,6 +374,14 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
   addUpdate("birth_date", birthDate);
   addUpdate("date_of_birth", birthDate);
   addUpdate("tanggal_lahir", birthDate);
+
+  addUpdate("birth_place", birthPlace);
+  addUpdate("tempat_lahir", birthPlace);
+
+  addUpdate("bank_account_number", bankAccountNumber);
+  addUpdate("no_rekening", bankAccountNumber);
+
+  addUpdate("nik", nik);
 
   if (columns.has("updated_at")) {
     updates.push(["updated_at", "NOW()"]);

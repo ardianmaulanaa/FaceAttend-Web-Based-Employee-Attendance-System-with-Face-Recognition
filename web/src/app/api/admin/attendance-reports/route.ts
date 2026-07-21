@@ -281,6 +281,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
+    const employeeId = String(searchParams.get("employeeId") || "").trim();
     const search = String(searchParams.get("search") || "").trim();
     const date = String(searchParams.get("date") || "").trim();
     const status = String(searchParams.get("status") || "")
@@ -391,6 +392,11 @@ export async function GET(req: NextRequest) {
     if (status && status !== "all" && statusColumn) {
       whereClauses.push(`LOWER(a.\`${statusColumn}\`) = ?`);
       queryValues.push(status);
+    }
+
+    if (employeeId) {
+      whereClauses.push("u.`id` = ?");
+      queryValues.push(employeeId);
     }
 
     if (search) {

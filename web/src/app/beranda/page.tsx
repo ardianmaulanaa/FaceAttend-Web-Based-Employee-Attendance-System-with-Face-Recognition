@@ -46,6 +46,10 @@ type Announcement = {
   id: string;
   title: string;
   content?: string;
+  document_url?: string | null;
+  document_name?: string | null;
+  documentUrl?: string | null;
+  documentName?: string | null;
   status?: string;
   created_at?: string;
   createdAt?: string;
@@ -80,13 +84,13 @@ const quickMenus = [
     icon: History,
   },
   {
-    href: "/attendance",
+    href: "/presensi",
     label: "Presensi",
     description: "Check-in/out",
     icon: ScanFace,
   },
   {
-    href: "/profile",
+    href: "/profil",
     label: "Profil",
     description: "Data akun",
     icon: UserRound,
@@ -479,6 +483,17 @@ function AnnouncementList({
           {topAnnouncement.content}
         </p>
       ) : null}
+
+      {topAnnouncement.document_url || topAnnouncement.documentUrl ? (
+        <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-2xl bg-[#eaf1ff] px-3 py-2 text-xs font-black text-[#123c8c]">
+          <FileText size={14} strokeWidth={2.6} />
+          <span className="truncate">
+            {topAnnouncement.document_name ||
+              topAnnouncement.documentName ||
+              "Dokumen PDF"}
+          </span>
+        </div>
+      ) : null}
     </Link>
   );
 }
@@ -797,14 +812,14 @@ export default function HomePage() {
                 <div className="grid grid-cols-2 gap-3 lg:w-[460px]">
                   <AttendanceButton
                     label="Masuk"
-                    href="/attendance"
+                    href="/presensi"
                     disabled={hasCheckedIn}
                     variant="primary"
                   />
 
                   <AttendanceButton
                     label="Keluar"
-                    href="/attendance"
+                    href="/presensi"
                     disabled={!hasCheckedIn || hasCheckedOut}
                     variant="secondary"
                   />

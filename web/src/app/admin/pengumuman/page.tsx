@@ -3,7 +3,9 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Edit,
+  FileText,
   Megaphone,
+  Paperclip,
   Plus,
   RefreshCw,
   Search,
@@ -20,6 +22,12 @@ type Announcement = {
   id: string;
   title: string;
   content: string;
+  document_url?: string | null;
+  document_name?: string | null;
+  document_size?: number | null;
+  documentUrl?: string | null;
+  documentName?: string | null;
+  documentSize?: number | null;
   target: string;
   status: AnnouncementStatus;
   created_at: string;
@@ -35,12 +43,20 @@ type AnnouncementForm = {
   title: string;
   content: string;
   status: AnnouncementStatus;
+  document: File | null;
+  existingDocumentName: string;
+  existingDocumentUrl: string;
+  removeDocument: boolean;
 };
 
 const initialForm: AnnouncementForm = {
   title: "",
   content: "",
   status: "published",
+  document: null,
+  existingDocumentName: "",
+  existingDocumentUrl: "",
+  removeDocument: false,
 };
 
 function formatStatus(status: AnnouncementStatus) {
@@ -59,6 +75,16 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatFileSize(value?: number | null) {
+  if (!value || value < 1) return "";
+
+  if (value >= 1024 * 1024) {
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(value / 1024))} KB`;
 }
 
 async function readJsonResponse(response: Response) {
@@ -195,8 +221,6 @@ export default function AdminAnnouncementsPage() {
 
       setAnnouncements(data.announcements || data.data || []);
     } catch (error) {
-      console.error("ADMIN_ANNOUNCEMENTS_ERROR:", error);
-
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -260,6 +284,12 @@ export default function AdminAnnouncementsPage() {
       title: announcement.title,
       content: announcement.content,
       status: announcement.status,
+      document: null,
+      existingDocumentName:
+        announcement.document_name || announcement.documentName || "",
+      existingDocumentUrl:
+        announcement.document_url || announcement.documentUrl || "",
+      removeDocument: false,
     });
     setIsModalOpen(true);
   }
@@ -284,18 +314,27 @@ export default function AdminAnnouncementsPage() {
     try {
       setIsSubmitting(true);
 
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("content", content);
+      formData.append("target", "all");
+      formData.append("status", form.status);
+
+      if (editingAnnouncementId) {
+        formData.append("id", editingAnnouncementId);
+      }
+
+      if (form.document) {
+        formData.append("document", form.document);
+      }
+
+      if (form.removeDocument) {
+        formData.append("removeDocument", "true");
+      }
+
       const response = await fetch("/api/announcements", {
         method: editingAnnouncementId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: editingAnnouncementId,
-          title,
-          content,
-          target: "all",
-          status: form.status,
-        }),
+        body: formData,
       });
 
       const data = await readJsonResponse(response);
@@ -509,9 +548,10 @@ export default function AdminAnnouncementsPage() {
           ) : null}
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
-            <div className="hidden grid-cols-[1.4fr_2fr_0.8fr_1fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
+            <div className="hidden grid-cols-[1.2fr_1.7fr_1fr_0.8fr_1fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
               <p>Judul</p>
               <p>Isi Pengumuman</p>
+              <p>Dokumen</p>
               <p>Status</p>
               <p className="text-center">Aksi</p>
             </div>
@@ -537,7 +577,7 @@ export default function AdminAnnouncementsPage() {
                 filteredAnnouncements.map((announcement, index) => (
                   <div
                     key={announcement.id}
-                    className="admin-announcement-row-enter grid gap-4 px-5 py-5 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid-cols-[1.4fr_2fr_0.8fr_1fr] md:items-center"
+                    className="admin-announcement-row-enter grid gap-4 px-5 py-5 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid-cols-[1.2fr_1.7fr_1fr_0.8fr_1fr] md:items-center"
                     style={{
                       animationDelay: `${index * 55}ms`,
                     }}
@@ -554,6 +594,43 @@ export default function AdminAnnouncementsPage() {
                     <p className="line-clamp-2 font-semibold leading-6 text-slate-600">
                       {announcement.content}
                     </p>
+
+                    {announcement.document_url || announcement.documentUrl ? (
+                      <a
+                        href={
+                          announcement.document_url ||
+                          announcement.documentUrl ||
+                          "#"
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-fit items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-[#123c8c] transition hover:bg-blue-100"
+                      >
+                        <FileText size={14} />
+                        <span className="min-w-0">
+                          <span className="block max-w-[12rem] truncate">
+                            {announcement.document_name ||
+                              announcement.documentName ||
+                              "Dokumen PDF"}
+                          </span>
+                          {formatFileSize(
+                            announcement.document_size ||
+                              announcement.documentSize,
+                          ) ? (
+                            <span className="block text-[10px] font-bold text-blue-500">
+                              {formatFileSize(
+                                announcement.document_size ||
+                                  announcement.documentSize,
+                              )}
+                            </span>
+                          ) : null}
+                        </span>
+                      </a>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-300">
+                        Tidak ada
+                      </span>
+                    )}
 
                     <span
                       className={`w-fit rounded-full px-3 py-1 text-xs font-black ${
@@ -715,8 +792,110 @@ export default function AdminAnnouncementsPage() {
               </div>
 
               <div
-                className="admin-announcement-row-enter flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end"
+                className="admin-announcement-row-enter"
                 style={{ animationDelay: "120ms" }}
+              >
+                <label className="mb-2 block text-sm font-black text-slate-700">
+                  Dokumen PDF
+                </label>
+
+                <label className="admin-announcement-field flex cursor-pointer flex-col gap-3 rounded-2xl border border-dashed border-blue-200 bg-[#f6f8ff] px-4 py-4 text-sm font-bold text-slate-600 outline-none transition hover:border-[#123c8c] hover:bg-white hover:ring-4 hover:ring-blue-100 md:flex-row md:items-center md:justify-between">
+                  <span className="inline-flex min-w-0 items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#123c8c] shadow-sm">
+                      <Paperclip size={20} strokeWidth={2.6} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-slate-800">
+                        {form.document
+                          ? form.document.name
+                          : form.existingDocumentName
+                            ? form.existingDocumentName
+                            : "Pilih dokumen PDF"}
+                      </span>
+                      <span className="mt-0.5 block text-xs font-semibold text-slate-400">
+                        Maksimal 10MB, hanya PDF.
+                      </span>
+                    </span>
+                  </span>
+
+                  <span className="rounded-xl bg-white px-3 py-2 text-xs font-black text-[#123c8c] shadow-sm">
+                    Pilih File
+                  </span>
+
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+
+                      if (!file) {
+                        setForm((prev) => ({
+                          ...prev,
+                          document: null,
+                        }));
+                        return;
+                      }
+
+                      if (
+                        file.type !== "application/pdf" &&
+                        !file.name.toLowerCase().endsWith(".pdf")
+                      ) {
+                        alert("Dokumen pengumuman harus berformat PDF.");
+                        event.target.value = "";
+                        return;
+                      }
+
+                      if (file.size > 10 * 1024 * 1024) {
+                        alert("Ukuran dokumen PDF maksimal 10MB.");
+                        event.target.value = "";
+                        return;
+                      }
+
+                      setForm((prev) => ({
+                        ...prev,
+                        document: file,
+                        removeDocument: false,
+                      }));
+                    }}
+                  />
+                </label>
+
+                {form.existingDocumentUrl && !form.document ? (
+                  <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-blue-100 bg-white p-3 text-xs font-bold text-slate-500 md:flex-row md:items-center md:justify-between">
+                    <a
+                      href={form.existingDocumentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-w-0 items-center gap-2 text-[#123c8c] hover:text-[#0f3274]"
+                    >
+                      <FileText size={15} />
+                      <span className="truncate">
+                        {form.existingDocumentName || "Dokumen PDF"}
+                      </span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          existingDocumentName: "",
+                          existingDocumentUrl: "",
+                          removeDocument: true,
+                        }))
+                      }
+                      className="w-fit rounded-xl bg-rose-50 px-3 py-2 font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.97]"
+                    >
+                      Hapus Dokumen
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div
+                className="admin-announcement-row-enter flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end"
+                style={{ animationDelay: "160ms" }}
               >
                 <button
                   type="button"

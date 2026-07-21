@@ -225,12 +225,16 @@ export default function AdminAttendanceReportPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [month, setMonth] = useState(getCurrentMonth());
   const [year, setYear] = useState(getCurrentYear());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  async function getAttendanceReports() {
+  async function getAttendanceReports(
+    searchOverride?: string,
+    employeeIdOverride?: string,
+  ) {
     try {
       setIsLoading(true);
       setErrorMessage("");
@@ -244,8 +248,13 @@ export default function AdminAttendanceReportPage() {
         queryParams.set("year", String(year));
       }
 
-      if (searchKeyword.trim()) {
-        queryParams.set("search", searchKeyword.trim());
+      const effectiveSearch = searchOverride ?? searchKeyword;
+      const effectiveEmployeeId = employeeIdOverride ?? selectedEmployeeId;
+
+      if (effectiveEmployeeId.trim()) {
+        queryParams.set("employeeId", effectiveEmployeeId.trim());
+      } else if (effectiveSearch.trim()) {
+        queryParams.set("search", effectiveSearch.trim());
       }
 
       if (statusFilter !== "all") {
@@ -300,7 +309,9 @@ export default function AdminAttendanceReportPage() {
       params.set("year", String(year));
     }
 
-    if (searchKeyword.trim()) {
+    if (selectedEmployeeId.trim()) {
+      params.set("employeeId", selectedEmployeeId.trim());
+    } else if (searchKeyword.trim()) {
       params.set("search", searchKeyword.trim());
     }
 
@@ -316,7 +327,28 @@ export default function AdminAttendanceReportPage() {
   }
 
   useEffect(() => {
-    void getAttendanceReports();
+    const initialSearch = new URLSearchParams(window.location.search).get(
+      "search",
+    );
+    const initialEmployeeId = new URLSearchParams(window.location.search).get(
+      "employeeId",
+    );
+    const initialEmployeeName = new URLSearchParams(window.location.search).get(
+      "employeeName",
+    );
+
+    if (initialEmployeeId) {
+      setSelectedEmployeeId(initialEmployeeId);
+    }
+
+    if (initialEmployeeName || initialSearch) {
+      setSearchKeyword(initialEmployeeName || initialSearch || "");
+    }
+
+    void getAttendanceReports(
+      initialEmployeeName || initialSearch || undefined,
+      initialEmployeeId || undefined,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, month, year, statusFilter]);
 
@@ -463,7 +495,10 @@ export default function AdminAttendanceReportPage() {
 
                 <input
                   value={searchKeyword}
-                  onChange={(event) => setSearchKeyword(event.target.value)}
+                  onChange={(event) => {
+                    setSearchKeyword(event.target.value);
+                    setSelectedEmployeeId("");
+                  }}
                   placeholder="Cari nama / kode karyawan..."
                   className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />

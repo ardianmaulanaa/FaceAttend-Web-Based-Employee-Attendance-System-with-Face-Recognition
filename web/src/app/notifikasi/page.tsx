@@ -121,13 +121,11 @@ export default function EmployeeNotificationPage() {
         data.stats || {
           total: 0,
           unread: 0,
-        }
+        },
       );
     } catch (error) {
       setPageError(
-        error instanceof Error
-          ? error.message
-          : "Gagal mengambil notifikasi."
+        error instanceof Error ? error.message : "Gagal mengambil notifikasi.",
       );
     } finally {
       setIsLoading(false);
@@ -170,8 +168,8 @@ export default function EmployeeNotificationPage() {
                 status: "read",
                 statusText: "Dibaca",
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setStats((prev) => ({
@@ -182,9 +180,7 @@ export default function EmployeeNotificationPage() {
       router.push(notification.href);
     } catch (error) {
       setPageError(
-        error instanceof Error
-          ? error.message
-          : "Gagal membaca notifikasi."
+        error instanceof Error ? error.message : "Gagal membaca notifikasi.",
       );
     } finally {
       setActiveId(null);
@@ -197,10 +193,7 @@ export default function EmployeeNotificationPage() {
 
   return (
     <main className="min-h-screen bg-[#f6f8ff] text-slate-950">
-      <AppHeader
-        title="Notifikasi"
-        subtitle="Pusat informasi cuti, izin, sakit, dan pengumuman terbaru."
-      />
+      <AppHeader title="Notifikasi" />
 
       <section className="mx-auto max-w-5xl px-5 pb-10 pt-6 md:px-8">
         <div className="grid gap-4 md:grid-cols-3">

@@ -14,9 +14,12 @@ import {
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
+  CalendarDays,
   CheckCircle2,
   Clock3,
+  CreditCard,
   Edit,
+  IdCard,
   Info,
   KeyRound,
   Mail,
@@ -161,7 +164,6 @@ type Employee = {
   id: string;
   name: string;
   email: string;
-  role: string;
   jabatan: JabatanRelation;
   department: DepartmentRelation;
   position: PositionRelation;
@@ -169,6 +171,13 @@ type Employee = {
   registered_office: OfficeRelation;
   phone: string | null;
   status: "active" | "inactive";
+  employment_status: string | null;
+  employment_start_date: string | null;
+  employment_end_date: string | null;
+  birth_place: string | null;
+  birth_date: string | null;
+  bank_account_number: string | null;
+  nik: string | null;
   created_at: string;
 
   profile_photo?: string | null;
@@ -188,6 +197,13 @@ type EmployeeForm = {
   temporaryPassword: string;
   confirmTemporaryPassword: string;
   status: "active" | "inactive";
+  employment_status: string;
+  employment_start_date: string;
+  employment_end_date: string;
+  birth_place: string;
+  birth_date: string;
+  bank_account_number: string;
+  nik: string;
 };
 
 type EmployeeAlert = {
@@ -207,6 +223,13 @@ const initialForm: EmployeeForm = {
   temporaryPassword: "",
   confirmTemporaryPassword: "",
   status: "active",
+  employment_status: "",
+  employment_start_date: "",
+  employment_end_date: "",
+  birth_place: "",
+  birth_date: "",
+  bank_account_number: "",
+  nik: "",
 };
 
 function getInitialName(name: string) {
@@ -225,6 +248,38 @@ function getShortEmployeeId(id: string) {
 
 function formatStatus(status: "active" | "inactive") {
   return status === "active" ? "Aktif" : "Nonaktif";
+}
+
+function formatDateInput(value?: string | null) {
+  if (!value) return "";
+
+  return String(value).slice(0, 10);
+}
+
+function formatDisplayDate(value?: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatEmploymentPeriod(employee: Employee) {
+  const startDate = formatDisplayDate(employee.employment_start_date);
+  const endDate = formatDisplayDate(employee.employment_end_date);
+
+  if (startDate === "-" && endDate === "-") return "-";
+  if (startDate === "-") return `Sampai ${endDate}`;
+  if (endDate === "-") return `Mulai ${startDate}`;
+
+  return `${startDate} - ${endDate}`;
 }
 
 function isValidEmail(email: string) {
@@ -256,6 +311,10 @@ function normalizeProfilePhotoUrl(photo?: string | null) {
   }
 
   return `/uploads/profiles/${cleanPhoto}`;
+}
+
+function normalizeNumericInput(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 function getEmployeeProfilePhoto(employee: Employee) {
@@ -620,6 +679,13 @@ export default function AdminEmployeesPage() {
         ${employee.position?.name || ""}
         ${employee.shift?.name || ""}
         ${employee.status}
+        ${employee.employment_status || ""}
+        ${employee.employment_start_date || ""}
+        ${employee.employment_end_date || ""}
+        ${employee.birth_place || ""}
+        ${employee.birth_date || ""}
+        ${employee.bank_account_number || ""}
+        ${employee.nik || ""}
       `.toLowerCase();
 
       return text.includes(keyword.toLowerCase());
@@ -676,6 +742,13 @@ export default function AdminEmployeesPage() {
       temporaryPassword: "",
       confirmTemporaryPassword: "",
       status: employee.status,
+      employment_status: employee.employment_status || "",
+      employment_start_date: formatDateInput(employee.employment_start_date),
+      employment_end_date: formatDateInput(employee.employment_end_date),
+      birth_place: employee.birth_place || "",
+      birth_date: formatDateInput(employee.birth_date),
+      bank_account_number: employee.bank_account_number || "",
+      nik: employee.nik || "",
     });
     setIsModalOpen(true);
   }
@@ -684,6 +757,28 @@ export default function AdminEmployeesPage() {
     setIsModalOpen(false);
     setEditingEmployee(null);
     setForm(initialForm);
+  }
+
+  function handleNumericFormChange(
+    field: "bank_account_number" | "nik",
+    value: string,
+  ) {
+    const normalizedValue = normalizeNumericInput(value);
+
+    if (value !== normalizedValue) {
+      showEmployeeAlert(
+        field === "nik" ? "NIK tidak valid" : "No rekening tidak valid",
+        field === "nik"
+          ? "NIK hanya dapat diisi angka."
+          : "No rekening hanya dapat diisi angka.",
+        "warning",
+      );
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [field]: normalizedValue,
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -756,6 +851,37 @@ export default function AdminEmployeesPage() {
       return;
     }
 
+    if (form.nik && !/^\d+$/.test(form.nik)) {
+      showEmployeeAlert(
+        "NIK tidak valid",
+        "NIK hanya dapat diisi angka.",
+        "warning",
+      );
+      return;
+    }
+
+    if (form.bank_account_number && !/^\d+$/.test(form.bank_account_number)) {
+      showEmployeeAlert(
+        "No rekening tidak valid",
+        "No rekening hanya dapat diisi angka.",
+        "warning",
+      );
+      return;
+    }
+
+    if (
+      form.employment_start_date &&
+      form.employment_end_date &&
+      form.employment_start_date > form.employment_end_date
+    ) {
+      showEmployeeAlert(
+        "Masa kerja tidak valid",
+        "Tanggal mulai masa kerja tidak boleh melewati tanggal akhir.",
+        "warning",
+      );
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -777,6 +903,13 @@ export default function AdminEmployeesPage() {
           position_id: form.position_id,
           shift_id: form.shift_id,
           status: form.status,
+          employment_status: form.employment_status.trim(),
+          employment_start_date: form.employment_start_date,
+          employment_end_date: form.employment_end_date,
+          birth_place: form.birth_place.trim(),
+          birth_date: form.birth_date,
+          bank_account_number: form.bank_account_number,
+          nik: form.nik,
         }),
       });
 
@@ -999,8 +1132,8 @@ export default function AdminEmployeesPage() {
           </div>
 
           <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
-            <div className="md:min-w-[1180px]">
-              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.85fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
+            <div className="md:min-w-[1320px]">
+              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.9fr_0.85fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
                 <p>Karyawan</p>
                 <p>Email</p>
                 <p>Kantor</p>
@@ -1009,6 +1142,7 @@ export default function AdminEmployeesPage() {
                 <p>Posisi</p>
                 <p>Shift</p>
                 <p>Status</p>
+                <p>Status Kepegawaian</p>
                 <p className="text-center">Aksi</p>
               </div>
 
@@ -1036,7 +1170,7 @@ export default function AdminEmployeesPage() {
                           router.push(`/admin/employees/${employee.id}`);
                         }
                       }}
-                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.85fr] md:items-center md:gap-3"
+                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.9fr_0.85fr] md:items-center md:gap-3"
                       style={{
                         animationDelay: `${index * 45}ms`,
                       }}
@@ -1093,6 +1227,15 @@ export default function AdminEmployeesPage() {
                         >
                           {formatStatus(employee.status)}
                         </span>
+                      </div>
+
+                      <div className="min-w-0 text-sm font-semibold text-slate-600">
+                        <p className="truncate">
+                          {employee.employment_status || "-"}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+                          {formatEmploymentPeriod(employee)}
+                        </p>
                       </div>
 
                       <div className="grid gap-2 md:flex md:justify-center">
@@ -1224,6 +1367,123 @@ export default function AdminEmployeesPage() {
                         }))
                       }
                       placeholder="employee@creativemu.com"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </AppFormReveal>
+
+              <AppFormReveal delay={50} className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tempat Lahir
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <MapPin
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={form.birth_place}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          birth_place: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: Jakarta"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tanggal Lahir
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <CalendarDays
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="date"
+                      value={form.birth_date}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          birth_date: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    NIK
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <IdCard
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={form.nik}
+                      onChange={(event) =>
+                        handleNumericFormChange("nik", event.target.value)
+                      }
+                      onPaste={(event) => {
+                        const pastedText = event.clipboardData.getData("text");
+
+                        if (/\D/.test(pastedText)) {
+                          showEmployeeAlert(
+                            "NIK tidak valid",
+                            "NIK hanya dapat diisi angka.",
+                            "warning",
+                          );
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Masukkan NIK"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    No Rekening
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <CreditCard
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={form.bank_account_number}
+                      onChange={(event) =>
+                        handleNumericFormChange(
+                          "bank_account_number",
+                          event.target.value,
+                        )
+                      }
+                      onPaste={(event) => {
+                        const pastedText = event.clipboardData.getData("text");
+
+                        if (/\D/.test(pastedText)) {
+                          showEmployeeAlert(
+                            "No rekening tidak valid",
+                            "No rekening hanya dapat diisi angka.",
+                            "warning",
+                          );
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Masukkan no rekening"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
@@ -1437,7 +1697,7 @@ export default function AdminEmployeesPage() {
                 </AppFormReveal>
               ) : null}
 
-              <AppFormReveal delay={100} className="grid gap-4 md:grid-cols-2">
+              <AppFormReveal delay={100} className="grid gap-4 md:grid-cols-4">
                 {!editingEmployee ? (
                   <div>
                     <label className="mb-2 block text-sm font-black text-slate-700">
@@ -1508,6 +1768,76 @@ export default function AdminEmployeesPage() {
                       <option value="active">Aktif</option>
                       <option value="inactive">Nonaktif</option>
                     </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Status Kepegawaian
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <BadgeCheck
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={form.employment_status}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          employment_status: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: Kontrak, Tetap, Freelance"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Mulai Masa Kerja
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <CalendarDays
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="date"
+                      value={form.employment_start_date}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          employment_start_date: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Akhir Masa Kerja
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <CalendarDays
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="date"
+                      value={form.employment_end_date}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          employment_end_date: event.target.value,
+                        }))
+                      }
+                      min={form.employment_start_date || undefined}
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
                   </div>
                 </div>
               </AppFormReveal>
