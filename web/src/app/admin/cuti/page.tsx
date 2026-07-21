@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FileText,
   Loader2,
   Search,
+  UserRound,
   X,
   XCircle,
 } from "lucide-react";
@@ -16,10 +18,25 @@ import MobileShell from "@/components/MobileShell";
 
 type AdminLeaveRequest = {
   id: string;
+  employeeId: string;
   employeeName: string;
   employeeCode: string | null;
+  employeeEmail: string | null;
+  employeePhone: string | null;
+  employeeStatus: string | null;
+  employeeEmploymentStatus: string | null;
+  employeeEmploymentStartDate: string | null;
+  employeeEmploymentEndDate: string | null;
+  employeeBirthPlace: string | null;
+  employeeBirthDate: string | null;
+  employeeBankAccountNumber: string | null;
+  employeeNik: string | null;
+  employeeProfilePhoto: string | null;
+  employeeJabatan: string | null;
   employeePosition: string | null;
   employeeDepartment: string | null;
+  employeeShift: string | null;
+  employeeOffice: string | null;
   leaveType: string;
   leaveTypeLabel: string;
   startDate: string;
@@ -46,6 +63,31 @@ type PendingAction = {
   status: "approved" | "rejected";
   employeeName: string;
 } | null;
+
+type LeaveRequestGroup = {
+  key: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string | null;
+  employeeEmail: string | null;
+  employeePhone: string | null;
+  employeeStatus: string | null;
+  employeeEmploymentStatus: string | null;
+  employeeEmploymentStartDate: string | null;
+  employeeEmploymentEndDate: string | null;
+  employeeBirthPlace: string | null;
+  employeeBirthDate: string | null;
+  employeeBankAccountNumber: string | null;
+  employeeNik: string | null;
+  employeeProfilePhoto: string | null;
+  employeeJabatan: string | null;
+  employeePosition: string | null;
+  employeeDepartment: string | null;
+  employeeShift: string | null;
+  employeeOffice: string | null;
+  requests: AdminLeaveRequest[];
+  pendingCount: number;
+};
 
 type AdminAnswerOption = {
   label: string;
@@ -158,6 +200,26 @@ function getDefaultAnswer(status: "approved" | "rejected") {
   return options[0]?.value || "";
 }
 
+function formatDateTimeDisplay(value: string | null | undefined) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getLeaveRequestGroupKey(item: AdminLeaveRequest) {
+  return item.employeeId || item.employeeCode || item.employeeName;
+}
+
 function LeaveReportMotionStyles() {
   return (
     <style>{`
@@ -258,6 +320,7 @@ export default function AdminLeaveReportPage() {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [adminNote, setAdminNote] = useState("");
+  const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null);
 
   async function getLeaveRequests() {
     try {
@@ -391,8 +454,15 @@ export default function AdminLeaveReportPage() {
       const searchableText = [
         item.employeeName,
         item.employeeCode,
-        item.employeePosition,
+        item.employeeEmail,
+        item.employeePhone,
+        item.employeeOffice,
         item.employeeDepartment,
+        item.employeeJabatan,
+        item.employeePosition,
+        item.employeeShift,
+        item.employeeEmploymentStatus,
+        item.employeeNik,
         item.leaveTypeLabel,
         item.reason,
         item.statusLabel,
@@ -406,6 +476,58 @@ export default function AdminLeaveReportPage() {
       return matchStatus && matchKeyword;
     });
   }, [requests, searchKeyword, statusFilter]);
+
+  const groupedRequests = useMemo<LeaveRequestGroup[]>(() => {
+    const groupMap = new Map<string, LeaveRequestGroup>();
+
+    filteredRequests.forEach((item) => {
+      const key = getLeaveRequestGroupKey(item);
+      const existingGroup = groupMap.get(key);
+
+      if (existingGroup) {
+        existingGroup.requests.push(item);
+
+        if (item.status.toLowerCase() === "pending") {
+          existingGroup.pendingCount += 1;
+        }
+
+        return;
+      }
+
+      groupMap.set(key, {
+        key,
+        employeeId: item.employeeId,
+        employeeName: item.employeeName,
+        employeeCode: item.employeeCode,
+        employeeEmail: item.employeeEmail,
+        employeePhone: item.employeePhone,
+        employeeStatus: item.employeeStatus,
+        employeeEmploymentStatus: item.employeeEmploymentStatus,
+        employeeEmploymentStartDate: item.employeeEmploymentStartDate,
+        employeeEmploymentEndDate: item.employeeEmploymentEndDate,
+        employeeBirthPlace: item.employeeBirthPlace,
+        employeeBirthDate: item.employeeBirthDate,
+        employeeBankAccountNumber: item.employeeBankAccountNumber,
+        employeeNik: item.employeeNik,
+        employeeProfilePhoto: item.employeeProfilePhoto,
+        employeeJabatan: item.employeeJabatan,
+        employeePosition: item.employeePosition,
+        employeeDepartment: item.employeeDepartment,
+        employeeShift: item.employeeShift,
+        employeeOffice: item.employeeOffice,
+        requests: [item],
+        pendingCount: item.status.toLowerCase() === "pending" ? 1 : 0,
+      });
+    });
+
+    return Array.from(groupMap.values()).sort((first, second) => {
+      if (second.pendingCount !== first.pendingCount) {
+        return second.pendingCount - first.pendingCount;
+      }
+
+      return first.employeeName.localeCompare(second.employeeName, "id-ID");
+    });
+  }, [filteredRequests]);
 
   const currentAnswerOptions = pendingAction
     ? getAnswerOptions(pendingAction.status)
@@ -572,122 +694,332 @@ export default function AdminLeaveReportPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {filteredRequests.map((item, index) => {
-                    const StatusIcon = getStatusIcon(item.status);
-                    const isPending = item.status.toLowerCase() === "pending";
+                <div className="grid gap-3">
+                  {groupedRequests.map((group, index) => {
+                    const isExpanded = expandedGroupKey === group.key;
 
                     return (
                       <article
-                        key={item.id}
-                        className="leave-report-row-enter rounded-[2rem] border border-blue-100 bg-white p-5 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
+                        key={group.key}
+                        className="leave-report-row-enter overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-md shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/30"
                         style={{
                           animationDelay: `${index * 55}ms`,
                         }}
                       >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-[#eaf1ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                                {item.leaveTypeLabel}
-                              </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedGroupKey(isExpanded ? null : group.key)
+                          }
+                          className="relative flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[#f8fbff] md:flex-row md:items-center md:justify-between md:px-5 md:py-4"
+                        >
+                          {group.pendingCount > 0 ? (
+                            <span className="absolute right-4 top-4 flex h-3 w-3">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+                            </span>
+                          ) : null}
 
-                              <span
-                                className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusStyle(
-                                  item.status,
-                                )}`}
-                              >
-                                <StatusIcon size={14} strokeWidth={2.6} />
-                                {item.statusLabel}
-                              </span>
+                          <div className="flex min-w-0 items-center gap-3 pr-7">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-base font-black text-[#123c8c]">
+                              {index + 1}
                             </div>
 
-                            <h3 className="mt-3 text-xl font-black text-slate-950">
-                              {item.employeeName}
-                            </h3>
+                            {group.employeeProfilePhoto ? (
+                              <img
+                                src={group.employeeProfilePhoto}
+                                alt={`Foto profil ${group.employeeName}`}
+                                className="h-12 w-12 shrink-0 rounded-2xl border border-blue-100 object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-[#f8fbff] text-[#123c8c]">
+                                <UserRound size={24} strokeWidth={2.6} />
+                              </div>
+                            )}
 
-                            <p className="mt-1 text-sm font-bold text-slate-500">
-                              {item.employeeCode || "-"}{" "}
-                              {item.employeePosition
-                                ? `• ${item.employeePosition}`
-                                : ""}
-                              {item.employeeDepartment
-                                ? ` • ${item.employeeDepartment}`
-                                : ""}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="truncate text-lg font-black text-slate-950 md:text-xl">
+                                  {group.employeeName}
+                                </h3>
+
+                                {group.pendingCount > 0 ? (
+                                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-100">
+                                    {group.pendingCount} baru
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <p className="mt-0.5 truncate text-xs font-bold text-slate-500 md:text-sm">
+                                {group.employeeCode || "-"}{" "}
+                                {group.employeeOffice
+                                  ? `• ${group.employeeOffice}`
+                                  : ""}
+                                {group.employeeDepartment
+                                  ? ` • ${group.employeeDepartment}`
+                                  : ""}
+                                {group.employeeJabatan
+                                  ? ` • ${group.employeeJabatan}`
+                                  : ""}
+                                {group.employeePosition
+                                  ? ` • ${group.employeePosition}`
+                                  : ""}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="grid gap-2 rounded-3xl bg-[#f8fbff] p-4 text-sm font-bold text-slate-600 sm:grid-cols-3 lg:min-w-[360px]">
-                            <div>
-                              <p className="text-[10px] font-black uppercase text-slate-400">
-                                Mulai
-                              </p>
-                              <p className="mt-1 text-[#123456]">
-                                {item.startDate}
-                              </p>
+                          <div className="flex items-center justify-between gap-3 md:justify-end">
+                            <div className="rounded-2xl bg-[#eaf1ff] px-3 py-2 text-xs font-black text-[#123c8c] md:text-sm">
+                              {group.requests.length} pengajuan
                             </div>
 
-                            <div>
-                              <p className="text-[10px] font-black uppercase text-slate-400">
-                                Selesai
-                              </p>
-                              <p className="mt-1 text-[#123456]">
-                                {item.endDate}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-[10px] font-black uppercase text-slate-400">
-                                Total
-                              </p>
-                              <p className="mt-1 text-[#123456]">
-                                {item.totalDays} hari
-                              </p>
-                            </div>
+                            <ChevronDown
+                              size={22}
+                              className={`text-[#123c8c] transition duration-200 ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                              strokeWidth={2.8}
+                            />
                           </div>
-                        </div>
+                        </button>
 
-                        <div className="mt-4 rounded-3xl bg-[#f8fbff] p-4">
-                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                            Alasan
-                          </p>
+                        {isExpanded ? (
+                          <div className="grid gap-4 border-t border-blue-50 bg-[#f8fbff] p-4 md:p-5">
+                            <div className="rounded-[1.5rem] border border-blue-100 bg-white p-4">
+                              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex min-w-0 items-center gap-3">
+                                  {group.employeeProfilePhoto ? (
+                                    <img
+                                      src={group.employeeProfilePhoto}
+                                      alt={`Foto profil ${group.employeeName}`}
+                                      className="h-14 w-14 shrink-0 rounded-2xl border border-blue-100 object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-[#f8fbff] text-[#123c8c]">
+                                      <UserRound size={26} strokeWidth={2.6} />
+                                    </div>
+                                  )}
 
-                          <p className="mt-2 break-words text-sm font-semibold leading-7 text-slate-600">
-                            {item.reason}
-                          </p>
-                        </div>
+                                  <div className="min-w-0">
+                                    <h4 className="truncate text-lg font-black text-slate-950">
+                                      Profil Karyawan
+                                    </h4>
 
-                        {item.adminNote ? (
-                          <div className="mt-3 rounded-3xl bg-blue-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                              Jawaban Admin
-                            </p>
+                                    <p className="mt-1 truncate text-sm font-bold text-slate-500">
+                                      {group.employeeEmail || "-"}{" "}
+                                      {group.employeePhone
+                                        ? `• ${group.employeePhone}`
+                                        : ""}
+                                    </p>
+                                  </div>
+                                </div>
 
-                            <p className="mt-2 break-words text-sm font-semibold leading-7 text-[#123c8c]">
-                              {item.adminNote}
-                            </p>
-                          </div>
-                        ) : null}
+                                <div className="grid gap-2 text-xs font-bold text-slate-600 sm:grid-cols-2 lg:grid-cols-4 lg:min-w-[640px]">
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Kantor
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeOffice || "-"}
+                                    </p>
+                                  </div>
 
-                        {isPending ? (
-                          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                            <button
-                              type="button"
-                              onClick={() => openAnswerModal(item, "rejected")}
-                              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-50 px-5 text-sm font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100 active:scale-[0.98]"
-                            >
-                              <XCircle size={17} strokeWidth={2.6} />
-                              Tolak
-                            </button>
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Divisi
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeDepartment || "-"}
+                                    </p>
+                                  </div>
 
-                            <button
-                              type="button"
-                              onClick={() => openAnswerModal(item, "approved")}
-                              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-700 active:scale-[0.98]"
-                            >
-                              <CheckCircle2 size={17} strokeWidth={2.6} />
-                              Setujui
-                            </button>
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Jabatan
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeJabatan || "-"}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Posisi
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeePosition || "-"}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Shift
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeShift || "-"}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Status Kepegawaian
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeEmploymentStatus || "-"}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      Masa Kerja
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeEmploymentStartDate || "-"}{" "}
+                                      - {group.employeeEmploymentEndDate || "-"}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">
+                                      NIK
+                                    </p>
+                                    <p className="mt-1 text-[#123456]">
+                                      {group.employeeNik || "-"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {group.requests.map((item, requestIndex) => {
+                              const StatusIcon = getStatusIcon(item.status);
+                              const isPending =
+                                item.status.toLowerCase() === "pending";
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="rounded-[1.5rem] border border-blue-100 bg-white p-5"
+                                  style={{
+                                    animationDelay: `${requestIndex * 45}ms`,
+                                  }}
+                                >
+                                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="rounded-full bg-[#eaf1ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
+                                          {item.leaveTypeLabel}
+                                        </span>
+
+                                        <span
+                                          className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusStyle(
+                                            item.status,
+                                          )}`}
+                                        >
+                                          <StatusIcon
+                                            size={14}
+                                            strokeWidth={2.6}
+                                          />
+                                          {item.statusLabel}
+                                        </span>
+                                      </div>
+
+                                      <h4 className="mt-3 text-lg font-black text-slate-950">
+                                        Detail Pengajuan
+                                      </h4>
+
+                                      <p className="mt-1 text-sm font-bold text-slate-500">
+                                        Diajukan{" "}
+                                        {formatDateTimeDisplay(item.createdAt)}
+                                      </p>
+                                    </div>
+
+                                    <div className="grid gap-2 rounded-3xl bg-[#f8fbff] p-4 text-sm font-bold text-slate-600 sm:grid-cols-3 lg:min-w-[360px]">
+                                      <div>
+                                        <p className="text-[10px] font-black uppercase text-slate-400">
+                                          Mulai
+                                        </p>
+                                        <p className="mt-1 text-[#123456]">
+                                          {item.startDate}
+                                        </p>
+                                      </div>
+
+                                      <div>
+                                        <p className="text-[10px] font-black uppercase text-slate-400">
+                                          Selesai
+                                        </p>
+                                        <p className="mt-1 text-[#123456]">
+                                          {item.endDate}
+                                        </p>
+                                      </div>
+
+                                      <div>
+                                        <p className="text-[10px] font-black uppercase text-slate-400">
+                                          Total
+                                        </p>
+                                        <p className="mt-1 text-[#123456]">
+                                          {item.totalDays} hari
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-4 rounded-3xl bg-[#f8fbff] p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                                      Alasan
+                                    </p>
+
+                                    <p className="mt-2 break-words text-sm font-semibold leading-7 text-slate-600">
+                                      {item.reason}
+                                    </p>
+                                  </div>
+
+                                  {item.adminNote ? (
+                                    <div className="mt-3 rounded-3xl bg-blue-50 p-4">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
+                                        Jawaban Admin
+                                      </p>
+
+                                      <p className="mt-2 break-words text-sm font-semibold leading-7 text-[#123c8c]">
+                                        {item.adminNote}
+                                      </p>
+                                    </div>
+                                  ) : null}
+
+                                  {isPending ? (
+                                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          openAnswerModal(item, "rejected")
+                                        }
+                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-50 px-5 text-sm font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100 active:scale-[0.98]"
+                                      >
+                                        <XCircle
+                                          size={17}
+                                          strokeWidth={2.6}
+                                        />
+                                        Tolak
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          openAnswerModal(item, "approved")
+                                        }
+                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-700 active:scale-[0.98]"
+                                      >
+                                        <CheckCircle2
+                                          size={17}
+                                          strokeWidth={2.6}
+                                        />
+                                        Setujui
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : null}
                       </article>

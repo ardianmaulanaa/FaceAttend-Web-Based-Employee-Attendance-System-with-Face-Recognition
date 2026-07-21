@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
-                Today Report
+                Laporan Hari Ini
               </p>
 
               <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">

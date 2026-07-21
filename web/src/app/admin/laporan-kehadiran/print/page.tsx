@@ -48,15 +48,19 @@ function AttendanceReportPrintContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const month = Number(searchParams.get("month") || new Date().getMonth() + 1);
-  const year = Number(searchParams.get("year") || new Date().getFullYear());
+  const monthParam = String(searchParams.get("month") || "");
+  const yearParam = String(searchParams.get("year") || "");
+  const month = Number(monthParam);
+  const year = Number(yearParam);
   const selectedDate = String(searchParams.get("date") || "");
   const status = String(searchParams.get("status") || "all");
   const search = String(searchParams.get("search") || "");
 
   const periodLabel = selectedDate
     ? `Tanggal ${selectedDate}`
-    : `${getMonthLabel(month)} ${year}`;
+    : monthParam && yearParam
+      ? `${getMonthLabel(month)} ${year}`
+      : "Tanggal terbaru";
 
   const generatedAt = useMemo(
     () =>

@@ -495,9 +495,6 @@ export default function AdminAnnouncementsPage() {
               <h2 className="text-xl font-black text-slate-950">
                 Daftar Pengumuman
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Filter berdasarkan judul dan status pengumuman.
-              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-[1.5fr_0.8fr_auto]">

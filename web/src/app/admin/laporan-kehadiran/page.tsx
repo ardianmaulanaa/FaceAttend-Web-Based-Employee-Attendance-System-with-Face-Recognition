@@ -71,14 +71,6 @@ function getStatusStyle(status: string) {
   return "bg-slate-100 text-slate-600 ring-slate-200";
 }
 
-function getCurrentMonth() {
-  return new Date().getMonth() + 1;
-}
-
-function getCurrentYear() {
-  return new Date().getFullYear();
-}
-
 async function readJsonResponse(response: Response) {
   const text = await response.text();
 
@@ -227,8 +219,6 @@ export default function AdminAttendanceReportPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [month, setMonth] = useState(getCurrentMonth());
-  const [year, setYear] = useState(getCurrentYear());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   async function getAttendanceReports(
@@ -243,9 +233,6 @@ export default function AdminAttendanceReportPage() {
 
       if (selectedDate) {
         queryParams.set("date", selectedDate);
-      } else {
-        queryParams.set("month", String(month));
-        queryParams.set("year", String(year));
       }
 
       const effectiveSearch = searchOverride ?? searchKeyword;
@@ -304,9 +291,6 @@ export default function AdminAttendanceReportPage() {
 
     if (selectedDate) {
       params.set("date", selectedDate);
-    } else {
-      params.set("month", String(month));
-      params.set("year", String(year));
     }
 
     if (selectedEmployeeId.trim()) {
@@ -350,7 +334,7 @@ export default function AdminAttendanceReportPage() {
       initialEmployeeId || undefined,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, month, year, statusFilter]);
+  }, [selectedDate, statusFilter]);
 
   const groupedReports = useMemo(() => {
     const groups = new Map<string, AttendanceReport[]>();
@@ -485,7 +469,7 @@ export default function AdminAttendanceReportPage() {
 
             <form
               onSubmit={handleSearchSubmit}
-              className="mt-6 grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.6fr_0.6fr_0.8fr_auto]"
+              className="mt-6 grid gap-3 lg:grid-cols-[1.4fr_1fr_0.85fr_auto]"
             >
               <div className="relative">
                 <Search
@@ -508,27 +492,8 @@ export default function AdminAttendanceReportPage() {
                 type="date"
                 value={selectedDate}
                 onChange={(event) => setSelectedDate(event.target.value)}
+                title="Kosongkan untuk menampilkan tanggal presensi terbaru"
                 className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-              />
-
-              <input
-                type="number"
-                value={month}
-                min={1}
-                max={12}
-                onChange={(event) => setMonth(Number(event.target.value))}
-                disabled={Boolean(selectedDate)}
-                placeholder="Bulan"
-                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-
-              <input
-                type="number"
-                value={year}
-                onChange={(event) => setYear(Number(event.target.value))}
-                disabled={Boolean(selectedDate)}
-                placeholder="Tahun"
-                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
               />
 
               <select

@@ -98,8 +98,6 @@ function createEmptySummary() {
     totalPresensi: 0,
     hadir: 0,
     terlambat: 0,
-    tidakHadir: 0,
-    tidakMasukKantor: 0,
     menunggu: 0,
     izin: 0,
     sakit: 0,
@@ -152,6 +150,8 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         employee_code: true,
+        employment_start_date: true,
+        employment_end_date: true,
         base_salary: true,
         employment_status: true,
         status: true,
@@ -203,16 +203,6 @@ export async function GET(req: NextRequest) {
         getWorkDayKeys(startDate, endDate, employee.shift?.work_schedules),
       ]),
     );
-    const employeePresentDateKeys = new Map(
-      employees.map((employee) => [employee.id, new Set<string>()]),
-    );
-    const employeeLeaveDateKeys = new Map(
-      employees.map((employee) => [employee.id, new Set<string>()]),
-    );
-    const employeeAbsentDateKeys = new Map(
-      employees.map((employee) => [employee.id, new Set<string>()]),
-    );
-
     const attendances = await prisma.attendance.findMany({
       where: {
         attendance_date: {
@@ -240,20 +230,22 @@ export async function GET(req: NextRequest) {
       if (!summary) continue;
 
       summary.totalPresensi += 1;
-      const attendanceDateKey = toDateKey(attendance.attendance_date);
 
+      const hasCheckedIn =
+        Boolean(attendance.check_in_time) ||
+        attendance.status === "PRESENT" ||
+        attendance.status === "LATE" ||
+        attendance.check_in_status === "LATE";
       if (
         attendance.check_in_status === "LATE" ||
         Number(attendance.late_minutes || 0) > 0 ||
         attendance.status === "LATE"
       ) {
-        summary.terlambat += 1;
-        employeePresentDateKeys.get(attendance.user_id)?.add(attendanceDateKey);
-      } else if (attendance.status === "PRESENT" || attendance.check_in_time) {
+        summary.terlambat += Number(attendance.late_minutes || 0);
+      }
+
+      if (hasCheckedIn) {
         summary.hadir += 1;
-        employeePresentDateKeys.get(attendance.user_id)?.add(attendanceDateKey);
-      } else if (attendance.status === "ABSENT") {
-        employeeAbsentDateKeys.get(attendance.user_id)?.add(attendanceDateKey);
       } else {
         summary.menunggu += 1;
       }
@@ -296,10 +288,6 @@ export async function GET(req: NextRequest) {
       );
       const days = leaveDateKeys.length;
 
-      for (const leaveDateKey of leaveDateKeys) {
-        employeeLeaveDateKeys.get(leaveRequest.user_id)?.add(leaveDateKey);
-      }
-
       if (leaveType === "permission") {
         summary.izin += days;
       } else if (leaveType === "sick") {
@@ -313,37 +301,13 @@ export async function GET(req: NextRequest) {
 
     for (const employee of employees) {
       const summary = employeeSummaries.get(employee.id);
-      const workDayKeys = employeeWorkDayKeys.get(employee.id) || new Set();
-      const presentDateKeys =
-        employeePresentDateKeys.get(employee.id) || new Set();
-      const leaveDateKeys = employeeLeaveDateKeys.get(employee.id) || new Set();
-      const absentDateKeys =
-        employeeAbsentDateKeys.get(employee.id) || new Set();
 
       if (!summary) continue;
-
-      for (const workDayKey of workDayKeys) {
-        if (
-          !presentDateKeys.has(workDayKey) &&
-          !leaveDateKeys.has(workDayKey) &&
-          !absentDateKeys.has(workDayKey)
-        ) {
-          absentDateKeys.add(workDayKey);
-        }
-      }
-
-      summary.tidakHadir = absentDateKeys.size;
-      summary.tidakMasukKantor =
-        summary.tidakHadir +
-        summary.izin +
-        summary.sakit +
-        summary.cuti +
-        summary.lainnya;
 
       const baseSalary = Number(employee.base_salary || 0);
       const deductionPerDay =
         summary.totalHariKerja > 0 ? baseSalary / summary.totalHariKerja : 0;
-      const deduction = deductionPerDay * summary.tidakMasukKantor;
+      const deduction = deductionPerDay * (summary.cuti + summary.sakit);
 
       summary.gajiPokok = baseSalary;
       summary.potonganPerHari = Math.round(deductionPerDay);
@@ -359,6 +323,8 @@ export async function GET(req: NextRequest) {
         id: employee.id,
         name: employee.name,
         employeeCode: employee.employee_code,
+        employmentStartDate: employee.employment_start_date,
+        employmentEndDate: employee.employment_end_date,
         employmentStatus: employee.employment_status,
         status: employee.status,
         shiftName: employee.shift?.name || null,

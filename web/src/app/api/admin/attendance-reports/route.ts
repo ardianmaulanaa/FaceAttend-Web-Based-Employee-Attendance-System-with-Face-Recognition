@@ -288,10 +288,17 @@ export async function GET(req: NextRequest) {
       .trim()
       .toLowerCase();
 
-    const month = Number(
-      searchParams.get("month") || new Date().getMonth() + 1,
-    );
-    const year = Number(searchParams.get("year") || new Date().getFullYear());
+    const monthParam = String(searchParams.get("month") || "").trim();
+    const yearParam = String(searchParams.get("year") || "").trim();
+    const month = Number(monthParam);
+    const year = Number(yearParam);
+    const hasMonthYearFilter =
+      monthParam !== "" &&
+      yearParam !== "" &&
+      Number.isInteger(month) &&
+      month >= 1 &&
+      month <= 12 &&
+      Number.isInteger(year);
 
     const attendanceColumns = await getTableColumns("Attendance");
     const userColumns = await getTableColumns("users");
@@ -382,11 +389,15 @@ export async function GET(req: NextRequest) {
     if (date && dateColumn) {
       whereClauses.push(`DATE(a.\`${dateColumn}\`) = ?`);
       queryValues.push(date);
-    } else if (dateColumn) {
+    } else if (dateColumn && hasMonthYearFilter) {
       whereClauses.push(`MONTH(a.\`${dateColumn}\`) = ?`);
       whereClauses.push(`YEAR(a.\`${dateColumn}\`) = ?`);
       queryValues.push(month);
       queryValues.push(year);
+    } else if (dateColumn) {
+      whereClauses.push(
+        `DATE(a.\`${dateColumn}\`) = (SELECT DATE(MAX(\`${dateColumn}\`)) FROM \`Attendance\`)`,
+      );
     }
 
     if (status && status !== "all" && statusColumn) {

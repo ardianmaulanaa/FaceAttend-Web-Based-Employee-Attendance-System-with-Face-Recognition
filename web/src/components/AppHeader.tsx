@@ -423,7 +423,7 @@ export default function AppHeader({
 
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#123c8c]">
-                  FaceAttend
+                  Creativemu
                 </p>
 
                 <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">

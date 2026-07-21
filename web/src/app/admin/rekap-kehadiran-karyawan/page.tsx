@@ -37,6 +37,19 @@ type EmployeesResponse = {
   employees?: Employee[];
 };
 
+type LeaveRequest = {
+  id: string;
+  employeeId: string;
+  status: string;
+};
+
+type LeaveRequestsResponse = {
+  success?: boolean;
+  message?: string;
+  requests?: LeaveRequest[];
+  leaveRequests?: LeaveRequest[];
+};
+
 type EmployeeAttendanceSummary = {
   totalPresensi: number;
   hadir: number;
@@ -179,6 +192,7 @@ function AttendanceRecapMotionStyles() {
 
 export default function AdminEmployeeAttendanceRecapPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [recaps, setRecaps] = useState<EmployeeRecap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRecapLoading, setIsRecapLoading] = useState(false);
@@ -217,6 +231,26 @@ export default function AdminEmployeeAttendanceRecapPage() {
       );
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function getLeaveRequests() {
+    try {
+      const response = await fetch("/api/admin/leave-requests", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const data: LeaveRequestsResponse = await readJsonResponse(response);
+
+      if (!response.ok || !data.success) {
+        setLeaveRequests([]);
+        return;
+      }
+
+      setLeaveRequests(data.requests || data.leaveRequests || []);
+    } catch {
+      setLeaveRequests([]);
     }
   }
 
@@ -277,7 +311,7 @@ export default function AdminEmployeeAttendanceRecapPage() {
   }, [endDate, startDate]);
 
   useEffect(() => {
-    void getEmployees();
+    void Promise.all([getEmployees(), getLeaveRequests()]);
   }, []);
 
   useEffect(() => {
@@ -315,6 +349,21 @@ export default function AdminEmployeeAttendanceRecapPage() {
     return new Map(recaps.map((recap) => [recap.id, recap]));
   }, [recaps]);
 
+  const pendingLeaveCountByEmployeeId = useMemo(() => {
+    const leaveCounts = new Map<string, number>();
+
+    for (const request of leaveRequests) {
+      if (request.status.toLowerCase() !== "pending") continue;
+
+      leaveCounts.set(
+        request.employeeId,
+        (leaveCounts.get(request.employeeId) || 0) + 1,
+      );
+    }
+
+    return leaveCounts;
+  }, [leaveRequests]);
+
   const selectedEmployee = useMemo(() => {
     return (
       employees.find((employee) => employee.id === selectedEmployeeId) || null
@@ -340,24 +389,14 @@ export default function AdminEmployeeAttendanceRecapPage() {
 
   const summaryItems = [
     {
-      label: "Total Presensi",
-      value: selectedSummary.totalPresensi,
-      className: "border-blue-100 bg-[#f8fbff] text-[#123c8c]",
-    },
-    {
       label: "Hadir",
       value: selectedSummary.hadir,
       className: "border-emerald-100 bg-emerald-50 text-emerald-700",
     },
     {
-      label: "Terlambat",
+      label: "Terlambat (Menit)",
       value: selectedSummary.terlambat,
       className: "border-amber-100 bg-amber-50 text-amber-700",
-    },
-    {
-      label: "Izin",
-      value: selectedSummary.izin,
-      className: "border-indigo-100 bg-indigo-50 text-indigo-700",
     },
     {
       label: "Sakit",
@@ -369,16 +408,6 @@ export default function AdminEmployeeAttendanceRecapPage() {
       value: selectedSummary.cuti,
       className: "border-sky-100 bg-sky-50 text-sky-700",
     },
-    {
-      label: "Menunggu",
-      value: selectedSummary.menunggu,
-      className: "border-slate-100 bg-slate-50 text-slate-600",
-    },
-    {
-      label: "Lainnya",
-      value: selectedSummary.lainnya,
-      className: "border-purple-100 bg-purple-50 text-purple-700",
-    },
   ];
 
   return (
@@ -388,7 +417,7 @@ export default function AdminEmployeeAttendanceRecapPage() {
       <AppHeader title="Rekap Kehadiran Karyawan" variant="admin" />
 
       <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff]">
-        <section className="mx-auto max-w-5xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
+        <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
           <div className="attendance-recap-enter overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-slate-300/30">
             <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
               <div className="bg-[#123c8c] p-6 text-white md:p-8">
@@ -432,10 +461,10 @@ export default function AdminEmployeeAttendanceRecapPage() {
           </div>
 
           <div
-            className="attendance-recap-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
+            className="attendance-recap-enter rounded-[2rem] border border-white/70 bg-white/95 px-5 py-8 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:px-8 md:py-10"
             style={{ animationDelay: "100ms" }}
           >
-            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr]">
+            <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1.4fr]">
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-slate-500">
                   Tanggal Mulai
@@ -565,61 +594,95 @@ export default function AdminEmployeeAttendanceRecapPage() {
               </div>
             ) : filteredEmployees.length ? (
               <div className="divide-y divide-blue-50">
-                {filteredEmployees.map((employee, index) => (
-                  <Link
-                    key={employee.id}
-                    href={`/admin/rekap-kehadiran-karyawan/${employee.id}?startDate=${startDate}&endDate=${endDate}`}
-                    onClick={() => setSelectedEmployeeId(employee.id)}
-                    className={`group attendance-recap-row-enter flex w-full items-center gap-4 p-4 text-left transition hover:bg-[#f8fbff] md:p-5 ${
-                      selectedEmployeeId === employee.id ? "bg-[#f8fbff]" : ""
-                    }`}
-                    style={{
-                      animationDelay: `${Math.min(index, 12) * 35}ms`,
-                    }}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
-                      {index + 1}
-                    </div>
+                {filteredEmployees.map((employee, index) => {
+                  const pendingLeaveCount =
+                    pendingLeaveCountByEmployeeId.get(employee.id) || 0;
+                  const hasPendingLeave = pendingLeaveCount > 0;
 
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#f1f5ff] text-[#123c8c] ring-1 ring-blue-100">
-                      <UserRound size={23} strokeWidth={2.6} />
-                    </div>
+                  return (
+                    <Link
+                      key={employee.id}
+                      href={`/admin/rekap-kehadiran-karyawan/${employee.id}?startDate=${startDate}&endDate=${endDate}`}
+                      onClick={() => setSelectedEmployeeId(employee.id)}
+                      className={`group attendance-recap-row-enter flex w-full items-center gap-4 border-l-4 p-4 text-left transition hover:bg-[#f8fbff] md:p-5 ${
+                        hasPendingLeave
+                          ? "border-l-orange-400 bg-orange-50/35"
+                          : "border-l-transparent"
+                      } ${
+                        selectedEmployeeId === employee.id ? "bg-[#f8fbff]" : ""
+                      }`}
+                      style={{
+                        animationDelay: `${Math.min(index, 12) * 35}ms`,
+                      }}
+                    >
+                        <div
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black ${
+                            hasPendingLeave
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-[#eaf1ff] text-[#123c8c]"
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-black text-slate-950">
-                          {employee.name}
-                        </h3>
+                        <div
+                          className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[#123c8c] ring-1 ${
+                            hasPendingLeave
+                              ? "bg-orange-50 ring-orange-100"
+                              : "bg-[#f1f5ff] ring-blue-100"
+                          }`}
+                        >
+                          <UserRound size={23} strokeWidth={2.6} />
+
+                          {hasPendingLeave ? (
+                            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black text-white ring-2 ring-white">
+                              {pendingLeaveCount}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-base font-black text-slate-950">
+                              {employee.name}
+                            </h3>
+
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-black ring-1 ${getStatusStyle(
+                                employee.status,
+                              )}`}
+                            >
+                              {getStatusLabel(employee.status)}
+                            </span>
+
+                            {hasPendingLeave ? (
+                              <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-black text-orange-700 ring-1 ring-orange-200">
+                                {pendingLeaveCount} pengajuan cuti baru
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-500">
+                            {[
+                              employee.employee_code,
+                              employee.department?.name,
+                              employee.jabatan?.name,
+                              employee.position?.name,
+                            ]
+                              .filter(Boolean)
+                              .join(" / ") || employee.email}
+                          </p>
+                        </div>
 
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-black ring-1 ${getStatusStyle(
-                            employee.status,
-                          )}`}
+                          className="hidden h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition group-hover:bg-[#0f3274] group-active:scale-[0.98] sm:inline-flex"
                         >
-                          {getStatusLabel(employee.status)}
+                          Buka Rekap
+                          <ArrowRight size={16} strokeWidth={2.8} />
                         </span>
-                      </div>
-
-                      <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-500">
-                        {[
-                          employee.employee_code,
-                          employee.department?.name,
-                          employee.jabatan?.name,
-                          employee.position?.name,
-                        ]
-                          .filter(Boolean)
-                          .join(" / ") || employee.email}
-                      </p>
-                    </div>
-
-                    <span
-                      className="hidden h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition group-hover:bg-[#0f3274] group-active:scale-[0.98] sm:inline-flex"
-                    >
-                      Buka Rekap
-                      <ArrowRight size={16} strokeWidth={2.8} />
-                    </span>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">

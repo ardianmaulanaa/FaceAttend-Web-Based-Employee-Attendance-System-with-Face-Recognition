@@ -122,10 +122,29 @@ function mapLeaveRequest(item: {
     id: string;
     name: string;
     email: string;
+    phone: string | null;
+    status: string;
+    employment_status: string | null;
+    employment_start_date: Date | null;
+    employment_end_date: Date | null;
+    birth_place: string | null;
+    birth_date: Date | null;
+    bank_account_number: string | null;
+    nik: string | null;
+    profile_photo: string | null;
     position: {
       name: string;
     } | null;
+    jabatan: {
+      name: string;
+    } | null;
     department: {
+      name: string;
+    } | null;
+    shift: {
+      name: string;
+    } | null;
+    registered_office: {
       name: string;
     } | null;
   } | null;
@@ -137,8 +156,25 @@ function mapLeaveRequest(item: {
     employeeId: item.user?.id || item.user_id,
     employeeName: item.user?.name || "-",
     employeeEmail: item.user?.email || "-",
+    employeePhone: item.user?.phone || "-",
+    employeeStatus: item.user?.status || "-",
+    employeeEmploymentStatus: item.user?.employment_status || "-",
+    employeeEmploymentStartDate: formatDateDisplay(
+      item.user?.employment_start_date,
+    ),
+    employeeEmploymentEndDate: formatDateDisplay(
+      item.user?.employment_end_date,
+    ),
+    employeeBirthPlace: item.user?.birth_place || "-",
+    employeeBirthDate: formatDateDisplay(item.user?.birth_date),
+    employeeBankAccountNumber: item.user?.bank_account_number || "-",
+    employeeNik: item.user?.nik || "-",
+    employeeProfilePhoto: item.user?.profile_photo || null,
     employeePosition: item.user?.position?.name || "-",
+    employeeJabatan: item.user?.jabatan?.name || "-",
     employeeDepartment: item.user?.department?.name || "-",
+    employeeShift: item.user?.shift?.name || "-",
+    employeeOffice: item.user?.registered_office?.name || "-",
 
     leaveType: item.leave_type,
     leaveTypeLabel: getLeaveTypeLabel(item.leave_type),
@@ -274,12 +310,37 @@ export async function GET(req: NextRequest) {
             id: true,
             name: true,
             email: true,
+            phone: true,
+            status: true,
+            employment_status: true,
+            employment_start_date: true,
+            employment_end_date: true,
+            birth_place: true,
+            birth_date: true,
+            bank_account_number: true,
+            nik: true,
+            profile_photo: true,
             position: {
               select: {
                 name: true,
               },
             },
+            jabatan: {
+              select: {
+                name: true,
+              },
+            },
             department: {
+              select: {
+                name: true,
+              },
+            },
+            shift: {
+              select: {
+                name: true,
+              },
+            },
+            registered_office: {
               select: {
                 name: true,
               },
@@ -377,12 +438,37 @@ export async function PATCH(req: NextRequest) {
             id: true,
             name: true,
             email: true,
+            phone: true,
+            status: true,
+            employment_status: true,
+            employment_start_date: true,
+            employment_end_date: true,
+            birth_place: true,
+            birth_date: true,
+            bank_account_number: true,
+            nik: true,
+            profile_photo: true,
             position: {
               select: {
                 name: true,
               },
             },
+            jabatan: {
+              select: {
+                name: true,
+              },
+            },
             department: {
+              select: {
+                name: true,
+              },
+            },
+            shift: {
+              select: {
+                name: true,
+              },
+            },
+            registered_office: {
               select: {
                 name: true,
               },
