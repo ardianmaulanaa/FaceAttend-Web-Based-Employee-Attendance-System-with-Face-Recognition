@@ -525,16 +525,9 @@ function AdminEmployeeProfilesContent() {
                           cellClass =
                             "bg-yellow-500 text-slate-900 font-bold shadow-md shadow-yellow-200";
                           statusText = "Izin/Sakit";
-                        } else if (
-                          statusLower.includes("alpha") ||
-                          statusLower.includes("absent")
-                        ) {
-                          cellClass =
-                            "bg-red-500 text-white font-bold shadow-md shadow-red-200";
-                          statusText = "Mangkir";
                         }
                       } else {
-                        // Check if past weekday (could be absent/alpha)
+                        // Keep non-recorded weekdays neutral in calendar
                         const dayDate = new Date(calYear, calMonth - 1, dayNum);
                         dayDate.setHours(0, 0, 0, 0);
 
@@ -544,7 +537,7 @@ function AdminEmployeeProfilesContent() {
                         const isPast = dayDate < today;
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         if (isPast && !isWeekend) {
-                          cellClass = "bg-red-100 text-red-700 font-semibold";
+                          cellClass = "bg-slate-50 text-slate-500";
                         } else if (isWeekend) {
                           cellClass = "bg-slate-100 text-slate-400";
                         }
@@ -580,10 +573,6 @@ function AdminEmployeeProfilesContent() {
                   <div className="flex items-center gap-1.5">
                     <span className="h-3 w-3 rounded-full bg-blue-500" />
                     <span className="text-slate-600">Cuti</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-red-500" />
-                    <span className="text-slate-600">Alpa</span>
                   </div>
                 </div>
 

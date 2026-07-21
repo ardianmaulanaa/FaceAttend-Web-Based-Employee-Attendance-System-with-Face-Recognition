@@ -39,8 +39,6 @@ type AttendanceReport = {
   hasLocation: boolean;
 };
 
-
-
 type AttendanceReportResponse = {
   success: boolean;
   message?: string;
@@ -243,15 +241,15 @@ export default function AdminAttendanceReportPage() {
   const getStartOfCurrentMonthStr = () => {
     const d = new Date();
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, "0");
     return `${y}-${m}-01`;
   };
 
   const getTodayStr = () => {
     const d = new Date();
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   };
 
@@ -261,22 +259,48 @@ export default function AdminAttendanceReportPage() {
     const d = new Date(clean);
     if (!Number.isNaN(d.getTime())) {
       const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
       return `${y}-${m}-${day}`;
     }
     const parts = clean.split(" ");
     if (parts.length >= 3) {
-      const day = parts[0].padStart(2, '0');
-      const indonesianMonths = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
-      const englishMonths = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+      const day = parts[0].padStart(2, "0");
+      const indonesianMonths = [
+        "januari",
+        "februari",
+        "maret",
+        "april",
+        "mei",
+        "juni",
+        "juli",
+        "agustus",
+        "september",
+        "oktober",
+        "november",
+        "desember",
+      ];
+      const englishMonths = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+      ];
       const mName = parts[1].toLowerCase();
       let mIdx = indonesianMonths.indexOf(mName);
       if (mIdx === -1) {
         mIdx = englishMonths.indexOf(mName);
       }
       if (mIdx !== -1) {
-        const m = String(mIdx + 1).padStart(2, '0');
+        const m = String(mIdx + 1).padStart(2, "0");
         const y = parts[2];
         return `${y}-${m}-${day}`;
       }
@@ -322,12 +346,14 @@ export default function AdminAttendanceReportPage() {
       setSelectedEmpAttendance([]);
       return;
     }
-    const emp = employees.find(e => e.id === selectedEmployeeId);
+    const emp = employees.find((e) => e.id === selectedEmployeeId);
     if (!emp) return;
 
     async function fetchEmpAttendance() {
       try {
-        const res = await fetch(`/api/admin/attendance-reports?search=${encodeURIComponent(emp.email)}`);
+        const res = await fetch(
+          `/api/admin/attendance-reports?search=${encodeURIComponent(emp.email)}`,
+        );
         const data = await res.json();
         if (data.success && data.reports) {
           const allReports = data.reports;
@@ -343,7 +369,12 @@ export default function AdminAttendanceReportPage() {
 
           const hadir = filtered.filter((a: any) => {
             const s = String(a.statusLabel || a.status || "").toLowerCase();
-            return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+            return (
+              s.includes("hadir") ||
+              s.includes("present") ||
+              s.includes("on_time") ||
+              s === "on_time"
+            );
           }).length;
           const telat = filtered.filter((a: any) => {
             const s = String(a.statusLabel || a.status || "").toLowerCase();
@@ -362,19 +393,17 @@ export default function AdminAttendanceReportPage() {
             return s.includes("cuti");
           }).length;
 
-          const diffTime = Math.abs(new Date(endDate).getTime() - new Date(startDate).getTime());
+          const diffTime = Math.abs(
+            new Date(endDate).getTime() - new Date(startDate).getTime(),
+          );
           const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-          const presentCount = hadir + telat + izin + sakit + cuti;
-          const alpa = Math.max(0, totalDays - presentCount);
-
           setEmployeeStats({
             hadir,
             telat,
             izin,
             sakit,
             cuti,
-            alpa,
-            totalDays
+            totalDays,
           });
           setSelectedEmpAttendance(allReports);
         }
@@ -387,7 +416,16 @@ export default function AdminAttendanceReportPage() {
 
   function handleExportCSV() {
     if (reports.length === 0) return;
-    const headers = ["Tanggal", "Nama Karyawan", "Kode/Email", "Jam Masuk", "Jam Keluar", "Durasi Kerja", "Mode Kerja", "Status"];
+    const headers = [
+      "Tanggal",
+      "Nama Karyawan",
+      "Kode/Email",
+      "Jam Masuk",
+      "Jam Keluar",
+      "Durasi Kerja",
+      "Mode Kerja",
+      "Status",
+    ];
     const rows = reports.map((item) => [
       item.dateLabel,
       item.employeeName,
@@ -396,14 +434,25 @@ export default function AdminAttendanceReportPage() {
       item.checkOut,
       item.duration,
       item.workModeLabel,
-      item.statusLabel
+      item.statusLabel,
     ]);
-    const csvContent = "\uFEFF" + "sep=,\n" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(","))].join("\n");
+    const csvContent =
+      "\uFEFF" +
+      "sep=,\n" +
+      [
+        headers.join(","),
+        ...rows.map((e) =>
+          e.map((val) => `"${val.replace(/"/g, '""')}"`).join(","),
+        ),
+      ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Laporan_Kehadiran_FaceAttend_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `Laporan_Kehadiran_FaceAttend_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -619,104 +668,103 @@ export default function AdminAttendanceReportPage() {
             </div>
           </div>
 
+          <div
+            className="attendance-report-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
+            style={{ animationDelay: "100ms" }}
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                  Filter Data
+                </p>
 
-              <div
-                className="attendance-report-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
-                style={{ animationDelay: "100ms" }}
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
-                      Filter Data
-                    </p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                  Cari Rekap Kehadiran
+                </h2>
+              </div>
+            </div>
 
-                    <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-                      Cari Rekap Kehadiran
-                    </h2>
-                  </div>
-                </div>
+            <form
+              onSubmit={handleSearchSubmit}
+              className="mt-6 grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.6fr_0.6fr_0.8fr_auto]"
+            >
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
 
-                <form
-                  onSubmit={handleSearchSubmit}
-                  className="mt-6 grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.6fr_0.6fr_0.8fr_auto]"
-                >
-                  <div className="relative">
-                    <Search
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
-                    <input
-                      value={searchKeyword}
-                      onChange={(event) => setSearchKeyword(event.target.value)}
-                      placeholder="Cari nama / kode karyawan..."
-                      className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(event) => setSelectedDate(event.target.value)}
-                    className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-                  />
-
-                  <input
-                    type="number"
-                    value={month}
-                    min={1}
-                    max={12}
-                    onChange={(event) => setMonth(Number(event.target.value))}
-                    disabled={Boolean(selectedDate)}
-                    placeholder="Bulan"
-                    className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-
-                  <input
-                    type="number"
-                    value={year}
-                    onChange={(event) => setYear(Number(event.target.value))}
-                    disabled={Boolean(selectedDate)}
-                    placeholder="Tahun"
-                    className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-
-                  <select
-                    value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value as StatusFilter)
-                    }
-                    className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="submit"
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98]"
-                  >
-                    <Search size={17} />
-                    Cari
-                  </button>
-                </form>
+                <input
+                  value={searchKeyword}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
+                  placeholder="Cari nama / kode karyawan..."
+                  className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+                />
               </div>
 
-              {errorMessage ? (
-                <div className="attendance-report-row-enter rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
-                  {errorMessage}
-                </div>
-              ) : null}
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
+              />
 
-              <div
-                id="print-area-container"
-                className="attendance-report-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
-                style={{ animationDelay: "150ms" }}
+              <input
+                type="number"
+                value={month}
+                min={1}
+                max={12}
+                onChange={(event) => setMonth(Number(event.target.value))}
+                disabled={Boolean(selectedDate)}
+                placeholder="Bulan"
+                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+
+              <input
+                type="number"
+                value={year}
+                onChange={(event) => setYear(Number(event.target.value))}
+                disabled={Boolean(selectedDate)}
+                placeholder="Tahun"
+                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as StatusFilter)
+                }
+                className="attendance-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
               >
-                <style>{`
+                {statusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="submit"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98]"
+              >
+                <Search size={17} />
+                Cari
+              </button>
+            </form>
+          </div>
+
+          {errorMessage ? (
+            <div className="attendance-report-row-enter rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div
+            id="print-area-container"
+            className="attendance-report-enter rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
+            style={{ animationDelay: "150ms" }}
+          >
+            <style>{`
                   @media print {
                     body * {
                       visibility: hidden;
@@ -737,225 +785,261 @@ export default function AdminAttendanceReportPage() {
                   }
                 `}</style>
 
-                {/* Print Only Header */}
-                <div className="hidden print:block text-center mb-6">
-                  <h1 className="text-2xl font-black uppercase text-[#123c8c]">Laporan Kehadiran Karyawan</h1>
-                  <p className="text-sm font-bold text-slate-500">Aplikasi FaceAttend - Dicetak pada {new Date().toLocaleDateString("id-ID")}</p>
+            {/* Print Only Header */}
+            <div className="hidden print:block text-center mb-6">
+              <h1 className="text-2xl font-black uppercase text-[#123c8c]">
+                Laporan Kehadiran Karyawan
+              </h1>
+              <p className="text-sm font-bold text-slate-500">
+                Aplikasi FaceAttend - Dicetak pada{" "}
+                {new Date().toLocaleDateString("id-ID")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                  Rekap Absensi
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                  Nama Karyawan per Tanggal
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 print:hidden">
+                <p className="text-sm font-semibold text-slate-500 mr-2">
+                  {reports.length} data ditemukan
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  disabled={reports.length === 0}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-xs font-black text-white shadow-md shadow-emerald-900/10 transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download size={15} />
+                  Ekspor CSV
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={isLoading || reports.length === 0}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-md shadow-blue-900/10 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FileDown size={15} />
+                  Unduh PDF
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrintPDF}
+                  disabled={reports.length === 0}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[#123c8c] px-4 text-xs font-black shadow-md shadow-blue-900/5 transition hover:bg-slate-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Printer size={15} />
+                  Cetak Layar
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              {isLoading ? (
+                <div className="attendance-report-row-enter flex items-center justify-center gap-2 rounded-3xl border border-blue-100 bg-[#f8fbff] px-5 py-12 text-sm font-bold text-slate-500">
+                  <Loader2 size={18} className="animate-spin text-[#123c8c]" />
+                  Memuat rekap kehadiran...
                 </div>
-
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
-                      Rekap Absensi
-                    </p>
-
-                    <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-                      Nama Karyawan per Tanggal
-                    </h2>
+              ) : groupedReports.length === 0 ? (
+                <div className="attendance-report-row-enter rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] px-5 py-12 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+                    <ImageIcon size={26} strokeWidth={2.6} />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 print:hidden">
-                    <p className="text-sm font-semibold text-slate-500 mr-2">
-                      {reports.length} data ditemukan
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={handleExportCSV}
-                      disabled={reports.length === 0}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-xs font-black text-white shadow-md shadow-emerald-900/10 transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Download size={15} />
-                      Ekspor CSV
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleExportPdf}
-                      disabled={isLoading || reports.length === 0}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-md shadow-blue-900/10 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FileDown size={15} />
-                      Unduh PDF
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handlePrintPDF}
-                      disabled={reports.length === 0}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white text-[#123c8c] px-4 text-xs font-black shadow-md shadow-blue-900/5 transition hover:bg-slate-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Printer size={15} />
-                      Cetak Layar
-                    </button>
-                  </div>
+                  <p className="mt-4 text-sm font-black text-slate-500">
+                    Belum ada rekap kehadiran pada filter ini.
+                  </p>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-5 print:hidden">
+                    {groupedReports.map((group, groupIndex) => (
+                      <section
+                        key={group.dateLabel}
+                        className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-[#f8fbff] dark:border-slate-800 dark:bg-[#0d1117] p-4 md:p-5"
+                        style={{
+                          animationDelay: `${groupIndex * 70}ms`,
+                        }}
+                      >
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+                              <CalendarDays size={22} strokeWidth={2.6} />
+                            </div>
 
-                <div className="mt-6">
-                  {isLoading ? (
-                    <div className="attendance-report-row-enter flex items-center justify-center gap-2 rounded-3xl border border-blue-100 bg-[#f8fbff] px-5 py-12 text-sm font-bold text-slate-500">
-                      <Loader2 size={18} className="animate-spin text-[#123c8c]" />
-                      Memuat rekap kehadiran...
-                    </div>
-                  ) : groupedReports.length === 0 ? (
-                    <div className="attendance-report-row-enter rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] px-5 py-12 text-center">
-                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-                        <ImageIcon size={26} strokeWidth={2.6} />
-                      </div>
+                            <div>
+                              <h3 className="text-xl font-black text-slate-950">
+                                {group.dateLabel}
+                              </h3>
 
-                      <p className="mt-4 text-sm font-black text-slate-500">
-                        Belum ada rekap kehadiran pada filter ini.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-5 print:hidden">
-                        {groupedReports.map((group, groupIndex) => (
-                        <section
-                          key={group.dateLabel}
-                          className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-[#f8fbff] dark:border-slate-800 dark:bg-[#0d1117] p-4 md:p-5"
-                          style={{
-                            animationDelay: `${groupIndex * 70}ms`,
-                          }}
-                        >
-                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
-                                <CalendarDays size={22} strokeWidth={2.6} />
-                              </div>
-
-                              <div>
-                                <h3 className="text-xl font-black text-slate-950">
-                                  {group.dateLabel}
-                                </h3>
-
-                                <p className="text-sm font-semibold text-slate-500">
-                                  {group.items.length} karyawan memiliki rekap
-                                </p>
-                              </div>
+                              <p className="text-sm font-semibold text-slate-500">
+                                {group.items.length} karyawan memiliki rekap
+                              </p>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="mt-4 space-y-3">
-                            {group.items.map((item, index) => (
-                              <Link
-                                key={item.id}
-                                href={`/admin/laporan-kehadiran/${item.id}`}
-                                className="attendance-report-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] dark:hover:bg-[#1c212a] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
-                                style={{
-                                  animationDelay: `${index * 45}ms`,
-                                }}
-                              >
-                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                  <div className="flex min-w-0 items-center gap-3 md:w-[260px]">
-                                    <EmployeeProfileAvatar item={item} />
+                        <div className="mt-4 space-y-3">
+                          {group.items.map((item, index) => (
+                            <Link
+                              key={item.id}
+                              href={`/admin/laporan-kehadiran/${item.id}`}
+                              className="attendance-report-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] dark:hover:bg-[#1c212a] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
+                              style={{
+                                animationDelay: `${index * 45}ms`,
+                              }}
+                            >
+                              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div className="flex min-w-0 items-center gap-3 md:w-[260px]">
+                                  <EmployeeProfileAvatar item={item} />
 
-                                    <div className="min-w-0">
-                                      <h4 className="truncate text-base font-black text-slate-950">
-                                        {item.employeeName}
-                                      </h4>
+                                  <div className="min-w-0">
+                                    <h4 className="truncate text-base font-black text-slate-950">
+                                      {item.employeeName}
+                                    </h4>
 
-                                      <p className="mt-1 truncate text-xs font-bold text-slate-400">
-                                        {item.employeeCode || item.workModeLabel}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
-                                    <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
-                                      <p className="text-slate-400">Masuk</p>
-                                      <p className="mt-1 font-black text-slate-800">
-                                        {item.checkIn}
-                                      </p>
-                                    </div>
-
-                                    <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
-                                      <p className="text-slate-400">Keluar</p>
-                                      <p className="mt-1 font-black text-slate-800">
-                                        {item.checkOut}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-1 flex-wrap items-center gap-2">
-                                    <span
-                                      className={`rounded-full px-3 py-1 text-[11px] font-black ring-1 ${getStatusStyle(
-                                        item.status,
-                                      )}`}
-                                    >
-                                      {item.statusLabel}
-                                    </span>
-
-                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-[#123c8c]">
-                                      {item.workModeLabel}
-                                    </span>
-
-                                    {item.hasPhoto ? (
-                                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
-                                        Ada Foto
-                                      </span>
-                                    ) : (
-                                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
-                                        Tanpa Foto
-                                      </span>
-                                    )}
-
-                                    {item.hasLocation ? (
-                                      <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700">
-                                        Ada Lokasi
-                                      </span>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="flex shrink-0 items-center justify-start md:w-[220px] md:justify-end">
-                                    <span className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-[#123c8c] transition group-hover:bg-[#eaf1ff]">
-                                      <Eye size={15} />
-                                      Lihat detail
-                                    </span>
+                                    <p className="mt-1 truncate text-xs font-bold text-slate-400">
+                                      {item.employeeCode || item.workModeLabel}
+                                    </p>
                                   </div>
                                 </div>
-                              </Link>
-                            ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
 
-                    <div className="hidden print:block mt-6">
-                      <table className="w-full border-collapse border border-slate-300 text-sm">
-                        <thead>
-                          <tr className="bg-slate-100">
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Tanggal</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Nama Karyawan</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Kode Karyawan</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Jam Masuk</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Jam Keluar</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Durasi</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Mode</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left font-black">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reports.map((item) => (
-                            <tr key={item.id}>
-                              <td className="border border-slate-300 px-3 py-2">{item.dateLabel}</td>
-                              <td className="border border-slate-300 px-3 py-2 font-bold">{item.employeeName}</td>
-                              <td className="border border-slate-300 px-3 py-2">{item.employeeCode || "-"}</td>
-                              <td className="border border-slate-300 px-3 py-2">{item.checkIn}</td>
-                              <td className="border border-slate-300 px-3 py-2">{item.checkOut}</td>
-                              <td className="border border-slate-300 px-3 py-2">{item.duration}</td>
-                              <td className="border border-slate-300 px-3 py-2">{item.workModeLabel}</td>
-                              <td className="border border-slate-300 px-3 py-2 font-bold">{item.statusLabel}</td>
-                            </tr>
+                                <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
+                                  <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+                                    <p className="text-slate-400">Masuk</p>
+                                    <p className="mt-1 font-black text-slate-800">
+                                      {item.checkIn}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+                                    <p className="text-slate-400">Keluar</p>
+                                    <p className="mt-1 font-black text-slate-800">
+                                      {item.checkOut}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-1 flex-wrap items-center gap-2">
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-[11px] font-black ring-1 ${getStatusStyle(
+                                      item.status,
+                                    )}`}
+                                  >
+                                    {item.statusLabel}
+                                  </span>
+
+                                  <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-[#123c8c]">
+                                    {item.workModeLabel}
+                                  </span>
+
+                                  {item.hasPhoto ? (
+                                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
+                                      Ada Foto
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+                                      Tanpa Foto
+                                    </span>
+                                  )}
+
+                                  {item.hasLocation ? (
+                                    <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700">
+                                      Ada Lokasi
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                <div className="flex shrink-0 items-center justify-start md:w-[220px] md:justify-end">
+                                  <span className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-[#123c8c] transition group-hover:bg-[#eaf1ff]">
+                                    <Eye size={15} />
+                                    Lihat detail
+                                  </span>
+                                </div>
+                              </div>
+                            </Link>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                  )}
-                </div>
-          </div>
+                        </div>
+                      </section>
+                    ))}
+                  </div>
 
+                  <div className="hidden print:block mt-6">
+                    <table className="w-full border-collapse border border-slate-300 text-sm">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Tanggal
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Nama Karyawan
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Kode Karyawan
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Jam Masuk
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Jam Keluar
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Durasi
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Mode
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-black">
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reports.map((item) => (
+                          <tr key={item.id}>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.dateLabel}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 font-bold">
+                              {item.employeeName}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.employeeCode || "-"}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.checkIn}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.checkOut}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.duration}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2">
+                              {item.workModeLabel}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 font-bold">
+                              {item.statusLabel}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </section>
       </main>
     </MobileShell>

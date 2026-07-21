@@ -125,8 +125,7 @@ function getStatusVariant(
     value.includes("cuti") ||
     value.includes("sakit") ||
     value.includes("izin") ||
-    value.includes("tidak") ||
-    value.includes("mangkir")
+    value.includes("tidak")
   ) {
     return "red";
   }
@@ -509,16 +508,12 @@ function AttendanceRecordCard({
         <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
           <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
             <p className="text-slate-400">Masuk</p>
-            <p className="mt-1 font-black text-slate-800">
-              {item.checkIn}
-            </p>
+            <p className="mt-1 font-black text-slate-800">{item.checkIn}</p>
           </div>
 
           <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
             <p className="text-slate-400">Keluar</p>
-            <p className="mt-1 font-black text-slate-800">
-              {item.checkOut}
-            </p>
+            <p className="mt-1 font-black text-slate-800">{item.checkOut}</p>
           </div>
         </div>
 
@@ -572,8 +567,11 @@ function CalendarView({
   return (
     <div className="rounded-[2rem] border border-blue-50 bg-[#f8fbff] p-4 md:p-6 shadow-sm">
       <div className="grid grid-cols-7 gap-2 mb-4 text-center">
-        {weekdays.map(day => (
-          <div key={day} className="text-xs font-black text-slate-400 py-1 uppercase tracking-wider">
+        {weekdays.map((day) => (
+          <div
+            key={day}
+            className="text-xs font-black text-slate-400 py-1 uppercase tracking-wider"
+          >
             {day}
           </div>
         ))}
@@ -581,28 +579,42 @@ function CalendarView({
       <div className="grid grid-cols-7 gap-2 md:gap-3">
         {calendarDays.map((day, idx) => {
           if (day === null) {
-            return <div key={`empty-${idx}`} className="aspect-square bg-transparent" />;
+            return (
+              <div
+                key={`empty-${idx}`}
+                className="aspect-square bg-transparent"
+              />
+            );
           }
 
           const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const record = records.find(r => r.date === dateKey);
+          const record = records.find((r) => r.date === dateKey);
 
-          let bgClass = "bg-white text-slate-700 hover:bg-slate-50 border border-slate-100";
+          let bgClass =
+            "bg-white text-slate-700 hover:bg-slate-50 border border-slate-100";
           let statusLabel = "";
 
           if (record) {
             const status = String(record.status || "").toLowerCase();
             if (status.includes("hadir") || status === "present") {
-              bgClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/10";
+              bgClass =
+                "bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/10";
               statusLabel = "Hadir";
             } else if (status.includes("terlambat") || status === "late") {
-              bgClass = "bg-orange-500 text-white hover:bg-orange-600 shadow-md shadow-orange-500/10";
+              bgClass =
+                "bg-orange-500 text-white hover:bg-orange-600 shadow-md shadow-orange-500/10";
               statusLabel = "Telat";
-            } else if (status.includes("cuti") || status.includes("sakit") || status.includes("izin")) {
-              bgClass = "bg-purple-500 text-white hover:bg-purple-600 shadow-md shadow-purple-500/10";
+            } else if (
+              status.includes("cuti") ||
+              status.includes("sakit") ||
+              status.includes("izin")
+            ) {
+              bgClass =
+                "bg-purple-500 text-white hover:bg-purple-600 shadow-md shadow-purple-500/10";
               statusLabel = "Cuti/Izin";
             } else {
-              bgClass = "bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/10";
+              bgClass =
+                "bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/10";
               statusLabel = "Absen";
             }
           }
@@ -678,7 +690,11 @@ function HistoryContent({
   return (
     <div className="space-y-4">
       {records.map((item, index) => (
-        <AttendanceRecordCard key={item.id} item={item} delay={`${index * 45}ms`} />
+        <AttendanceRecordCard
+          key={item.id}
+          item={item}
+          delay={`${index * 45}ms`}
+        />
       ))}
     </div>
   );
@@ -741,24 +757,31 @@ export default function HistoryPage() {
   }
 
   const countStats = useMemo(() => {
-    const hadir = records.filter(a => {
+    const hadir = records.filter((a) => {
       const s = String(a.status || "").toLowerCase();
-      return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+      return (
+        s.includes("hadir") ||
+        s.includes("present") ||
+        s.includes("on_time") ||
+        s === "on_time"
+      );
     }).length;
 
-    const telat = records.filter(a => {
+    const telat = records.filter((a) => {
       const s = String(a.status || "").toLowerCase();
       return s.includes("lambat") || s.includes("late");
     }).length;
 
-    const cuti = records.filter(a => {
+    const cuti = records.filter((a) => {
       const s = String(a.status || "").toLowerCase();
       return s.includes("cuti");
     }).length;
 
-    const izinSakit = records.filter(a => {
+    const izinSakit = records.filter((a) => {
       const s = String(a.status || "").toLowerCase();
-      return s.includes("sakit") || s.includes("izin") || s.includes("permission");
+      return (
+        s.includes("sakit") || s.includes("izin") || s.includes("permission")
+      );
     }).length;
 
     return { hadir, telat, cuti, izinSakit };
@@ -808,20 +831,36 @@ export default function HistoryPage() {
 
             <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-emerald-50 dark:bg-emerald-950/10 p-4 text-center">
-                <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">Hadir</p>
-                <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">{countStats.hadir}</h4>
+                <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">
+                  Hadir
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">
+                  {countStats.hadir}
+                </h4>
               </div>
               <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50 dark:bg-amber-950/10 p-4 text-center">
-                <p className="text-xs font-black text-amber-800 dark:text-amber-400">Telat</p>
-                <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">{countStats.telat}</h4>
+                <p className="text-xs font-black text-amber-800 dark:text-amber-400">
+                  Telat
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">
+                  {countStats.telat}
+                </h4>
               </div>
               <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-blue-50 dark:bg-blue-950/10 p-4 text-center">
-                <p className="text-xs font-black text-blue-800 dark:text-blue-400">Cuti</p>
-                <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">{countStats.cuti}</h4>
+                <p className="text-xs font-black text-blue-800 dark:text-blue-400">
+                  Cuti
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">
+                  {countStats.cuti}
+                </h4>
               </div>
               <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-yellow-50 dark:bg-yellow-950/10 p-4 text-center">
-                <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">Izin / Sakit</p>
-                <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">{countStats.izinSakit}</h4>
+                <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">
+                  Izin / Sakit
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">
+                  {countStats.izinSakit}
+                </h4>
               </div>
             </div>
 
@@ -865,11 +904,7 @@ export default function HistoryPage() {
                   year={year}
                 />
               ) : (
-                <CalendarView
-                  records={records}
-                  month={month}
-                  year={year}
-                />
+                <CalendarView records={records} month={month} year={year} />
               )}
             </div>
           </section>
@@ -881,8 +916,12 @@ export default function HistoryPage() {
       {/* DEDICATED EXCEL/CORPORATE STYLE PRINT TEMPLATE */}
       <div className="hidden print:block p-8 bg-white text-black font-sans text-sm">
         <div className="text-center mb-6">
-          <h2 className="text-xl font-black uppercase tracking-wide">Laporan Kehadiran Resmi Karyawan</h2>
-          <p className="text-xs font-bold text-slate-600 mt-1">Periode: {currentMonthLabel} {year}</p>
+          <h2 className="text-xl font-black uppercase tracking-wide">
+            Laporan Kehadiran Resmi Karyawan
+          </h2>
+          <p className="text-xs font-bold text-slate-600 mt-1">
+            Periode: {currentMonthLabel} {year}
+          </p>
           <div className="w-full border-b-2 border-slate-900 mt-4" />
         </div>
 
@@ -898,54 +937,94 @@ export default function HistoryPage() {
             </tr>
             <tr>
               <td className="py-1 font-bold">Jabatan / Divisi / Unit</td>
-              <td className="py-1">: {profile?.position?.name || "-"} / {profile?.department?.name || "-"} / {profile?.unit?.name || "-"}</td>
+              <td className="py-1">
+                : {profile?.position?.name || "-"} /{" "}
+                {profile?.department?.name || "-"} /{" "}
+                {profile?.unit?.name || "-"}
+              </td>
             </tr>
             <tr>
               <td className="py-1 font-bold">Status Keanggotaan</td>
-              <td className="py-1">: {profile?.employment_status?.toUpperCase() || "-"}</td>
+              <td className="py-1">
+                : {profile?.employment_status?.toUpperCase() || "-"}
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">I. Ringkasan Presensi Bulanan</h3>
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">
+          I. Ringkasan Presensi Bulanan
+        </h3>
         <table className="w-full border-collapse border border-slate-400 mb-6 text-center text-xs">
           <thead>
             <tr className="bg-slate-100 font-bold">
               <th className="border border-slate-400 py-1.5">Hadir Kerja</th>
               <th className="border border-slate-400 py-1.5">Terlambat</th>
               <th className="border border-slate-400 py-1.5">Cuti Berbayar</th>
-              <th className="border border-slate-400 py-1.5">Izin / Sakit Resmi</th>
+              <th className="border border-slate-400 py-1.5">
+                Izin / Sakit Resmi
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr className="font-bold">
-              <td className="border border-slate-400 py-2">{countStats.hadir}</td>
-              <td className="border border-slate-400 py-2 text-amber-600">{countStats.telat}</td>
-              <td className="border border-slate-400 py-2 text-blue-600">{countStats.cuti}</td>
-              <td className="border border-slate-400 py-2 text-yellow-600">{countStats.izinSakit}</td>
+              <td className="border border-slate-400 py-2">
+                {countStats.hadir}
+              </td>
+              <td className="border border-slate-400 py-2 text-amber-600">
+                {countStats.telat}
+              </td>
+              <td className="border border-slate-400 py-2 text-blue-600">
+                {countStats.cuti}
+              </td>
+              <td className="border border-slate-400 py-2 text-yellow-600">
+                {countStats.izinSakit}
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">II. Rincian Harian Kehadiran</h3>
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">
+          II. Rincian Harian Kehadiran
+        </h3>
         <table className="w-full border-collapse border border-slate-400 text-[10px]">
           <thead>
             <tr className="bg-slate-100 font-bold">
-              <th className="border border-slate-400 px-3 py-1.5 text-left">Tanggal</th>
-              <th className="border border-slate-400 px-3 py-1.5 text-left">Jam Check-In</th>
-              <th className="border border-slate-400 px-3 py-1.5 text-left">Jam Check-Out</th>
-              <th className="border border-slate-400 px-3 py-1.5 text-left">Terlambat (Menit)</th>
-              <th className="border border-slate-400 px-3 py-1.5 text-left">Status</th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Tanggal
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Jam Check-In
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Jam Check-Out
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Terlambat (Menit)
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
             {records.map((item) => (
               <tr key={item.id}>
-                <td className="border border-slate-400 px-3 py-1.5">{item.date}</td>
-                <td className="border border-slate-400 px-3 py-1.5">{item.checkIn}</td>
-                <td className="border border-slate-400 px-3 py-1.5">{item.checkOut}</td>
-                <td className="border border-slate-400 px-3 py-1.5">{item.lateMinutes ? `${item.lateMinutes} m` : "-"}</td>
-                <td className="border border-slate-400 px-3 py-1.5 font-bold">{item.status}</td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.date}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.checkIn}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.checkOut}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.lateMinutes ? `${item.lateMinutes} m` : "-"}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5 font-bold">
+                  {item.status}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -955,12 +1034,16 @@ export default function HistoryPage() {
           <div>
             <p>Hormat Kami (Karyawan),</p>
             <div className="h-16" />
-            <p className="font-bold underline">{profile?.name || "........................"}</p>
+            <p className="font-bold underline">
+              {profile?.name || "........................"}
+            </p>
           </div>
           <div>
             <p>HRD / Verifikator Kantor,</p>
             <div className="h-16" />
-            <p className="font-bold underline">......................................</p>
+            <p className="font-bold underline">
+              ......................................
+            </p>
           </div>
         </div>
       </div>

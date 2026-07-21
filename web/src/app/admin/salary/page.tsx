@@ -140,7 +140,6 @@ export default function AdminSalaryPage() {
     izin: 0,
     sakit: 0,
     cuti: 0,
-    alpa: 0,
     totalDays: 30,
     recommendedSalary: 0,
   });
@@ -252,7 +251,6 @@ export default function AdminSalaryPage() {
           izin,
           sakit,
           cuti,
-          alpa: Math.max(0, effectiveWorkdays - paidDays),
           totalDays: effectiveWorkdays,
           recommendedSalary: recommended,
         });
