@@ -138,6 +138,7 @@ type LeaveEndpointResponse = {
 type LeaveChartPoint = {
   label: string;
   value: number;
+  names?: string[];
 };
 
 type FlexibleModeKey = "wfh" | "visit";
@@ -285,17 +286,18 @@ function getLeaveChartData(
   const dailyPoints: LeaveChartPoint[] = fallbackPoints.map((point) => {
     const labelDay = Number(point.label);
 
-    const totalSubmissionOnDay = approvedRequestsInMonth.filter((request) => {
+    const matchedRequests = approvedRequestsInMonth.filter((request) => {
       const submittedDate = parseDateValue(request.createdAt);
 
       if (!submittedDate || Number.isNaN(labelDay)) return false;
 
       return submittedDate.getDate() === labelDay;
-    }).length;
+    });
 
     return {
       label: point.label,
-      value: totalSubmissionOnDay,
+      value: matchedRequests.length,
+      names: matchedRequests.map((r) => r.employeeName || "Tanpa Nama"),
     };
   });
 
@@ -714,9 +716,27 @@ function AnimatedHistogram({
                 </p>
 
                 <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-blue-50 ring-1 ring-white/10">
-                  {activePoint
-                    ? `${metricLabel} tgl ${activePoint.label}: ${activePoint.value} ${unit}`
-                    : "Hover bar untuk detail harian"}
+                  {activePoint ? (
+                    <div>
+                      <p className="border-b border-white/10 pb-1.5 mb-1.5 text-blue-200">
+                        {metricLabel} tgl {activePoint.label}: {activePoint.value} {unit}
+                      </p>
+                      {activePoint.names && activePoint.names.length > 0 ? (
+                        <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
+                          <p className="text-[10px] uppercase text-blue-300 tracking-wider">Karyawan:</p>
+                          <ul className="list-disc list-inside text-[11px] font-bold text-white space-y-0.5">
+                            {activePoint.names.map((name: string, i: number) => (
+                              <li key={i}>{name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="text-blue-300 text-[10px]">Tidak ada rincian data karyawan</p>
+                      )}
+                    </div>
+                  ) : (
+                    "Hover bar untuk detail harian"
+                  )}
                 </div>
               </div>
             </div>
@@ -1035,10 +1055,23 @@ export default function AdminCompanyMonitorPage() {
       };
     }
 
-    const points = data.dailyChart.map((point) => ({
-      label: point.label,
-      value: getMetricValue(point, selectedMetric),
-    }));
+    const points = data.dailyChart.map((point) => {
+      const names =
+        selectedMetric === "present"
+          ? point.presentNames
+          : selectedMetric === "late"
+            ? point.lateNames
+            : selectedMetric === "wfh"
+              ? point.wfhNames
+              : selectedMetric === "visit"
+                ? point.visitNames
+                : [];
+      return {
+        label: point.label,
+        value: getMetricValue(point, selectedMetric),
+        names: names || [],
+      };
+    });
 
     return {
       unit: "data",

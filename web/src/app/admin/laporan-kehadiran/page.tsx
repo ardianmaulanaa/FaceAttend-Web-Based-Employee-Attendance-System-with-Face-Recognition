@@ -240,6 +240,50 @@ function EmployeeProfileAvatar({ item }: { item: AttendanceReport }) {
 }
 
 export default function AdminAttendanceReportPage() {
+  const getStartOfCurrentMonthStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}-01`;
+  };
+
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const toLocalYYYYMMDD = (dVal: any) => {
+    if (!dVal) return "";
+    const clean = String(dVal).trim();
+    const d = new Date(clean);
+    if (!Number.isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    const parts = clean.split(" ");
+    if (parts.length >= 3) {
+      const day = parts[0].padStart(2, '0');
+      const indonesianMonths = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+      const englishMonths = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+      const mName = parts[1].toLowerCase();
+      let mIdx = indonesianMonths.indexOf(mName);
+      if (mIdx === -1) {
+        mIdx = englishMonths.indexOf(mName);
+      }
+      if (mIdx !== -1) {
+        const m = String(mIdx + 1).padStart(2, '0');
+        const y = parts[2];
+        return `${y}-${m}-${day}`;
+      }
+    }
+    return "";
+  };
+
   const [reports, setReports] = useState<AttendanceReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -249,6 +293,97 @@ export default function AdminAttendanceReportPage() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [year, setYear] = useState(getCurrentYear());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [startDate, setStartDate] = useState(getStartOfCurrentMonthStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
+
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [employeeStats, setEmployeeStats] = useState<any>(null);
+  const [selectedEmpAttendance, setSelectedEmpAttendance] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        const res = await fetch("/api/employees");
+        const data = await res.json();
+        if (data.success && data.employees) {
+          setEmployees(data.employees);
+        }
+      } catch (err) {
+        console.error("Gagal memuat karyawan", err);
+      }
+    }
+    void fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedEmployeeId) {
+      setEmployeeStats(null);
+      setSelectedEmpAttendance([]);
+      return;
+    }
+    const emp = employees.find(e => e.id === selectedEmployeeId);
+    if (!emp) return;
+
+    async function fetchEmpAttendance() {
+      try {
+        const res = await fetch(`/api/admin/attendance-reports?search=${encodeURIComponent(emp.email)}`);
+        const data = await res.json();
+        if (data.success && data.reports) {
+          const allReports = data.reports;
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+
+          const filtered = allReports.filter((a: any) => {
+            const dateStr = toLocalYYYYMMDD(a.date);
+            return dateStr && dateStr >= startDate && dateStr <= endDate;
+          });
+
+          const hadir = filtered.filter((a: any) => {
+            const s = String(a.statusLabel || a.status || "").toLowerCase();
+            return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+          }).length;
+          const telat = filtered.filter((a: any) => {
+            const s = String(a.statusLabel || a.status || "").toLowerCase();
+            return s.includes("lambat") || s.includes("late");
+          }).length;
+          const izin = filtered.filter((a: any) => {
+            const s = String(a.statusLabel || a.status || "").toLowerCase();
+            return s.includes("izin") || s.includes("permission");
+          }).length;
+          const sakit = filtered.filter((a: any) => {
+            const s = String(a.statusLabel || a.status || "").toLowerCase();
+            return s.includes("sakit");
+          }).length;
+          const cuti = filtered.filter((a: any) => {
+            const s = String(a.statusLabel || a.status || "").toLowerCase();
+            return s.includes("cuti");
+          }).length;
+
+          const diffTime = Math.abs(new Date(endDate).getTime() - new Date(startDate).getTime());
+          const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          const presentCount = hadir + telat + izin + sakit + cuti;
+          const alpa = Math.max(0, totalDays - presentCount);
+
+          setEmployeeStats({
+            hadir,
+            telat,
+            izin,
+            sakit,
+            cuti,
+            alpa,
+            totalDays
+          });
+          setSelectedEmpAttendance(allReports);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void fetchEmpAttendance();
+  }, [selectedEmployeeId, startDate, endDate, employees]);
 
   function handleExportCSV() {
     if (reports.length === 0) return;
@@ -819,7 +954,8 @@ export default function AdminAttendanceReportPage() {
                   </>
                   )}
                 </div>
-              </div>
+          </div>
+
         </section>
       </main>
     </MobileShell>

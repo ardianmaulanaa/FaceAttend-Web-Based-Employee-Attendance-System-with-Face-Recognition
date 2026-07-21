@@ -75,6 +75,14 @@ const employeeSelect = {
   npwp_number: true,
   ptkp_status: true,
   base_salary: true,
+  birth_place: true,
+  birth_date: true,
+  bank_account_number: true,
+  nik: true,
+  employment_status: true,
+  contract_start_date: true,
+  contract_end_date: true,
+  uploaded_document_url: true,
   created_at: true,
   updated_at: true,
   unit: {
@@ -310,8 +318,25 @@ export async function GET(req: NextRequest) {
     ) {
       return jsonError("Akses ditolak.", 403);
     }
-
     await ensureDefaultShifts();
+
+    // Auto-deactivate employees whose contract/internship/PKL has ended
+    try {
+      const now = new Date();
+      await prisma.user.updateMany({
+        where: {
+          role: "employee",
+          status: "active",
+          employment_status: { in: ["kontrak", "magang", "pkl"] },
+          contract_end_date: { lt: now }
+        },
+        data: {
+          status: "inactive"
+        }
+      });
+    } catch (e) {
+      console.error("Auto deactivation error:", e);
+    }
 
     const employees = await prisma.user.findMany({
       where: {
@@ -434,12 +459,22 @@ export async function POST(req: NextRequest) {
     const ptkpStatus = body.ptkp_status
       ? String(body.ptkp_status).trim()
       : null;
+
     const baseSalary =
       body.base_salary !== undefined &&
       body.base_salary !== null &&
       String(body.base_salary).trim() !== ""
         ? Number(body.base_salary)
         : null;
+
+    const birthPlace = body.birth_place ? String(body.birth_place).trim() : null;
+    const birthDate = body.birth_date ? new Date(body.birth_date) : null;
+    const bankAccountNumber = body.bank_account_number ? String(body.bank_account_number).trim() : null;
+    const nik = body.nik ? String(body.nik).trim() : null;
+    const employmentStatus = body.employment_status ? String(body.employment_status).trim() : null;
+    const contractStartDate = body.contract_start_date ? new Date(body.contract_start_date) : null;
+    const contractEndDate = body.contract_end_date ? new Date(body.contract_end_date) : null;
+    const uploadedDocumentUrl = body.uploaded_document_url ? String(body.uploaded_document_url).trim() : null;
 
     if (!name) return jsonError("Nama karyawan wajib diisi.");
     if (/\d/.test(name)) return jsonError("Nama lengkap tidak boleh mengandung angka.");
@@ -465,6 +500,20 @@ export async function POST(req: NextRequest) {
 
     if (!["active", "inactive"].includes(status)) {
       return jsonError("Status karyawan tidak valid.");
+    }
+
+    // Validasi NIK dan No Rekening dan Gaji
+    if (nik && (!/^\d+$/.test(nik) || nik.length !== 12)) {
+      return jsonError("NIK harus berupa angka dan berjumlah tepat 12 digit.");
+    }
+    if (bankAccountNumber && !/^\d+$/.test(bankAccountNumber)) {
+      return jsonError("Nomor rekening harus berupa angka.");
+    }
+    if (baseSalary !== null && (isNaN(baseSalary) || baseSalary < 0)) {
+      return jsonError("Gaji harus berupa angka numerik positif.");
+    }
+    if (employmentStatus && !["kartap", "kontrak", "magang", "pkl"].includes(employmentStatus)) {
+      return jsonError("Status posisi karyawan tidak valid.");
     }
 
     await validateEmployeeHierarchy({
@@ -507,6 +556,14 @@ export async function POST(req: NextRequest) {
         npwp_number: npwpNumber,
         ptkp_status: ptkpStatus,
         base_salary: baseSalary,
+        birth_place: birthPlace,
+        birth_date: birthDate,
+        bank_account_number: bankAccountNumber,
+        nik: nik,
+        employment_status: employmentStatus,
+        contract_start_date: contractStartDate,
+        contract_end_date: contractEndDate,
+        uploaded_document_url: uploadedDocumentUrl,
       },
       select: employeeSelect,
     });
@@ -575,18 +632,24 @@ export async function PATCH(req: NextRequest) {
     const positionId = String(body.position_id || "").trim();
     const shiftId = String(body.shift_id || "").trim();
 
-    const npwpNumber = body.npwp_number
-      ? String(body.npwp_number).trim()
-      : null;
-    const ptkpStatus = body.ptkp_status
-      ? String(body.ptkp_status).trim()
-      : null;
+    const npwpNumber = body.npwp_number ? String(body.npwp_number).trim() : null;
+    const ptkpStatus = body.ptkp_status ? String(body.ptkp_status).trim() : null;
+
     const baseSalary =
       body.base_salary !== undefined &&
       body.base_salary !== null &&
       String(body.base_salary).trim() !== ""
         ? Number(body.base_salary)
         : null;
+
+    const birthPlace = body.birth_place ? String(body.birth_place).trim() : null;
+    const birthDate = body.birth_date ? new Date(body.birth_date) : null;
+    const bankAccountNumber = body.bank_account_number ? String(body.bank_account_number).trim() : null;
+    const nik = body.nik ? String(body.nik).trim() : null;
+    const employmentStatus = body.employment_status ? String(body.employment_status).trim() : null;
+    const contractStartDate = body.contract_start_date ? new Date(body.contract_start_date) : null;
+    const contractEndDate = body.contract_end_date ? new Date(body.contract_end_date) : null;
+    const uploadedDocumentUrl = body.uploaded_document_url ? String(body.uploaded_document_url).trim() : null;
 
     if (!id) return jsonError("ID karyawan wajib dikirim.");
     if (!name) return jsonError("Nama karyawan wajib diisi.");
@@ -614,14 +677,22 @@ export async function PATCH(req: NextRequest) {
       return jsonError("Status karyawan tidak valid.");
     }
 
+    // Validasi NIK dan No Rekening dan Gaji
+    if (nik && (!/^\d+$/.test(nik) || nik.length !== 12)) {
+      return jsonError("NIK harus berupa angka dan berjumlah tepat 12 digit.");
+    }
+    if (bankAccountNumber && !/^\d+$/.test(bankAccountNumber)) {
+      return jsonError("Nomor rekening harus berupa angka.");
+    }
+    if (baseSalary !== null && (isNaN(baseSalary) || baseSalary < 0)) {
+      return jsonError("Gaji harus berupa angka numerik positif.");
+    }
+    if (employmentStatus && !["kartap", "kontrak", "magang", "pkl"].includes(employmentStatus)) {
+      return jsonError("Status posisi karyawan tidak valid.");
+    }
+
     const existingEmployee = await prisma.user.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-        role: true,
-      },
+      where: { id },
     });
 
     if (!existingEmployee || existingEmployee.role !== "employee") {
@@ -666,6 +737,14 @@ export async function PATCH(req: NextRequest) {
       npwp_number: string | null;
       ptkp_status: string | null;
       base_salary: number | null;
+      birth_place: string | null;
+      birth_date: Date | null;
+      bank_account_number: string | null;
+      nik: string | null;
+      employment_status: string | null;
+      contract_start_date: Date | null;
+      contract_end_date: Date | null;
+      uploaded_document_url: string | null;
       password_hash?: string;
     } = {
       name,
@@ -681,6 +760,14 @@ export async function PATCH(req: NextRequest) {
       npwp_number: npwpNumber,
       ptkp_status: ptkpStatus,
       base_salary: baseSalary,
+      birth_place: birthPlace,
+      birth_date: birthDate,
+      bank_account_number: bankAccountNumber,
+      nik: nik,
+      employment_status: employmentStatus,
+      contract_start_date: contractStartDate,
+      contract_end_date: contractEndDate,
+      uploaded_document_url: uploadedDocumentUrl,
     };
 
     if (password) {

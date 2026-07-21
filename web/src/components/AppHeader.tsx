@@ -61,15 +61,15 @@ type NotificationResponse = {
 };
 
 const employeeNav = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/attendance", label: "Attendance", icon: ScanFace },
-  { href: "/history", label: "History", icon: History },
+  { href: "/home", label: "Beranda", icon: Home },
+  { href: "/attendance", label: "Presensi", icon: ScanFace },
+  { href: "/history", label: "Riwayat", icon: History },
   { href: "/cuti", label: "Cuti", icon: CalendarDays },
   { href: "/pengumuman", label: "Info", icon: Megaphone },
-  { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/profile", label: "Profil", icon: UserRound },
   {
     href: "#",
-    label: "Payroll & Kinerja (Coming Soon)",
+    label: "Gaji & Kinerja (Segera Hadir)",
     icon: Coins,
     isComingSoon: true,
   },
@@ -93,7 +93,7 @@ const adminMenus = [
   },
   {
     href: "/admin/audit-logs",
-    label: "Audit Logs",
+    label: "Log Audit",
     icon: History,
   },
 ];
@@ -134,7 +134,7 @@ const masterDataMenus = [
 const operationalMenus = [
   {
     href: "/admin/employees",
-    label: "Register Employee",
+    label: "Registrasi Karyawan",
     icon: UserPlus,
   },
   {
@@ -153,22 +153,20 @@ const operationalMenus = [
     icon: UserRound,
   },
   {
-    href: "#",
-    label: "Gaji & Payroll (Coming Soon)",
+    href: "/admin/salary",
+    label: "Gaji & Slip Payroll",
     icon: Coins,
-    isComingSoon: true,
   },
   {
     href: "#",
-    label: "Rewards Karyawan (Coming Soon)",
+    label: "Penghargaan Karyawan (Segera Hadir)",
     icon: Award,
     isComingSoon: true,
   },
   {
-    href: "#",
-    label: "HR Analytics (Coming Soon)",
+    href: "/admin/hr-analytics",
+    label: "Analitik HR",
     icon: TrendingUp,
-    isComingSoon: true,
   },
 ];
 
@@ -290,19 +288,20 @@ const adminSuggestions = [
     ],
   },
   {
-    href: "/admin/analytics",
-    label: "HR Analytics Dashboard",
+    href: "/admin/hr-analytics",
+    label: "Analitik HR",
     icon: TrendingUp,
     category: "Menu Utama",
     keywords: [
+      "analitik hr",
       "hr analytics",
-      "analitik",
       "grafik",
       "prediksi",
       "kedisiplinan",
-      "reward",
-      "sanksi",
-      "promosi",
+      "rekap kontrak",
+      "kontrak",
+      "magang",
+      "pkl",
     ],
   },
   {
@@ -542,6 +541,89 @@ export default function AppHeader({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isBellMenuOpen, setIsBellMenuOpen] = useState(false);
+
+  // Draggable menu ordering states
+  const [adminMenuOrder, setAdminMenuOrder] = useState<number[]>([0, 1, 2, 3]);
+  const [masterDataMenuOrder, setMasterDataMenuOrder] = useState<number[]>([0, 1, 2, 3, 4, 5]);
+  const [operationalMenuOrder, setOperationalMenuOrder] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [employeeNavOrder, setEmployeeNavOrder] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+
+  const [draggedMenuId, setDraggedMenuId] = useState<{ type: string; index: number } | null>(null);
+
+  // Load menu orders from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedAdmin = localStorage.getItem("faceattend_sidebar_admin_order");
+      if (storedAdmin) setAdminMenuOrder(JSON.parse(storedAdmin));
+
+      const storedMaster = localStorage.getItem("faceattend_sidebar_master_order");
+      if (storedMaster) setMasterDataMenuOrder(JSON.parse(storedMaster));
+
+      const storedOp = localStorage.getItem("faceattend_sidebar_op_order");
+      if (storedOp) setOperationalMenuOrder(JSON.parse(storedOp));
+
+      const storedEmp = localStorage.getItem("faceattend_sidebar_emp_order");
+      if (storedEmp) setEmployeeNavOrder(JSON.parse(storedEmp));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleMenuDragStart = (type: string, index: number) => {
+    setDraggedMenuId({ type, index });
+  };
+
+  const handleMenuDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleMenuDrop = (type: string, targetIndex: number) => {
+    if (!draggedMenuId || draggedMenuId.type !== type) return;
+    const sourceIndex = draggedMenuId.index;
+    if (sourceIndex === targetIndex) return;
+
+    let orderList: number[] = [];
+    let setOrderList: React.Dispatch<React.SetStateAction<number[]>>;
+
+    if (type === "admin") {
+      orderList = [...adminMenuOrder];
+      setOrderList = setAdminMenuOrder;
+    } else if (type === "masterData") {
+      orderList = [...masterDataMenuOrder];
+      setOrderList = setMasterDataMenuOrder;
+    } else if (type === "operational") {
+      orderList = [...operationalMenuOrder];
+      setOrderList = setOperationalMenuOrder;
+    } else if (type === "employee") {
+      orderList = [...employeeNavOrder];
+      setOrderList = setEmployeeNavOrder;
+    } else {
+      return;
+    }
+
+    const sourcePos = orderList.indexOf(sourceIndex);
+    const targetPos = orderList.indexOf(targetIndex);
+    orderList[sourcePos] = targetIndex;
+    orderList[targetPos] = sourceIndex;
+    setOrderList(orderList);
+
+    // Save to localStorage
+    try {
+      if (type === "admin") {
+        localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(orderList));
+      } else if (type === "masterData") {
+        localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(orderList));
+      } else if (type === "operational") {
+        localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(orderList));
+      } else if (type === "employee") {
+        localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(orderList));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    setDraggedMenuId(null);
+  };
   const [attendanceNotifications, setAttendanceNotifications] = useState<any[]>(
     [],
   );
@@ -1364,8 +1446,8 @@ export default function AppHeader({
                   FaceAttend
                 </p>
 
-                <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
-                  {isAdmin ? "Admin Panel" : "Employee Menu"}
+                <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950 dark:text-white">
+                  {isAdmin ? "Panel Admin" : "Menu Karyawan"}
                 </h2>
               </div>
             </div>
@@ -1388,7 +1470,9 @@ export default function AppHeader({
                 </p>
 
                 <nav className="mt-3 space-y-2">
-                  {adminMenus.map((menu) => {
+                  {adminMenuOrder.map((menuIdx) => {
+                    const menu = adminMenus[menuIdx];
+                    if (!menu) return null;
                     const Icon = menu.icon;
                     const active = isActivePath(pathname, menu.href);
 
@@ -1396,11 +1480,15 @@ export default function AppHeader({
                       <button
                         key={menu.href}
                         type="button"
+                        draggable
+                        onDragStart={() => handleMenuDragStart("admin", menuIdx)}
+                        onDragOver={handleMenuDragOver}
+                        onDrop={() => handleMenuDrop("admin", menuIdx)}
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition cursor-grab active:cursor-grabbing ${
                           active
                             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                            : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-[#eaf1ff] dark:hover:bg-slate-800 hover:text-[#123c8c] dark:hover:text-blue-400"
                         }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />
@@ -1411,13 +1499,15 @@ export default function AppHeader({
                 </nav>
 
                 <div className="mt-6">
-                  <div className="flex items-center gap-3 rounded-2xl bg-[#f6f8ff] px-4 py-3 text-sm font-black text-[#123c8c]">
+                  <div className="flex items-center gap-3 rounded-2xl bg-[#f6f8ff] dark:bg-slate-900/40 px-4 py-3 text-sm font-black text-[#123c8c] dark:text-blue-400">
                     <Settings size={18} strokeWidth={2.5} />
                     Master Data
                   </div>
 
-                  <div className="mt-2 space-y-1 border-l-2 border-blue-100 pl-4">
-                    {masterDataMenus.map((menu) => {
+                  <div className="mt-2 space-y-1 border-l-2 border-blue-100 dark:border-slate-800 pl-4">
+                    {masterDataMenuOrder.map((menuIdx) => {
+                      const menu = masterDataMenus[menuIdx];
+                      if (!menu) return null;
                       const Icon = menu.icon;
                       const active = isActivePath(pathname, menu.href);
 
@@ -1425,11 +1515,15 @@ export default function AppHeader({
                         <button
                           key={menu.href}
                           type="button"
+                          draggable
+                          onDragStart={() => handleMenuDragStart("masterData", menuIdx)}
+                          onDragOver={handleMenuDragOver}
+                          onDrop={() => handleMenuDrop("masterData", menuIdx)}
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition cursor-grab active:cursor-grabbing ${
                             active
-                              ? "bg-[#eaf1ff] text-[#123c8c]"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-[#123c8c]"
+                              ? "bg-[#eaf1ff] dark:bg-blue-950/40 text-[#123c8c] dark:text-blue-400"
+                              : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#123c8c] dark:hover:text-blue-400"
                           }`}
                         >
                           <Icon size={15} strokeWidth={2.5} />
@@ -1446,7 +1540,9 @@ export default function AppHeader({
                   </p>
 
                   <nav className="mt-3 space-y-2">
-                    {operationalMenus.map((menu) => {
+                    {operationalMenuOrder.map((menuIdx) => {
+                      const menu = operationalMenus[menuIdx];
+                      if (!menu) return null;
                       const Icon = menu.icon;
                       const active = isActivePath(pathname, menu.href);
                       const isComingSoon = (menu as any).isComingSoon;
@@ -1455,14 +1551,18 @@ export default function AppHeader({
                         <button
                           key={menu.label}
                           type="button"
+                          draggable={!isComingSoon}
+                          onDragStart={() => handleMenuDragStart("operational", menuIdx)}
+                          onDragOver={handleMenuDragOver}
+                          onDrop={() => handleMenuDrop("operational", menuIdx)}
                           disabled={isComingSoon}
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition cursor-grab active:cursor-grabbing ${
                             active
                               ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                               : isComingSoon
                                 ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
-                                : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-[#eaf1ff] dark:hover:bg-slate-800 hover:text-[#123c8c] dark:hover:text-blue-400"
                           }`}
                         >
                           <Icon size={18} strokeWidth={2.5} />
@@ -1480,7 +1580,9 @@ export default function AppHeader({
                 </p>
 
                 <nav className="mt-3 space-y-2">
-                  {employeeNav.map((menu) => {
+                  {employeeNavOrder.map((menuIdx) => {
+                    const menu = employeeNav[menuIdx];
+                    if (!menu) return null;
                     const Icon = menu.icon;
                     const active = isActivePath(pathname, menu.href);
                     const isComingSoon = (menu as any).isComingSoon;
@@ -1489,14 +1591,18 @@ export default function AppHeader({
                       <button
                         key={menu.label}
                         type="button"
+                        draggable={!isComingSoon}
+                        onDragStart={() => handleMenuDragStart("employee", menuIdx)}
+                        onDragOver={handleMenuDragOver}
+                        onDrop={() => handleMenuDrop("employee", menuIdx)}
                         disabled={isComingSoon}
                         onClick={() => handleNavigate(menu.href)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition cursor-grab active:cursor-grabbing ${
                           active
                             ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
                             : isComingSoon
                               ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
-                              : "text-slate-600 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-[#eaf1ff] dark:hover:bg-slate-800 hover:text-[#123c8c] dark:hover:text-blue-400"
                         }`}
                       >
                         <Icon size={18} strokeWidth={2.5} />

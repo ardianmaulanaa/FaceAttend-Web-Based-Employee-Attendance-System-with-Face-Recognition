@@ -589,8 +589,17 @@ export default function AdminAnnouncementsPage() {
                         Lihat Pembaca
                       </button>
                       {(announcement.attachment_url || announcement.attachmentUrl) && (
-                        <div className="mt-2 max-w-[120px] overflow-hidden rounded-xl border border-slate-100 bg-slate-50 p-1">
-                          {/\.(mp4|webm|ogg|mov)$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
+                        <div className="mt-2 max-w-[180px] overflow-hidden rounded-xl border border-slate-100 bg-slate-50 p-1">
+                          {/\.pdf$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
+                            <a
+                              href={announcement.attachment_url || announcement.attachmentUrl || ""}
+                              target="_blank"
+                              className="flex items-center gap-1.5 p-2 bg-white rounded-lg text-xs font-black text-red-600 hover:text-red-700 transition"
+                            >
+                              <FileText size={16} />
+                              Lihat PDF
+                            </a>
+                          ) : /\.(mp4|webm|ogg|mov)$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
                             <video src={announcement.attachment_url || announcement.attachmentUrl || ""} className="max-h-20 w-full rounded-lg object-cover bg-black" />
                           ) : (
                             <img src={announcement.attachment_url || announcement.attachmentUrl || ""} alt="Media" className="max-h-20 w-full rounded-lg object-cover bg-slate-100" />
@@ -742,12 +751,20 @@ export default function AdminAnnouncementsPage() {
                 style={{ animationDelay: "80ms" }}
               >
                 <label className="mb-2 block text-sm font-black text-slate-700">
-                  Media Pengumuman (Foto/Video, Maks 50MB)
+                  Media Pengumuman (Foto/Video/PDF, Maks 50MB)
                 </label>
 
                 {form.attachmentUrl ? (
                   <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-slate-50 p-2">
-                    {/\.(mp4|webm|ogg|mov)$/i.test(form.attachmentUrl) ? (
+                    {/\.pdf$/i.test(form.attachmentUrl) ? (
+                      <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100">
+                        <FileText className="text-red-500" size={32} />
+                        <div>
+                          <p className="text-sm font-black text-slate-800">Lampiran Dokumen PDF</p>
+                          <a href={form.attachmentUrl} target="_blank" className="text-xs font-bold text-[#123c8c] hover:underline">Buka PDF</a>
+                        </div>
+                      </div>
+                    ) : /\.(mp4|webm|ogg|mov)$/i.test(form.attachmentUrl) ? (
                       <video src={form.attachmentUrl} controls className="max-h-60 w-full rounded-xl object-contain bg-black" />
                     ) : (
                       <img src={form.attachmentUrl} alt="Preview Attachment" className="max-h-60 w-full rounded-xl object-contain bg-slate-100" />
@@ -765,7 +782,7 @@ export default function AdminAnnouncementsPage() {
                   <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-200 bg-[#f6f8ff] py-6 hover:bg-[#eaf1ff] transition duration-200">
                     <input
                       type="file"
-                      accept="image/*,video/*"
+                      accept="image/*,video/*,application/pdf"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
@@ -801,10 +818,10 @@ export default function AdminAnnouncementsPage() {
                     />
                     <Megaphone className="h-8 w-8 text-[#123c8c] opacity-60" />
                     <p className="mt-2 text-xs font-black text-[#123c8c]">
-                      Pilih Foto / Video
+                      Pilih Foto / Video / PDF
                     </p>
                     <p className="mt-1 text-[10px] font-semibold text-slate-400">
-                      Mendukung semua format gambar dan video (Maks 50MB)
+                      Mendukung gambar, video, dan dokumen PDF (Maks 50MB)
                     </p>
                   </div>
                 )}

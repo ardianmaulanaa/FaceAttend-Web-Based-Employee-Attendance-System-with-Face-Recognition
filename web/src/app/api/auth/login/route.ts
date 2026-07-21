@@ -15,7 +15,8 @@ function isCreativemuEmail(email: string) {
   const normalized = email.trim().toLowerCase();
   return (
     normalized.endsWith("@creativemu.co.id") ||
-    normalized.endsWith("@creativemu.com")
+    normalized.endsWith("@creativemu.com") ||
+    normalized.endsWith("@creativemu.my.id")
   );
 }
 
@@ -145,7 +146,33 @@ export async function POST(req: Request) {
     });
 
     if (!user && normalizedEmail.endsWith("@creativemu.co.id")) {
-      const fallbackEmail = normalizedEmail.replace("@creativemu.co.id", "@creativemu.com");
+      const fallbackEmail = normalizedEmail.replace("@creativemu.co.id", "@creativemu.my.id");
+      user = await prisma.user.findUnique({
+        where: {
+          email: fallbackEmail,
+        },
+      });
+      if (!user) {
+        const fallbackEmail2 = normalizedEmail.replace("@creativemu.co.id", "@creativemu.com");
+        user = await prisma.user.findUnique({
+          where: {
+            email: fallbackEmail2,
+          },
+        });
+      }
+    }
+
+    if (!user && normalizedEmail.endsWith("@creativemu.com")) {
+      const fallbackEmail = normalizedEmail.replace("@creativemu.com", "@creativemu.my.id");
+      user = await prisma.user.findUnique({
+        where: {
+          email: fallbackEmail,
+        },
+      });
+    }
+
+    if (!user && normalizedEmail.endsWith("@creativemu.my.id")) {
+      const fallbackEmail = normalizedEmail.replace("@creativemu.my.id", "@creativemu.com");
       user = await prisma.user.findUnique({
         where: {
           email: fallbackEmail,

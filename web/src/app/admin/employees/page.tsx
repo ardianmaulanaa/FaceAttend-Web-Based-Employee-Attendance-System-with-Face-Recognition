@@ -185,6 +185,15 @@ type Employee = {
   profile_photo_url?: string | null;
   photo_url?: string | null;
   avatar_url?: string | null;
+  birth_place?: string | null;
+  birth_date?: string | null;
+  bank_account_number?: string | null;
+  nik?: string | null;
+  employment_status?: "kartap" | "kontrak" | "magang" | "pkl" | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  uploaded_document_url?: string | null;
+  base_salary?: number | string | null;
 };
 
 type EmployeeForm = {
@@ -198,6 +207,15 @@ type EmployeeForm = {
   temporaryPassword: string;
   confirmTemporaryPassword: string;
   status: "active" | "inactive";
+  birth_place: string;
+  birth_date: string;
+  bank_account_number: string;
+  nik: string;
+  employment_status: "kartap" | "kontrak" | "magang" | "pkl" | "";
+  contract_start_date: string;
+  contract_end_date: string;
+  uploaded_document_url: string;
+  base_salary: string;
 };
 
 type EmployeeAlert = {
@@ -212,11 +230,20 @@ const initialForm: EmployeeForm = {
   department_id: "",
   unit_id: "",
   position_id: "",
-  shift_id: "",
+  shift_id: "shift-1",
   registered_office_id: "",
   temporaryPassword: "",
   confirmTemporaryPassword: "",
   status: "active",
+  birth_place: "",
+  birth_date: "",
+  bank_account_number: "",
+  nik: "",
+  employment_status: "",
+  contract_start_date: "",
+  contract_end_date: "",
+  uploaded_document_url: "",
+  base_salary: "",
 };
 
 function getInitialName(name: string) {
@@ -239,7 +266,8 @@ function isValidEmail(email: string) {
 }
 
 function isCreativemuEmail(email: string) {
-  return email.toLowerCase().endsWith("@creativemu.com");
+  const normalized = email.toLowerCase();
+  return normalized.endsWith("@creativemu.com") || normalized.endsWith("@creativemu.my.id");
 }
 
 function normalizeProfilePhotoUrl(photo?: string | null) {
@@ -600,15 +628,15 @@ export default function AdminEmployeesPage() {
   }, [units, form.department_id]);
 
   const filteredPositions = useMemo(() => {
-    if (!form.unit_id) return [];
+    if (!form.department_id) return [];
 
     return positions.filter((position) => {
       return (
         position.status === "active" &&
-        getPositionUnitId(position) === form.unit_id
+        getPositionDepartmentId(position) === form.department_id
       );
     });
-  }, [positions, form.unit_id]);
+  }, [positions, form.department_id]);
 
   const activeShifts = useMemo(() => {
     return shifts.filter((shift) => shift.status === "active");
@@ -683,6 +711,15 @@ export default function AdminEmployeesPage() {
       temporaryPassword: "",
       confirmTemporaryPassword: "",
       status: employee.status,
+      birth_place: employee.birth_place || "",
+      birth_date: employee.birth_date ? new Date(employee.birth_date).toISOString().substring(0, 10) : "",
+      bank_account_number: employee.bank_account_number || "",
+      nik: employee.nik || "",
+      employment_status: (employee.employment_status as any) || "",
+      contract_start_date: employee.contract_start_date ? new Date(employee.contract_start_date).toISOString().substring(0, 10) : "",
+      contract_end_date: employee.contract_end_date ? new Date(employee.contract_end_date).toISOString().substring(0, 10) : "",
+      uploaded_document_url: employee.uploaded_document_url || "",
+      base_salary: employee.base_salary ? String(employee.base_salary) : "",
     });
     setIsModalOpen(true);
   }
@@ -741,7 +778,7 @@ export default function AdminEmployeesPage() {
     if (!isValidEmail(email)) {
       showEmployeeAlert(
         "Format email tidak valid",
-        "Masukkan email yang benar, contohnya employee@creativemu.com.",
+        "Masukkan email yang benar, contohnya employee@creativemu.my.id.",
         "warning",
       );
       return;
@@ -750,7 +787,7 @@ export default function AdminEmployeesPage() {
     if (!isCreativemuEmail(email)) {
       showEmployeeAlert(
         "Email harus Creativemu",
-        "Email employee wajib menggunakan domain @creativemu.com.",
+        "Email employee wajib menggunakan domain @creativemu.my.id.",
         "warning",
       );
       return;
@@ -783,6 +820,33 @@ export default function AdminEmployeesPage() {
       return;
     }
 
+    if (form.nik && (!/^\d+$/.test(form.nik) || form.nik.length !== 12)) {
+      showEmployeeAlert(
+        "NIK tidak valid",
+        "NIK harus berupa angka dan berjumlah tepat 12 digit.",
+        "warning"
+      );
+      return;
+    }
+
+    if (form.bank_account_number && !/^\d+$/.test(form.bank_account_number)) {
+      showEmployeeAlert(
+        "Nomor Rekening tidak valid",
+        "Nomor rekening harus berupa angka.",
+        "warning"
+      );
+      return;
+    }
+
+    if (form.base_salary && (isNaN(Number(form.base_salary)) || Number(form.base_salary) < 0)) {
+      showEmployeeAlert(
+        "Gaji tidak valid",
+        "Gaji harus berupa angka positif.",
+        "warning"
+      );
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -804,6 +868,15 @@ export default function AdminEmployeesPage() {
           position_id: form.position_id,
           shift_id: form.shift_id,
           status: form.status,
+          birth_place: form.birth_place,
+          birth_date: form.birth_date || null,
+          bank_account_number: form.bank_account_number,
+          nik: form.nik,
+          employment_status: form.employment_status,
+          contract_start_date: form.contract_start_date || null,
+          contract_end_date: form.contract_end_date || null,
+          uploaded_document_url: form.uploaded_document_url,
+          base_salary: form.base_salary ? Number(form.base_salary) : null,
         }),
       });
 
@@ -1253,7 +1326,7 @@ export default function AdminEmployeesPage() {
                           email: event.target.value,
                         }))
                       }
-                      placeholder="employee@creativemu.com"
+                      placeholder="employee@creativemu.my.id"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
@@ -1339,7 +1412,46 @@ export default function AdminEmployeesPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-700">
-                    Unit
+                    Jabatan
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <BriefcaseBusiness
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.position_id}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        const posObj = positions.find((p) => p.id === val);
+                        setForm((prev) => ({
+                          ...prev,
+                          position_id: val,
+                          unit_id: posObj?.unit_id || "",
+                        }));
+                      }}
+                      disabled={!form.department_id}
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">
+                        {form.department_id ? "Pilih Jabatan" : "Pilih Divisi dulu"}
+                      </option>
+                      {filteredPositions.map((position) => (
+                        <option key={position.id} value={position.id}>
+                          {position.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Posisi
                   </label>
                   <div className="app-field-smooth relative rounded-2xl">
                     <Building2
@@ -1352,7 +1464,6 @@ export default function AdminEmployeesPage() {
                         setForm((prev) => ({
                           ...prev,
                           unit_id: event.target.value,
-                          position_id: "",
                         }))
                       }
                       disabled={!form.department_id}
@@ -1360,7 +1471,7 @@ export default function AdminEmployeesPage() {
                     >
                       <option value="">
                         {form.department_id
-                          ? "Pilih Unit"
+                          ? "Pilih Posisi"
                           : "Pilih Divisi dulu"}
                       </option>
                       {filteredUnits.map((unit) => (
@@ -1378,66 +1489,25 @@ export default function AdminEmployeesPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-700">
-                    Jabatan
+                    Shift Posisi
                   </label>
                   <div className="app-field-smooth relative rounded-2xl">
-                    <BriefcaseBusiness
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
                     <select
-                      value={form.position_id}
+                      value={form.employment_status}
                       onChange={(event) =>
                         setForm((prev) => ({
                           ...prev,
-                          position_id: event.target.value,
+                          employment_status: event.target.value as any,
+                          uploaded_document_url: (event.target.value !== "kartap" && event.target.value !== "kontrak") ? "" : prev.uploaded_document_url,
                         }))
                       }
-                      disabled={!form.unit_id}
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-4 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     >
-                      <option value="">
-                        {form.unit_id ? "Pilih Jabatan" : "Pilih Unit dulu"}
-                      </option>
-                      {filteredPositions.map((position) => (
-                        <option key={position.id} value={position.id}>
-                          {position.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={18}
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Shift
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <Clock3
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <select
-                      value={form.shift_id}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          shift_id: event.target.value,
-                        }))
-                      }
-                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    >
-                      <option value="">Pilih Shift</option>
-                      {activeShifts.map((shift) => (
-                        <option key={shift.id} value={shift.id}>
-                          {shift.name} - Toleransi {shift.tolerance_minutes}{" "}
-                          menit
-                        </option>
-                      ))}
+                      <option value="">Pilih Shift Posisi</option>
+                      <option value="kartap">Karyawan Tetap (Kartap)</option>
+                      <option value="kontrak">Kontrak</option>
+                      <option value="magang">Magang</option>
+                      <option value="pkl">PKL</option>
                     </select>
                     <ChevronDown
                       size={18}
@@ -1465,10 +1535,10 @@ export default function AdminEmployeesPage() {
                 <AppFormReveal delay={80}>
                   <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
                     <p className="text-sm font-black text-amber-700">
-                      Unit belum tersedia untuk divisi ini
+                      Posisi belum tersedia untuk divisi ini
                     </p>
                     <p className="mt-1 text-sm leading-6 text-amber-700/80">
-                      Tambahkan Unit terlebih dahulu pada divisi yang dipilih.
+                      Tambahkan Posisi terlebih dahulu pada divisi yang dipilih.
                     </p>
                   </div>
                 </AppFormReveal>
@@ -1478,14 +1548,190 @@ export default function AdminEmployeesPage() {
                 <AppFormReveal delay={80}>
                   <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
                     <p className="text-sm font-black text-amber-700">
-                      Jabatan belum tersedia untuk unit ini
+                      Jabatan belum tersedia untuk posisi ini
                     </p>
                     <p className="mt-1 text-sm leading-6 text-amber-700/80">
-                      Tambahkan Jabatan terlebih dahulu pada unit yang dipilih.
+                      Tambahkan Jabatan terlebih dahulu pada posisi yang dipilih.
                     </p>
                   </div>
                 </AppFormReveal>
               ) : null}
+
+              <AppFormReveal delay={70} className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Gaji / Salary
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="number"
+                      value={form.base_salary}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          base_salary: event.target.value,
+                        }))
+                      }
+                      placeholder="Masukkan nominal gaji (angka)"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tempat Lahir
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="text"
+                      value={form.birth_place}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          birth_place: event.target.value,
+                        }))
+                      }
+                      placeholder="Kota Lahir"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tanggal Lahir
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="date"
+                      value={form.birth_date}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          birth_date: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </AppFormReveal>
+
+              <AppFormReveal delay={80} className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    NIK (Nomor Induk Kependudukan - 12 Digit)
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="text"
+                      value={form.nik}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          nik: event.target.value.replace(/\D/g, "").substring(0, 12),
+                        }))
+                      }
+                      placeholder="Contoh: 123456789012"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Nomor Rekening
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="text"
+                      value={form.bank_account_number}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          bank_account_number: event.target.value.replace(/\D/g, ""),
+                        }))
+                      }
+                      placeholder="Masukkan nomor rekening saja"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Tanggal Mulai {form.employment_status === "kartap" ? "Kerja" : "Magang / Kontrak / PKL"}
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <input
+                      type="date"
+                      value={form.contract_start_date}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          contract_start_date: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                {form.employment_status && form.employment_status !== "kartap" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Tanggal Selesai Magang / Kontrak / PKL
+                    </label>
+                    <div className="app-field-smooth relative rounded-2xl">
+                      <input
+                        type="date"
+                        value={form.contract_end_date}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            contract_end_date: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(form.employment_status === "kartap" || form.employment_status === "kontrak") && (
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Upload SK / Surat Kerja / Surat Kontrak
+                    </label>
+                    <div className="app-field-smooth relative rounded-2xl">
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setForm((prev) => ({
+                                ...prev,
+                                uploaded_document_url: reader.result as string,
+                              }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-2.5 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                      {form.uploaded_document_url && (
+                        <p className="mt-1 text-xs text-emerald-600 font-bold">
+                          ✓ File berhasil diproses
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </AppFormReveal>
 
               <AppFormReveal delay={100} className="grid gap-4 md:grid-cols-2">
                 {!editingEmployee ? (

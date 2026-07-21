@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Loader2, Megaphone } from "lucide-react";
+import { CalendarDays, Loader2, Megaphone, FileText } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
@@ -301,7 +301,21 @@ export default function AnnouncementPage() {
 
                     {(announcement.attachment_url || announcement.attachmentUrl) && (
                       <div className="mt-5 overflow-hidden rounded-3xl border border-blue-100 bg-[#f8fbff] p-3">
-                        {/\.(mp4|webm|ogg|mov)$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
+                        {/\.pdf$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
+                          <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100">
+                            <FileText className="text-red-500" size={32} />
+                            <div>
+                              <p className="text-sm font-black text-slate-800">Lampiran Dokumen PDF</p>
+                              <a
+                                href={announcement.attachment_url || announcement.attachmentUrl || ""}
+                                target="_blank"
+                                className="inline-block mt-1 text-xs font-black text-[#123c8c] hover:underline"
+                              >
+                                Buka / Unduh PDF
+                              </a>
+                            </div>
+                          </div>
+                        ) : /\.(mp4|webm|ogg|mov)$/i.test(announcement.attachment_url || announcement.attachmentUrl || "") ? (
                           <video
                             src={announcement.attachment_url || announcement.attachmentUrl || ""}
                             controls

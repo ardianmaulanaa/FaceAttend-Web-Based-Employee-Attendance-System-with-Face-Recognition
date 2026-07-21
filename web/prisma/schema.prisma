@@ -35,10 +35,20 @@ model User {
   // Kantor utama / kantor asal karyawan
   registered_office_id String? @db.Char(36)
 
-  // Data pajak / payroll
   npwp_number String?  @db.VarChar(30)
   ptkp_status String?  @db.VarChar(20) // TK0, K0, K1, K2, K3
   base_salary Decimal? @db.Decimal(15, 2)
+
+  // Field tambahan baru
+  birth_place           String?   @db.VarChar(100)
+  birth_date            DateTime?
+  bank_account_number   String?   @db.VarChar(30)
+  nik                   String?   @db.VarChar(30)
+  employment_status     String?   @db.VarChar(20) // "kartap", "kontrak", "magang", "pkl"
+  contract_start_date   DateTime?
+  contract_end_date     DateTime?
+  uploaded_document_url String?   @db.VarChar(255)
+
 
   unit              Unit?           @relation(fields: [unit_id], references: [id], onDelete: SetNull)
   department        Department?     @relation(fields: [department_id], references: [id], onDelete: SetNull)

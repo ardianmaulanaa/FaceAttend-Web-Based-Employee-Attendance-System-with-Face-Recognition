@@ -217,6 +217,11 @@ export async function GET(req: NextRequest) {
         start_date: true,
         end_date: true,
         leave_type: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -338,6 +343,36 @@ export async function GET(req: NextRequest) {
 
       const pending = Math.max(totalActiveEmployees - present - cuti, 0);
 
+      const presentNames = records
+        .filter((record) => Boolean(record.check_in_time))
+        .map((r) => r.user?.name || "Tanpa Nama");
+
+      const lateNames = records
+        .filter(
+          (record) =>
+            record.check_in_status === "LATE" ||
+            record.status === "LATE" ||
+            Number(record.late_minutes || 0) > 0,
+        )
+        .map((r) => `${r.user?.name || "Tanpa Nama"} (${r.late_minutes}m)`);
+
+      const wfhNames = records
+        .filter((record) => record.is_wfh || record.work_mode === "wfh")
+        .map((r) => r.user?.name || "Tanpa Nama");
+
+      const visitNames = records
+        .filter((record) => record.is_visit || record.work_mode === "visit")
+        .map((r) => r.user?.name || "Tanpa Nama");
+
+      const cutiNames = approvedLeaveThisMonth
+        .filter((leave) => {
+          const s = normalizeDate(leave.start_date);
+          const e = normalizeDate(leave.end_date);
+          const curr = normalizeDate(currentDate);
+          return s <= curr && e >= curr;
+        })
+        .map((leave) => leave.user?.name || "Tanpa Nama");
+
       return {
         label: String(day),
         date: currentKey,
@@ -349,6 +384,11 @@ export async function GET(req: NextRequest) {
         pending,
         active: totalActiveEmployees,
         todayRecords: records.length,
+        presentNames,
+        lateNames,
+        wfhNames,
+        visitNames,
+        cutiNames,
       };
     });
 

@@ -8,6 +8,11 @@ import {
   LogIn,
   LogOut,
   UsersRound,
+  FileText,
+  Coins,
+  Settings,
+  Megaphone,
+  ArrowUpRight,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -253,6 +258,27 @@ export default function AdminDashboardPage() {
       },
     ];
   }, [data]);
+  const [cardOrder, setCardOrder] = useState<number[]>([0, 1, 2, 3]);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIdx(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedIdx === null) return;
+    const newOrder = [...cardOrder];
+    const draggedPos = newOrder.indexOf(draggedIdx);
+    const targetPos = newOrder.indexOf(targetIndex);
+    newOrder[draggedPos] = targetIndex;
+    newOrder[targetPos] = draggedIdx;
+    setCardOrder(newOrder);
+    setDraggedIdx(null);
+  };
 
   return (
     <MobileShell variant="admin">
@@ -261,7 +287,7 @@ export default function AdminDashboardPage() {
       <AppHeader title="Admin Dashboard" variant="admin" />
 
       <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 pb-28 md:px-10 lg:px-16">
-        <div className="dashboard-enter overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl shadow-slate-300/30">
+        <div className="dashboard-enter overflow-hidden rounded-3xl border border-blue-100 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-xl shadow-slate-300/30">
           <div className="grid gap-0 lg:grid-cols-[1fr_1fr]">
             <div className="bg-[#123c8c] p-6 text-white md:p-8">
               <div className="flex items-center gap-3">
@@ -278,41 +304,47 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 p-5 md:p-6">
-              {stats.map((item, index) => {
+              {cardOrder.map((statIdx, index) => {
+                const item = stats[statIdx];
+                if (!item) return null;
                 const Icon = item.icon;
                 const isCheckIn = item.label === "Check-in";
                 const isLate = item.label === "Terlambat";
-                const textStyle = isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-[#123c8c]";
+                const textStyle = isCheckIn ? "text-emerald-600 dark:text-emerald-400" : isLate ? "text-red-600 dark:text-red-400" : "text-[#123c8c] dark:text-blue-450";
 
                 return (
                   <div
                     key={`${item.label}-${index}`}
-                    className="dashboard-row-enter rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-slate-200/60"
+                    draggable
+                    onDragStart={() => handleDragStart(statIdx)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(statIdx)}
+                    className="dashboard-row-enter cursor-grab active:cursor-grabbing rounded-2xl border border-blue-100 dark:border-slate-800 bg-[#f6f8ff] dark:bg-[#0d1117] p-4 transition duration-200 hover:-translate-y-0.5 hover:bg-white dark:hover:bg-[#161b22] hover:shadow-lg hover:shadow-slate-200/60 dark:hover:shadow-none"
                     style={{
                       animationDelay: `${index * 70}ms`,
                     }}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold text-slate-500">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                         {item.label}
                       </p>
 
                       <Icon
                         size={20}
                         strokeWidth={2.5}
-                        className={isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-[#123c8c]"}
+                        className={isCheckIn ? "text-emerald-600 dark:text-emerald-400" : isLate ? "text-red-600 dark:text-red-400" : "text-[#123c8c] dark:text-blue-450"}
                       />
                     </div>
 
                     {isLoading ? (
-                      <div className="mt-4 h-8 w-16 animate-pulse rounded-xl bg-blue-100" />
+                      <div className="mt-4 h-8 w-16 animate-pulse rounded-xl bg-blue-100 dark:bg-slate-800" />
                     ) : (
                       <h3 className={`mt-3 text-3xl font-black ${textStyle}`}>
                         {item.value}
                       </h3>
                     )}
 
-                    <p className={`mt-1 text-xs font-semibold ${isCheckIn ? "text-emerald-600" : isLate ? "text-red-600" : "text-slate-500"}`}>
+                    <p className={`mt-1 text-xs font-semibold ${isCheckIn ? "text-emerald-600 dark:text-emerald-400" : isLate ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`}>
                       {item.description}
                     </p>
                   </div>
@@ -322,32 +354,90 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* PINTASAN CEPAT (QUICK ACTIONS) */}
+        <div className="dashboard-enter rounded-[2rem] border border-blue-50 dark:border-slate-800 bg-[#f6f8ff] dark:bg-[#161b22] p-6 shadow-sm">
+          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c] dark:text-blue-400 mb-4">
+            Pintasan Cepat (Quick Actions)
+          </h3>
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
+            <a
+              href="/admin/employees"
+              className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-[#0d1117] rounded-2xl border border-blue-100/50 dark:border-slate-850 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-none hover:border-[#123c8c] transition duration-200"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/20 text-[#123c8c] dark:text-blue-400 mb-2.5">
+                <UsersRound size={20} />
+              </div>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">Kelola Karyawan</span>
+            </a>
+
+            <a
+              href="/admin/laporan-kehadiran"
+              className="flex flex-col items-center justify-center text-center p-4 bg-white rounded-2xl border border-blue-100/50 hover:-translate-y-0.5 hover:shadow-md hover:border-[#123c8c] transition duration-200"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-2.5">
+                <FileText size={20} />
+              </div>
+              <span className="text-[11px] font-black text-slate-800">Laporan Absensi</span>
+            </a>
+
+            <a
+              href="/admin/salary"
+              className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-[#0d1117] rounded-2xl border border-blue-100/50 dark:border-slate-850 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-none hover:border-[#123c8c] transition duration-200"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400 mb-2.5">
+                <Coins size={20} />
+              </div>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">Gaji & Payroll</span>
+            </a>
+
+            <a
+              href="/admin/master-data/hierarchy"
+              className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-[#0d1117] rounded-2xl border border-blue-100/50 dark:border-slate-850 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-none hover:border-[#123c8c] transition duration-200"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 mb-2.5">
+                <Settings size={20} />
+              </div>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">Data Master</span>
+            </a>
+
+            <a
+              href="/admin/pengumuman"
+              className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-[#0d1117] rounded-2xl border border-blue-100/50 dark:border-slate-850 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-none hover:border-[#123c8c] transition duration-200"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 mb-2.5">
+                <Megaphone size={20} />
+              </div>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">Pengumuman</span>
+            </a>
+          </div>
+        </div>
+
         {errorMessage ? (
-          <div className="dashboard-row-enter rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
+          <div className="dashboard-row-enter rounded-3xl border border-red-100 dark:border-red-950/20 bg-red-50 dark:bg-red-950/10 p-5 text-sm font-bold text-red-700 dark:text-red-450">
             {errorMessage}
           </div>
         ) : null}
 
         <div
-          className="dashboard-enter rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
+          className="dashboard-enter rounded-3xl border border-white/70 dark:border-slate-850 bg-white/90 dark:bg-[#161b22] p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
           style={{
             animationDelay: "100ms",
           }}
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c] dark:text-blue-400">
                 Today Report
               </p>
 
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
                 Recent Attendance
               </h2>
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
-            <div className="hidden grid-cols-[0.9fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] md:grid">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100 dark:border-slate-800">
+            <div className="hidden grid-cols-[0.9fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] dark:bg-[#0d1117] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] dark:text-blue-400 md:grid">
               <p>ID</p>
               <p>Employee</p>
               <p>Check-in</p>

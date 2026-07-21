@@ -17,10 +17,11 @@ const prisma = new PrismaClient({
 async function main() {
   await prisma.officeLocation.upsert({
     where: {
-      name: "Kantor Utama",
+      id: "office-1",
     },
     update: {
-      address: "Alamat kantor utama",
+      name: "Agency CV Mulya Kreatif Cipta",
+      address: "Alamat kantor Agency CV Mulya Kreatif Cipta",
       latitude: -6.917464,
       longitude: 107.619123,
       radius_meters: 100,
@@ -28,8 +29,8 @@ async function main() {
     },
     create: {
       id: "office-1",
-      name: "Kantor Utama",
-      address: "Alamat kantor utama",
+      name: "Agency CV Mulya Kreatif Cipta",
+      address: "Alamat kantor Agency CV Mulya Kreatif Cipta",
       latitude: -6.917464,
       longitude: 107.619123,
       radius_meters: 100,
@@ -38,26 +39,27 @@ async function main() {
   });
 
   await prisma.officeLocation.upsert({
-  where: {
-    name: "Creativemu Academy",
-  },
-  update: {
-    address: "Jogja",
-    latitude: -7.812201,
-    longitude: 110.2685415,
-    radius_meters: 100,
-    status: "active",
-  },
-  create: {
-    id: "office-2",
-    name: "Creativemu Academy",
-    address: "Jogja",
-    latitude: -7.812201,
-    longitude: 110.2685415,
-    radius_meters: 100,
-    status: "active",
-  },
-});
+    where: {
+      id: "office-2",
+    },
+    update: {
+      name: "Creativemu Academy",
+      address: "Jogja",
+      latitude: -7.812201,
+      longitude: 110.2685415,
+      radius_meters: 100,
+      status: "active",
+    },
+    create: {
+      id: "office-2",
+      name: "Creativemu Academy",
+      address: "Jogja",
+      latitude: -7.812201,
+      longitude: 110.2685415,
+      radius_meters: 100,
+      status: "active",
+    },
+  });
 
   console.log("Data kantor berhasil dibuat.");
 }

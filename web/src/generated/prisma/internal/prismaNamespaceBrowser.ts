@@ -74,6 +74,14 @@ export const UserScalarFieldEnum = {
   npwp_number: 'npwp_number',
   ptkp_status: 'ptkp_status',
   base_salary: 'base_salary',
+  birth_place: 'birth_place',
+  birth_date: 'birth_date',
+  bank_account_number: 'bank_account_number',
+  nik: 'nik',
+  employment_status: 'employment_status',
+  contract_start_date: 'contract_start_date',
+  contract_end_date: 'contract_end_date',
+  uploaded_document_url: 'uploaded_document_url',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -431,7 +439,12 @@ export const UserOrderByRelevanceFieldEnum = {
   shift_id: 'shift_id',
   registered_office_id: 'registered_office_id',
   npwp_number: 'npwp_number',
-  ptkp_status: 'ptkp_status'
+  ptkp_status: 'ptkp_status',
+  birth_place: 'birth_place',
+  bank_account_number: 'bank_account_number',
+  nik: 'nik',
+  employment_status: 'employment_status',
+  uploaded_document_url: 'uploaded_document_url'
 } as const
 
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]

@@ -36,6 +36,15 @@ type Employee = {
   unit?: { name: string } | null;
   position?: { name: string } | null;
   shift?: { name: string } | null;
+  birth_place?: string | null;
+  birth_date?: string | null;
+  bank_account_number?: string | null;
+  nik?: string | null;
+  employment_status?: string | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  uploaded_document_url?: string | null;
+  base_salary?: number | string | null;
 };
 
 const DEFAULT_AVATAR = "/images/creativemu-logo/creativemu.png";
@@ -77,6 +86,27 @@ function AdminEmployeeProfilesContent() {
     }
     void fetchEmployees();
   }, [searchParams]);
+
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    if (!selectedEmployee) return;
+    const emp = selectedEmployee;
+    async function fetchAttendance() {
+      try {
+        const res = await fetch(`/api/admin/attendance-reports?search=${encodeURIComponent(emp.email)}&month=${calMonth}&year=${calYear}`);
+        const data = await res.json();
+        if (data.success && data.reports) {
+          setAttendanceList(data.reports);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void fetchAttendance();
+  }, [selectedEmployee, calMonth, calYear]);
 
   const filteredEmployees = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -144,25 +174,86 @@ function AdminEmployeeProfilesContent() {
                     </span>
                   </div>
                 </div>
-
-                <div className="mt-8 border-t border-slate-100 pt-6 space-y-4">
+                <div className="mt-8 border-t border-slate-100 pt-6 space-y-4 text-left">
                   <div className="flex items-center gap-3 text-slate-700">
-                    <Phone size={18} className="text-[#123c8c] shrink-0" />
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Telepon</span>
                     <span className="text-sm font-bold">{selectedEmployee.phone || "-"}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-slate-700">
-                    <CalendarDays size={18} className="text-[#123c8c] shrink-0" />
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">NIK</span>
+                    <span className="text-sm font-bold">{selectedEmployee.nik || "-"}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">No. Rekening</span>
+                    <span className="text-sm font-bold">{selectedEmployee.bank_account_number || "-"}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Lahir</span>
                     <span className="text-sm font-bold">
-                      Gabung: {new Date(selectedEmployee.created_at).toLocaleDateString("id-ID", {
+                      {selectedEmployee.birth_place || "-"}
+                      {selectedEmployee.birth_date ? `, ${new Date(selectedEmployee.birth_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}` : ""}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Status Posisi</span>
+                    <span className="text-sm font-bold uppercase text-[#123c8c]">
+                      {selectedEmployee.employment_status === "kartap" ? "Karyawan Tetap" : selectedEmployee.employment_status || "-"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Gaji</span>
+                    <span className="text-sm font-bold text-emerald-600">
+                      {selectedEmployee.base_salary ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(selectedEmployee.base_salary)) : "-"}
+                    </span>
+                  </div>
+
+                  {selectedEmployee.contract_start_date && (
+                    <div className="flex items-center gap-3 text-slate-700">
+                      <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Mulai Kerja</span>
+                      <span className="text-sm font-bold">
+                        {new Date(selectedEmployee.contract_start_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedEmployee.contract_end_date && (
+                    <div className="flex items-center gap-3 text-slate-700">
+                      <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Selesai Kerja</span>
+                      <span className="text-sm font-bold text-red-600">
+                        {new Date(selectedEmployee.contract_end_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedEmployee.uploaded_document_url && (
+                    <div className="flex flex-col gap-1 text-slate-700 pt-2 border-t border-slate-50">
+                      <span className="text-xs font-black uppercase text-slate-400">Dokumen SK / Kontrak</span>
+                      <a
+                        href={selectedEmployee.uploaded_document_url}
+                        download={`SK_${selectedEmployee.name}`}
+                        className="text-xs font-bold text-[#123c8c] hover:underline"
+                      >
+                        📥 Download SK Kartap / Kontrak
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 text-slate-700 pt-2 border-t border-slate-100">
+                    <span className="text-xs font-black uppercase text-slate-400 w-24 shrink-0">Gabung</span>
+                    <span className="text-sm font-semibold">
+                      {new Date(selectedEmployee.created_at).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
                       })}
                     </span>
                   </div>
-                </div>
-              </div>
+                </div>              </div>
 
               {/* RIGHT CARD: Penempatan & Shift */}
               <div className="rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/50">
@@ -227,6 +318,190 @@ function AdminEmployeeProfilesContent() {
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Shift Kerja</p>
                       <p className="text-sm font-bold text-slate-800">
                         {selectedEmployee.shift?.name || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 3: Kalender Kehadiran & Statistik */}
+              <div className="rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/50 md:col-span-2 lg:col-span-2 mt-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <h3 className="text-lg font-black text-[#123c8c]">
+                    Kalender Kehadiran
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (calMonth === 1) {
+                          setCalMonth(12);
+                          setCalYear(prev => prev - 1);
+                        } else {
+                          setCalMonth(prev => prev - 1);
+                        }
+                      }}
+                      className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition active:scale-95"
+                    >
+                      ←
+                    </button>
+                    <span className="text-sm font-black text-slate-800 min-w-[100px] text-center">
+                      {new Date(calYear, calMonth - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (calMonth === 12) {
+                          setCalMonth(1);
+                          setCalYear(prev => prev + 1);
+                        } else {
+                          setCalMonth(prev => prev + 1);
+                        }
+                      }}
+                      className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition active:scale-95"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="mt-6">
+                  <div className="grid grid-cols-7 gap-2 text-center text-xs font-black uppercase text-slate-400 mb-2">
+                    <div>Min</div>
+                    <div>Sen</div>
+                    <div>Sel</div>
+                    <div>Rab</div>
+                    <div>Kam</div>
+                    <div>Jum</div>
+                    <div>Sab</div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {/* Empty starting cells */}
+                    {Array.from({ length: new Date(calYear, calMonth - 1, 1).getDay() }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-10 rounded-xl bg-slate-50/50" />
+                    ))}
+
+                    {/* Day cells */}
+                    {Array.from({ length: new Date(calYear, calMonth, 0).getDate() }).map((_, i) => {
+                      const dayNum = i + 1;
+                      const dayOfWeek = new Date(calYear, calMonth - 1, dayNum).getDay();
+                      
+                      // Match attendance
+                      const att = attendanceList.find(a => {
+                        const d = new Date(a.date);
+                        return d.getDate() === dayNum;
+                      });
+
+                      let cellClass = "bg-slate-50 text-slate-800 hover:bg-slate-100";
+                      let statusText = "";
+
+                      if (att) {
+                        const statusLower = String(att.statusLabel || att.status || "").toLowerCase();
+                        if (statusLower.includes("hadir") || statusLower.includes("present") || statusLower.includes("on_time") || statusLower === "on_time") {
+                          cellClass = "bg-emerald-500 text-white font-bold shadow-md shadow-emerald-200";
+                          statusText = "Hadir";
+                        } else if (statusLower.includes("lambat") || statusLower.includes("late")) {
+                          cellClass = "bg-amber-500 text-white font-bold shadow-md shadow-amber-200";
+                          statusText = "Telat";
+                        } else if (statusLower.includes("cuti")) {
+                          cellClass = "bg-blue-500 text-white font-bold shadow-md shadow-blue-200";
+                          statusText = "Cuti";
+                        } else if (statusLower.includes("izin") || statusLower.includes("sakit") || statusLower.includes("permission")) {
+                          cellClass = "bg-yellow-500 text-slate-900 font-bold shadow-md shadow-yellow-200";
+                          statusText = "Izin/Sakit";
+                        } else if (statusLower.includes("alpha") || statusLower.includes("absent")) {
+                          cellClass = "bg-red-500 text-white font-bold shadow-md shadow-red-200";
+                          statusText = "Mangkir";
+                        }
+                      } else {
+                        // Check if past weekday (could be absent/alpha)
+                        const isPast = new Date(calYear, calMonth - 1, dayNum) < new Date();
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        if (isPast && !isWeekend) {
+                          cellClass = "bg-red-100 text-red-700 font-semibold";
+                        } else if (isWeekend) {
+                          cellClass = "bg-slate-100 text-slate-400";
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={`day-${dayNum}`}
+                          title={statusText || "Tidak ada data"}
+                          className={`relative flex h-10 w-full items-center justify-center rounded-xl text-xs font-bold transition cursor-pointer ${cellClass}`}
+                        >
+                          {dayNum}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Calendar Legend */}
+                <div className="mt-6 flex flex-wrap gap-4 justify-center border-t border-slate-50 pt-4 text-xs font-bold">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                    <span className="text-slate-600">Hadir</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-amber-500" />
+                    <span className="text-slate-600">Telat</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-yellow-500" />
+                    <span className="text-slate-600">Izin/Sakit</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-500" />
+                    <span className="text-slate-600">Cuti</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-red-500" />
+                    <span className="text-slate-600">Alpa</span>
+                  </div>
+                </div>
+
+                {/* Kehadiran Summary Statistics */}
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <h4 className="text-sm font-black text-slate-800 mb-4">Statistik Bulanan</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-emerald-50 border border-emerald-100/50 p-3 rounded-2xl text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Hadir</p>
+                      <p className="text-xl font-black text-emerald-800 mt-1">
+                        {attendanceList.filter(a => {
+                          const s = String(a.statusLabel || a.status || "").toLowerCase();
+                          return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+                        }).length}
+                      </p>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-100/50 p-3 rounded-2xl text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-amber-600">Telat</p>
+                      <p className="text-xl font-black text-amber-800 mt-1">
+                        {attendanceList.filter(a => {
+                          const s = String(a.statusLabel || a.status || "").toLowerCase();
+                          return s.includes("lambat") || s.includes("late");
+                        }).length}
+                      </p>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-100/50 p-3 rounded-2xl text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-yellow-600">Izin/Sakit</p>
+                      <p className="text-xl font-black text-yellow-800 mt-1">
+                        {attendanceList.filter(a => {
+                          const s = String(a.statusLabel || a.status || "").toLowerCase();
+                          return s.includes("izin") || s.includes("sakit") || s.includes("permission");
+                        }).length}
+                      </p>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-100/50 p-3 rounded-2xl text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Cuti</p>
+                      <p className="text-xl font-black text-blue-800 mt-1">
+                        {attendanceList.filter(a => {
+                          const s = String(a.statusLabel || a.status || "").toLowerCase();
+                          return s.includes("cuti");
+                        }).length}
                       </p>
                     </div>
                   </div>

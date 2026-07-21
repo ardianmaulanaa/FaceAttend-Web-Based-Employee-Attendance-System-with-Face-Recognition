@@ -53,7 +53,8 @@ function isCreativemuEmail(email: string) {
   const normalized = email.trim().toLowerCase();
   return (
     normalized.endsWith("@creativemu.co.id") ||
-    normalized.endsWith("@creativemu.com")
+    normalized.endsWith("@creativemu.com") ||
+    normalized.endsWith("@creativemu.my.id")
   );
 }
 
@@ -611,7 +612,7 @@ export default function LoginPage() {
     if (!isValidEmailFormat(normalizedEmail)) {
       showAlert(
         "Format email salah",
-        "Masukkan email dengan format yang benar, contoh: nama@creativemu.com",
+        "Masukkan email dengan format yang benar, contoh: nama@creativemu.my.id",
       );
       return;
     }
