@@ -408,7 +408,7 @@ function QuickMenuGrid() {
       {menuOrder.map((menuIdx, index) => {
         const item = quickMenus[menuIdx];
         if (!item) return null;
-        const { href, label, description, icon: Icon, isComingSoon } = item;
+        const { href, label, description, icon: Icon } = item;
 
         return (
           <Link
@@ -418,24 +418,13 @@ function QuickMenuGrid() {
             onDragStart={() => handleDragStart(menuIdx)}
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(menuIdx)}
-            onClick={(e) => {
-              if (isComingSoon) {
-                e.preventDefault();
-              }
-            }}
-            className={`home-card-enter cursor-grab active:cursor-grabbing group flex flex-col items-center rounded-3xl text-center transition ${isComingSoon
-              ? "cursor-not-allowed opacity-50"
-              : "hover:-translate-y-0.5 active:scale-[0.98] md:hover:-translate-y-1 md:hover:bg-white md:hover:shadow-xl md:hover:shadow-slate-200/60"
-              } md:border md:border-blue-100 md:bg-[#f8fbff] md:p-6`}
+            className={`home-card-enter cursor-grab active:cursor-grabbing group flex flex-col items-center rounded-3xl text-center transition hover:-translate-y-0.5 active:scale-[0.98] md:hover:-translate-y-1 md:hover:bg-white md:hover:shadow-xl md:hover:shadow-slate-200/60 md:border md:border-blue-100 md:bg-[#f8fbff] md:p-6`}
             style={{
               animationDelay: `${index * 70}ms`,
             }}
           >
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eaf1ff] transition group-hover:scale-105 md:h-20 md:w-20">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-lg transition ${isComingSoon
-                ? "bg-slate-400 shadow-none"
-                : "bg-[#123c8c] shadow-blue-900/20 group-hover:rotate-[-2deg]"
-                } md:h-14 md:w-14`}>
+              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-lg transition bg-[#123c8c] shadow-blue-900/20 group-hover:rotate-[-2deg] md:h-14 md:w-14`}>
                 <Icon size={22} strokeWidth={2.6} />
               </div>
             </div>

@@ -16,6 +16,9 @@ type ProfileData = {
   base_salary: number | string | null;
   department?: { name: string } | null;
   position?: { name: string } | null;
+  unit?: { name: string } | null;
+  nik?: string | null;
+  bank_account_number?: string | null;
 };
 
 type SalaryRecord = {

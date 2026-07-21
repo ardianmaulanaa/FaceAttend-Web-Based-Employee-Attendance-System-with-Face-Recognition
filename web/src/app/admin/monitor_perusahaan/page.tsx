@@ -68,6 +68,10 @@ type DailyChartPoint = {
   pending: number;
   active: number;
   todayRecords: number;
+  presentNames?: string[];
+  lateNames?: string[];
+  wfhNames?: string[];
+  visitNames?: string[];
 };
 
 type AlertItem = {
@@ -721,11 +725,11 @@ function AnimatedHistogram({
                       <p className="border-b border-white/10 pb-1.5 mb-1.5 text-blue-200">
                         {metricLabel} tgl {activePoint.label}: {activePoint.value} {unit}
                       </p>
-                      {activePoint.names && activePoint.names.length > 0 ? (
+                      {(activePoint as any).names && (activePoint as any).names.length > 0 ? (
                         <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
                           <p className="text-[10px] uppercase text-blue-300 tracking-wider">Karyawan:</p>
                           <ul className="list-disc list-inside text-[11px] font-bold text-white space-y-0.5">
-                            {activePoint.names.map((name: string, i: number) => (
+                            {(activePoint as any).names.map((name: string, i: number) => (
                               <li key={i}>{name}</li>
                             ))}
                           </ul>
