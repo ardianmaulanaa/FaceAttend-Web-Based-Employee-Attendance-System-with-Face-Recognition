@@ -557,7 +557,14 @@ export default function AppHeader({
         const parsed = JSON.parse(storedAdmin);
         if (Array.isArray(parsed) && parsed.length === adminMenus.length) {
           setAdminMenuOrder(parsed);
+        } else {
+          const defaults = adminMenus.map((_, i) => i);
+          setAdminMenuOrder(defaults);
+          localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(defaults));
         }
+      } else {
+        const defaults = adminMenus.map((_, i) => i);
+        localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(defaults));
       }
 
       const storedMaster = localStorage.getItem("faceattend_sidebar_master_order");
@@ -565,7 +572,14 @@ export default function AppHeader({
         const parsed = JSON.parse(storedMaster);
         if (Array.isArray(parsed) && parsed.length === masterDataMenus.length) {
           setMasterDataMenuOrder(parsed);
+        } else {
+          const defaults = masterDataMenus.map((_, i) => i);
+          setMasterDataMenuOrder(defaults);
+          localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(defaults));
         }
+      } else {
+        const defaults = masterDataMenus.map((_, i) => i);
+        localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(defaults));
       }
 
       const storedOp = localStorage.getItem("faceattend_sidebar_op_order");
@@ -573,7 +587,14 @@ export default function AppHeader({
         const parsed = JSON.parse(storedOp);
         if (Array.isArray(parsed) && parsed.length === operationalMenus.length) {
           setOperationalMenuOrder(parsed);
+        } else {
+          const defaults = operationalMenus.map((_, i) => i);
+          setOperationalMenuOrder(defaults);
+          localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(defaults));
         }
+      } else {
+        const defaults = operationalMenus.map((_, i) => i);
+        localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(defaults));
       }
 
       const storedEmp = localStorage.getItem("faceattend_sidebar_emp_order");
@@ -581,7 +602,14 @@ export default function AppHeader({
         const parsed = JSON.parse(storedEmp);
         if (Array.isArray(parsed) && parsed.length === employeeNav.length) {
           setEmployeeNavOrder(parsed);
+        } else {
+          const defaults = employeeNav.map((_, i) => i);
+          setEmployeeNavOrder(defaults);
+          localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(defaults));
         }
+      } else {
+        const defaults = employeeNav.map((_, i) => i);
+        localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(defaults));
       }
     } catch (e) {
       console.error(e);

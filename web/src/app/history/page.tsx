@@ -693,6 +693,22 @@ export default function HistoryPage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/profile", { cache: "no-store" });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setProfile(data.user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void fetchProfile();
+  }, []);
 
   const currentMonthLabel = useMemo(
     () => months.find((item) => item.value === month)?.label || "",
@@ -745,6 +761,7 @@ export default function HistoryPage() {
       return s.includes("sakit") || s.includes("izin") || s.includes("permission");
     }).length;
 
+    return { hadir, telat, cuti, izinSakit };
   }, [records]);
 
   useEffect(() => {
@@ -756,108 +773,197 @@ export default function HistoryPage() {
     <MobileShell variant="employee" withBottomPadding={false}>
       <HistoryMotionStyles />
 
-      <div className="hidden md:block">
-        <AppHeader
-          title="Riwayat Presensi"
-          subtitle="Riwayat absensi karyawan"
-          rightLabel={`${currentMonthLabel} ${year}`}
-          variant="employee"
-        />
-      </div>
+      <div className="print:hidden">
+        <div className="hidden md:block">
+          <AppHeader
+            title="Riwayat Presensi"
+            subtitle="Riwayat absensi karyawan"
+            rightLabel={`${currentMonthLabel} ${year}`}
+            variant="employee"
+          />
+        </div>
 
-      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] dark:from-[#0d1117] dark:via-[#161b22] dark:to-[#0d1117] pb-28 text-slate-950 dark:text-white">
-        <MobileHeader />
+        <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] dark:from-[#0d1117] dark:via-[#161b22] dark:to-[#0d1117] pb-28 text-slate-950 dark:text-white">
+          <MobileHeader />
 
-        <DesktopHero
-          monthLabel={currentMonthLabel}
-          year={year}
-          total={records.length}
-          sort={sort}
-        />
-
-        <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
-          <FilterCard
-            month={month}
-            year={year}
-            sort={sort}
+          <DesktopHero
             monthLabel={currentMonthLabel}
-            isLoading={isLoading}
-            onMonthChange={setMonth}
-            onYearChange={setYear}
-            onSortChange={setSort}
-            onApply={getHistory}
+            year={year}
+            total={records.length}
+            sort={sort}
           />
 
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-emerald-50 dark:bg-emerald-950/10 p-4 text-center">
-              <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">Hadir</p>
-              <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">{countStats.hadir}</h4>
-            </div>
-            <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50 dark:bg-amber-950/10 p-4 text-center">
-              <p className="text-xs font-black text-amber-800 dark:text-amber-400">Telat</p>
-              <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">{countStats.telat}</h4>
-            </div>
-            <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-blue-50 dark:bg-blue-950/10 p-4 text-center">
-              <p className="text-xs font-black text-blue-800 dark:text-blue-400">Cuti</p>
-              <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">{countStats.cuti}</h4>
-            </div>
-            <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-yellow-50 dark:bg-yellow-950/10 p-4 text-center">
-              <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">Izin / Sakit</p>
-              <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">{countStats.izinSakit}</h4>
-            </div>
-          </div>
+          <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
+            <FilterCard
+              month={month}
+              year={year}
+              sort={sort}
+              monthLabel={currentMonthLabel}
+              isLoading={isLoading}
+              onMonthChange={setMonth}
+              onYearChange={setYear}
+              onSortChange={setSort}
+              onApply={getHistory}
+            />
 
-          {/* Toggle View Mode */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
-                viewMode === "list"
-                  ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
-                  : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
-              }`}
-            >
-              Tampilan Daftar
-            </button>
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
-                viewMode === "calendar"
-                  ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
-                  : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
-              }`}
-            >
-              Tampilan Kalender
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="rounded-2xl px-4 py-2.5 text-xs font-black bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-850 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/15"
-            >
-              <Printer size={13} strokeWidth={2.5} />
-              Cetak Laporan PDF
-            </button>
-          </div>
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-emerald-50 dark:bg-emerald-950/10 p-4 text-center">
+                <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">Hadir</p>
+                <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">{countStats.hadir}</h4>
+              </div>
+              <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50 dark:bg-amber-950/10 p-4 text-center">
+                <p className="text-xs font-black text-amber-800 dark:text-amber-400">Telat</p>
+                <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">{countStats.telat}</h4>
+              </div>
+              <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-blue-50 dark:bg-blue-950/10 p-4 text-center">
+                <p className="text-xs font-black text-blue-800 dark:text-blue-400">Cuti</p>
+                <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">{countStats.cuti}</h4>
+              </div>
+              <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-yellow-50 dark:bg-yellow-950/10 p-4 text-center">
+                <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">Izin / Sakit</p>
+                <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">{countStats.izinSakit}</h4>
+              </div>
+            </div>
 
-          <div className="mt-6 space-y-4">
-            {viewMode === "list" ? (
-              <HistoryContent
-                isLoading={isLoading}
-                records={records}
-                monthLabel={currentMonthLabel}
-                year={year}
-              />
-            ) : (
-              <CalendarView
-                records={records}
-                month={month}
-                year={year}
-              />
-            )}
-          </div>
-        </section>
+            {/* Toggle View Mode */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
+                  viewMode === "list"
+                    ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                    : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-350 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
+                }`}
+              >
+                Tampilan Daftar
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
+                  viewMode === "calendar"
+                    ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                    : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-350 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
+                }`}
+              >
+                Tampilan Kalender
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="rounded-2xl px-4 py-2.5 text-xs font-black bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-850 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/15"
+              >
+                <Printer size={13} strokeWidth={2.5} />
+                Cetak Laporan PDF
+              </button>
+            </div>
 
-        <BottomNav />
-      </main>
+            <div className="mt-6 space-y-4">
+              {viewMode === "list" ? (
+                <HistoryContent
+                  isLoading={isLoading}
+                  records={records}
+                  monthLabel={currentMonthLabel}
+                  year={year}
+                />
+              ) : (
+                <CalendarView
+                  records={records}
+                  month={month}
+                  year={year}
+                />
+              )}
+            </div>
+          </section>
+
+          <BottomNav />
+        </main>
+      </div>
+
+      {/* DEDICATED EXCEL/CORPORATE STYLE PRINT TEMPLATE */}
+      <div className="hidden print:block p-8 bg-white text-black font-sans text-sm">
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-black uppercase tracking-wide">Laporan Kehadiran Resmi Karyawan</h2>
+          <p className="text-xs font-bold text-slate-600 mt-1">Periode: {currentMonthLabel} {year}</p>
+          <div className="w-full border-b-2 border-slate-900 mt-4" />
+        </div>
+
+        <table className="w-full mb-6 text-xs">
+          <tbody>
+            <tr>
+              <td className="py-1 font-bold w-1/3">Nama Lengkap Karyawan</td>
+              <td className="py-1">: {profile?.name || "-"}</td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Nomor Induk Kependudukan (NIK)</td>
+              <td className="py-1">: {profile?.nik || "-"}</td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Jabatan / Divisi / Unit</td>
+              <td className="py-1">: {profile?.position?.name || "-"} / {profile?.department?.name || "-"} / {profile?.unit?.name || "-"}</td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Status Keanggotaan</td>
+              <td className="py-1">: {profile?.employment_status?.toUpperCase() || "-"}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">I. Ringkasan Presensi Bulanan</h3>
+        <table className="w-full border-collapse border border-slate-400 mb-6 text-center text-xs">
+          <thead>
+            <tr className="bg-slate-100 font-bold">
+              <th className="border border-slate-400 py-1.5">Hadir Kerja</th>
+              <th className="border border-slate-400 py-1.5">Terlambat</th>
+              <th className="border border-slate-400 py-1.5">Cuti Berbayar</th>
+              <th className="border border-slate-400 py-1.5">Izin / Sakit Resmi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="font-bold">
+              <td className="border border-slate-400 py-2">{countStats.hadir}</td>
+              <td className="border border-slate-400 py-2 text-amber-600">{countStats.telat}</td>
+              <td className="border border-slate-400 py-2 text-blue-600">{countStats.cuti}</td>
+              <td className="border border-slate-400 py-2 text-yellow-600">{countStats.izinSakit}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">II. Rincian Harian Kehadiran</h3>
+        <table className="w-full border-collapse border border-slate-400 text-[10px]">
+          <thead>
+            <tr className="bg-slate-100 font-bold">
+              <th className="border border-slate-400 px-3 py-1.5 text-left">Tanggal</th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">Jam Check-In</th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">Jam Check-Out</th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">Terlambat (Menit)</th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((item) => (
+              <tr key={item.id}>
+                <td className="border border-slate-400 px-3 py-1.5">{item.date}</td>
+                <td className="border border-slate-400 px-3 py-1.5">{item.checkIn}</td>
+                <td className="border border-slate-400 px-3 py-1.5">{item.checkOut}</td>
+                <td className="border border-slate-400 px-3 py-1.5">{item.lateMinutes ? `${item.lateMinutes} m` : "-"}</td>
+                <td className="border border-slate-400 px-3 py-1.5 font-bold">{item.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="grid grid-cols-2 gap-12 text-center text-xs pt-12 mt-8">
+          <div>
+            <p>Hormat Kami (Karyawan),</p>
+            <div className="h-16" />
+            <p className="font-bold underline">{profile?.name || "........................"}</p>
+          </div>
+          <div>
+            <p>HRD / Verifikator Kantor,</p>
+            <div className="h-16" />
+            <p className="font-bold underline">......................................</p>
+          </div>
+        </div>
+      </div>
     </MobileShell>
   );
 }
