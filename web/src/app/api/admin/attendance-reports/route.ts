@@ -183,9 +183,18 @@ function toDateInput(value: Date | string | null) {
 
   if (Number.isNaN(date.getTime())) return "";
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) return "";
 
   return `${year}-${month}-${day}`;
 }
@@ -395,11 +404,12 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       whereClauses.push(
-        `(LOWER(u.\`name\`) LIKE ? OR LOWER(u.\`employee_code\`) LIKE ?)`,
+        `(LOWER(u.\`name\`) LIKE ? OR LOWER(u.\`employee_code\`) LIKE ? OR LOWER(u.\`email\`) LIKE ?)`,
       );
 
       const keyword = `%${search.toLowerCase()}%`;
 
+      queryValues.push(keyword);
       queryValues.push(keyword);
       queryValues.push(keyword);
     }

@@ -9,6 +9,7 @@ export function getApiErrorStatus(error: unknown) {
   if (
     message.includes("token login") ||
     message.includes("user id tidak ditemukan di token") ||
+    message.includes("user tidak ditemukan") ||
     name.includes("jwt") ||
     name.includes("jws") ||
     name.includes("jose")

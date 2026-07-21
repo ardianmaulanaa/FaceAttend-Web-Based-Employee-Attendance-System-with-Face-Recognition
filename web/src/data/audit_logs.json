@@ -1,5 +1,13 @@
 [
   {
+    "id": "LOG-1784624114744-8h10v4aui",
+    "actorEmail": "owner@creativemu.co.id",
+    "actorName": "Owner Creativemu",
+    "action": "REGISTRASI_KARYAWAN",
+    "details": "Berhasil mendaftarkan karyawan baru: Dylan Hazael Raharja (dylan@creativemu.my.id)",
+    "timestamp": 1784624114744
+  },
+  {
     "id": "LOG-1784253771222-30r0945ye",
     "actorEmail": "owner@creativemu.co.id",
     "actorName": "Owner Creativemu",

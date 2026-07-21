@@ -543,16 +543,27 @@ export default function AppHeader({
 
   // Draggable menu ordering states
   const [adminMenuOrder, setAdminMenuOrder] = useState<number[]>([0, 1, 2, 3]);
-  const [masterDataMenuOrder, setMasterDataMenuOrder] = useState<number[]>([0, 1, 2, 3, 4, 5]);
-  const [operationalMenuOrder, setOperationalMenuOrder] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
-  const [employeeNavOrder, setEmployeeNavOrder] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [masterDataMenuOrder, setMasterDataMenuOrder] = useState<number[]>([
+    0, 1, 2, 3, 4, 5,
+  ]);
+  const [operationalMenuOrder, setOperationalMenuOrder] = useState<number[]>([
+    0, 1, 2, 3, 4, 5, 6,
+  ]);
+  const [employeeNavOrder, setEmployeeNavOrder] = useState<number[]>([
+    0, 1, 2, 3, 4, 5, 6,
+  ]);
 
-  const [draggedMenuId, setDraggedMenuId] = useState<{ type: string; index: number } | null>(null);
+  const [draggedMenuId, setDraggedMenuId] = useState<{
+    type: string;
+    index: number;
+  } | null>(null);
 
   // Load menu orders from localStorage on mount
   useEffect(() => {
     try {
-      const storedAdmin = localStorage.getItem("faceattend_sidebar_admin_order");
+      const storedAdmin = localStorage.getItem(
+        "faceattend_sidebar_admin_order",
+      );
       if (storedAdmin) {
         const parsed = JSON.parse(storedAdmin);
         if (Array.isArray(parsed) && parsed.length === adminMenus.length) {
@@ -560,14 +571,22 @@ export default function AppHeader({
         } else {
           const defaults = adminMenus.map((_, i) => i);
           setAdminMenuOrder(defaults);
-          localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(defaults));
+          localStorage.setItem(
+            "faceattend_sidebar_admin_order",
+            JSON.stringify(defaults),
+          );
         }
       } else {
         const defaults = adminMenus.map((_, i) => i);
-        localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(defaults));
+        localStorage.setItem(
+          "faceattend_sidebar_admin_order",
+          JSON.stringify(defaults),
+        );
       }
 
-      const storedMaster = localStorage.getItem("faceattend_sidebar_master_order");
+      const storedMaster = localStorage.getItem(
+        "faceattend_sidebar_master_order",
+      );
       if (storedMaster) {
         const parsed = JSON.parse(storedMaster);
         if (Array.isArray(parsed) && parsed.length === masterDataMenus.length) {
@@ -575,26 +594,41 @@ export default function AppHeader({
         } else {
           const defaults = masterDataMenus.map((_, i) => i);
           setMasterDataMenuOrder(defaults);
-          localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(defaults));
+          localStorage.setItem(
+            "faceattend_sidebar_master_order",
+            JSON.stringify(defaults),
+          );
         }
       } else {
         const defaults = masterDataMenus.map((_, i) => i);
-        localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(defaults));
+        localStorage.setItem(
+          "faceattend_sidebar_master_order",
+          JSON.stringify(defaults),
+        );
       }
 
       const storedOp = localStorage.getItem("faceattend_sidebar_op_order");
       if (storedOp) {
         const parsed = JSON.parse(storedOp);
-        if (Array.isArray(parsed) && parsed.length === operationalMenus.length) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === operationalMenus.length
+        ) {
           setOperationalMenuOrder(parsed);
         } else {
           const defaults = operationalMenus.map((_, i) => i);
           setOperationalMenuOrder(defaults);
-          localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(defaults));
+          localStorage.setItem(
+            "faceattend_sidebar_op_order",
+            JSON.stringify(defaults),
+          );
         }
       } else {
         const defaults = operationalMenus.map((_, i) => i);
-        localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(defaults));
+        localStorage.setItem(
+          "faceattend_sidebar_op_order",
+          JSON.stringify(defaults),
+        );
       }
 
       const storedEmp = localStorage.getItem("faceattend_sidebar_emp_order");
@@ -605,11 +639,17 @@ export default function AppHeader({
         } else {
           const defaults = employeeNav.map((_, i) => i);
           setEmployeeNavOrder(defaults);
-          localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(defaults));
+          localStorage.setItem(
+            "faceattend_sidebar_emp_order",
+            JSON.stringify(defaults),
+          );
         }
       } else {
         const defaults = employeeNav.map((_, i) => i);
-        localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(defaults));
+        localStorage.setItem(
+          "faceattend_sidebar_emp_order",
+          JSON.stringify(defaults),
+        );
       }
     } catch (e) {
       console.error(e);
@@ -657,13 +697,25 @@ export default function AppHeader({
     // Save to localStorage
     try {
       if (type === "admin") {
-        localStorage.setItem("faceattend_sidebar_admin_order", JSON.stringify(orderList));
+        localStorage.setItem(
+          "faceattend_sidebar_admin_order",
+          JSON.stringify(orderList),
+        );
       } else if (type === "masterData") {
-        localStorage.setItem("faceattend_sidebar_master_order", JSON.stringify(orderList));
+        localStorage.setItem(
+          "faceattend_sidebar_master_order",
+          JSON.stringify(orderList),
+        );
       } else if (type === "operational") {
-        localStorage.setItem("faceattend_sidebar_op_order", JSON.stringify(orderList));
+        localStorage.setItem(
+          "faceattend_sidebar_op_order",
+          JSON.stringify(orderList),
+        );
       } else if (type === "employee") {
-        localStorage.setItem("faceattend_sidebar_emp_order", JSON.stringify(orderList));
+        localStorage.setItem(
+          "faceattend_sidebar_emp_order",
+          JSON.stringify(orderList),
+        );
       }
     } catch (e) {
       console.error(e);
@@ -676,6 +728,8 @@ export default function AppHeader({
   );
   const [employeeNotifications, setEmployeeNotifications] = useState<any[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [employeeNotifAuthBlocked, setEmployeeNotifAuthBlocked] =
+    useState(false);
   const bellMenuRef = useRef<HTMLDivElement | null>(null);
   const employeeBellMenuRef = useRef<HTMLDivElement | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -698,6 +752,22 @@ export default function AppHeader({
   }, [pathname, variant]);
 
   const isAdmin = resolvedVariant === "admin";
+
+  useEffect(() => {
+    setEmployeeNotifAuthBlocked(false);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!employeeNotifAuthBlocked) return;
+
+    const retryTimer = window.setTimeout(() => {
+      setEmployeeNotifAuthBlocked(false);
+    }, 10000);
+
+    return () => {
+      window.clearTimeout(retryTimer);
+    };
+  }, [employeeNotifAuthBlocked]);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -867,10 +937,10 @@ export default function AppHeader({
       }
     }
 
-    if (isAdmin && (isBellMenuOpen || pathname)) {
+    if (isAdmin && isBellMenuOpen) {
       void loadNotifications();
     }
-  }, [isAdmin, pathname, isBellMenuOpen]);
+  }, [isAdmin, isBellMenuOpen]);
 
   useEffect(() => {
     async function loadEmployeeNotifications() {
@@ -879,19 +949,40 @@ export default function AppHeader({
           method: "GET",
           cache: "no-store",
         });
+
+        if (response.status === 401 || response.status === 403) {
+          setEmployeeNotifAuthBlocked(true);
+          setEmployeeNotifications([]);
+          setNotificationCount(0);
+          return;
+        }
+
         const result = await response.json();
         if (response.ok && Array.isArray(result.notifications)) {
           setEmployeeNotifications(result.notifications);
+
+          const unreadCount = Number(result?.stats?.unread || 0);
+
+          setNotificationCount(
+            Number.isFinite(unreadCount)
+              ? unreadCount
+              : result.notifications.filter(
+                  (notif: { isRead?: boolean; status?: string }) =>
+                    !(notif?.isRead || notif?.status === "read"),
+                ).length,
+          );
+
+          setEmployeeNotifAuthBlocked(false);
         }
       } catch (err) {
         console.error(err);
       }
     }
 
-    if (!isAdmin && (isBellMenuOpen || pathname)) {
+    if (!isAdmin && isBellMenuOpen) {
       void loadEmployeeNotifications();
     }
-  }, [isAdmin, pathname, isBellMenuOpen]);
+  }, [isAdmin, isBellMenuOpen]);
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -943,6 +1034,11 @@ export default function AppHeader({
 
     async function loadNotificationCount() {
       try {
+        if (!isAdmin && employeeNotifAuthBlocked) {
+          if (isMounted) setNotificationCount(0);
+          return;
+        }
+
         const endpoint = isAdmin
           ? "/api/admin/notifications"
           : "/api/notifications";
@@ -951,6 +1047,14 @@ export default function AppHeader({
           method: "GET",
           cache: "no-store",
         });
+
+        if (!isAdmin && (response.status === 401 || response.status === 403)) {
+          if (isMounted) {
+            setEmployeeNotifAuthBlocked(true);
+            setNotificationCount(0);
+          }
+          return;
+        }
 
         if (!response.ok) {
           if (isMounted) setNotificationCount(0);
@@ -983,7 +1087,7 @@ export default function AppHeader({
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [isAdmin, pathname]);
+  }, [isAdmin, employeeNotifAuthBlocked]);
 
   function handleNavigate(href: string) {
     setIsSidebarOpen(false);
@@ -1528,7 +1632,9 @@ export default function AppHeader({
                         key={menu.href}
                         type="button"
                         draggable
-                        onDragStart={() => handleMenuDragStart("admin", menuIdx)}
+                        onDragStart={() =>
+                          handleMenuDragStart("admin", menuIdx)
+                        }
                         onDragOver={handleMenuDragOver}
                         onDrop={() => handleMenuDrop("admin", menuIdx)}
                         onClick={() => handleNavigate(menu.href)}
@@ -1563,7 +1669,9 @@ export default function AppHeader({
                           key={menu.href}
                           type="button"
                           draggable
-                          onDragStart={() => handleMenuDragStart("masterData", menuIdx)}
+                          onDragStart={() =>
+                            handleMenuDragStart("masterData", menuIdx)
+                          }
                           onDragOver={handleMenuDragOver}
                           onDrop={() => handleMenuDrop("masterData", menuIdx)}
                           onClick={() => handleNavigate(menu.href)}
@@ -1599,7 +1707,9 @@ export default function AppHeader({
                           key={menu.label}
                           type="button"
                           draggable={!isComingSoon}
-                          onDragStart={() => handleMenuDragStart("operational", menuIdx)}
+                          onDragStart={() =>
+                            handleMenuDragStart("operational", menuIdx)
+                          }
                           onDragOver={handleMenuDragOver}
                           onDrop={() => handleMenuDrop("operational", menuIdx)}
                           disabled={isComingSoon}
@@ -1639,7 +1749,9 @@ export default function AppHeader({
                         key={menu.label}
                         type="button"
                         draggable={!isComingSoon}
-                        onDragStart={() => handleMenuDragStart("employee", menuIdx)}
+                        onDragStart={() =>
+                          handleMenuDragStart("employee", menuIdx)
+                        }
                         onDragOver={handleMenuDragOver}
                         onDrop={() => handleMenuDrop("employee", menuIdx)}
                         disabled={isComingSoon}

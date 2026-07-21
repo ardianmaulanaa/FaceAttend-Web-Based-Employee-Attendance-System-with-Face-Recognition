@@ -6,7 +6,12 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EMPLOYEE_NOTIFICATION_TYPES = ["leave_status", "announcement", "salary", "reward"];
+const EMPLOYEE_NOTIFICATION_TYPES = [
+  "leave_status",
+  "announcement",
+  "salary",
+  "reward",
+];
 
 async function getCurrentUser(req: NextRequest) {
   const authUser = await requireAuth(req);
@@ -25,7 +30,7 @@ async function getCurrentUser(req: NextRequest) {
   });
 
   if (!user) {
-    throw new Error("User tidak ditemukan.");
+    return null;
   }
 
   return user;
@@ -42,17 +47,8 @@ function jsonError(message: string, status = 400) {
       },
       notifications: [],
     },
-    { status }
+    { status },
   );
-}
-
-function getCurrentMonthRange() {
-  const now = new Date();
-
-  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
-
-  return { start, end };
 }
 
 function toIsoDate(value: Date | string | null | undefined) {
@@ -100,6 +96,10 @@ function getNotificationLabel(type: string) {
 export async function GET(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser(req);
+
+    if (!currentUser) {
+      return jsonError("Sesi tidak valid. Silakan login ulang.", 401);
+    }
 
     if (currentUser.status !== "active") {
       return jsonError("Akun tidak aktif.", 403);
@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
 
     return jsonError(
       getApiErrorMessage(error, "Gagal mengambil notifikasi."),
-      getApiErrorStatus(error)
+      getApiErrorStatus(error),
     );
   }
 }
@@ -170,6 +170,10 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser(req);
+
+    if (!currentUser) {
+      return jsonError("Sesi tidak valid. Silakan login ulang.", 401);
+    }
 
     if (currentUser.status !== "active") {
       return jsonError("Akun tidak aktif.", 403);
@@ -218,7 +222,7 @@ export async function PATCH(req: NextRequest) {
 
     return jsonError(
       getApiErrorMessage(error, "Gagal memperbarui notifikasi."),
-      getApiErrorStatus(error)
+      getApiErrorStatus(error),
     );
   }
 }
