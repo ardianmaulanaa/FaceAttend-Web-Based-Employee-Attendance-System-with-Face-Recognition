@@ -100,11 +100,10 @@ const quickMenus = [
     icon: FileText,
   },
   {
-    href: "#",
-    label: "Payroll & Kinerja\n(Coming Soon)",
-    description: "Slip gaji bulanan dan poin kinerja kehadiran Anda.",
+    href: "/salary",
+    label: "Gaji & Slip\nPayroll",
+    description: "Slip gaji bulanan dan rincian gaji Anda.",
     icon: Coins,
-    isComingSoon: true,
   },
 ];
 
@@ -613,6 +612,13 @@ export default function HomePage() {
     }
   }, []);
 
+  const [recapStats, setRecapStats] = useState({
+    hadir: 0,
+    telat: 0,
+    cuti: 0,
+    izinSakit: 0,
+  });
+
   useEffect(() => {
     async function loadData() {
       const [profileData, todayData, announcementData] = await Promise.all([
@@ -649,6 +655,37 @@ export default function HomePage() {
       });
 
       setAnnouncements(Array.isArray(list) ? list : []);
+
+      // Fetch attendance history to calculate recap stats for current month
+      try {
+        const todayDate = new Date();
+        const monthNum = todayDate.getMonth() + 1;
+        const yearNum = todayDate.getFullYear();
+        const response = await fetch(`/api/attendance/history?month=${monthNum}&year=${yearNum}`, { method: "GET", cache: "no-store" });
+        if (response.ok) {
+          const histData = await response.json();
+          const listRecords = histData.records || [];
+          const hadir = listRecords.filter((a: any) => {
+            const s = String(a.status || "").toLowerCase();
+            return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+          }).length;
+          const telat = listRecords.filter((a: any) => {
+            const s = String(a.status || "").toLowerCase();
+            return s.includes("lambat") || s.includes("late");
+          }).length;
+          const cuti = listRecords.filter((a: any) => {
+            const s = String(a.status || "").toLowerCase();
+            return s.includes("cuti");
+          }).length;
+          const izinSakit = listRecords.filter((a: any) => {
+            const s = String(a.status || "").toLowerCase();
+            return s.includes("sakit") || s.includes("izin") || s.includes("permission");
+          }).length;
+          setRecapStats({ hadir, telat, cuti, izinSakit });
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     void loadData();
@@ -796,6 +833,31 @@ export default function HomePage() {
         <section className="mx-auto w-full max-w-7xl bg-transparent md:bg-white/80 md:dark:bg-[#161b22]/85 md:backdrop-blur-xl md:border md:border-white/50 md:dark:border-[#21262d]/50 px-5 pb-[8.5rem] pt-2 md:mt-8 md:rounded-[2.5rem] md:px-8 md:pb-10 md:pt-8 lg:px-10">
           <div className="mb-6 md:mb-8">
             <QuickMenuGrid />
+          </div>
+
+          {/* Rekap Kehadiran Bulan Ini */}
+          <div className="mb-6 rounded-[2rem] border border-blue-50 dark:border-slate-800 bg-[#f8fbff] dark:bg-[#0d1117] p-5 shadow-sm">
+            <h3 className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c] dark:text-blue-400 mb-4">
+              Rekap Kehadiran Bulan Ini
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-white dark:bg-[#161b22] p-4 text-center shadow-sm">
+                <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase">Hadir</p>
+                <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">{recapStats.hadir}</h4>
+              </div>
+              <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-white dark:bg-[#161b22] p-4 text-center shadow-sm">
+                <p className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase">Telat</p>
+                <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">{recapStats.telat}</h4>
+              </div>
+              <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-white dark:bg-[#161b22] p-4 text-center shadow-sm">
+                <p className="text-[10px] font-black text-blue-800 dark:text-blue-400 uppercase">Cuti</p>
+                <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-400">{recapStats.cuti}</h4>
+              </div>
+              <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-white dark:bg-[#161b22] p-4 text-center shadow-sm">
+                <p className="text-[10px] font-black text-yellow-800 dark:text-yellow-400 uppercase">Izin / Sakit</p>
+                <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">{recapStats.izinSakit}</h4>
+              </div>
+            </div>
           </div>
 
           <AppCard

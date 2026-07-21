@@ -11,6 +11,7 @@ import {
   Search,
   TimerReset,
   Eye,
+  Printer,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -723,6 +724,29 @@ export default function HistoryPage() {
     }
   }
 
+  const countStats = useMemo(() => {
+    const hadir = records.filter(a => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+    }).length;
+
+    const telat = records.filter(a => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("lambat") || s.includes("late");
+    }).length;
+
+    const cuti = records.filter(a => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("cuti");
+    }).length;
+
+    const izinSakit = records.filter(a => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("sakit") || s.includes("izin") || s.includes("permission");
+    }).length;
+
+  }, [records]);
+
   useEffect(() => {
     void getHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -734,14 +758,14 @@ export default function HistoryPage() {
 
       <div className="hidden md:block">
         <AppHeader
-          title="History"
+          title="Riwayat Presensi"
           subtitle="Riwayat absensi karyawan"
           rightLabel={`${currentMonthLabel} ${year}`}
           variant="employee"
         />
       </div>
 
-      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-28 text-slate-950">
+      <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] dark:from-[#0d1117] dark:via-[#161b22] dark:to-[#0d1117] pb-28 text-slate-950 dark:text-white">
         <MobileHeader />
 
         <DesktopHero
@@ -751,7 +775,7 @@ export default function HistoryPage() {
           sort={sort}
         />
 
-        <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
+        <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
           <FilterCard
             month={month}
             year={year}
@@ -764,25 +788,33 @@ export default function HistoryPage() {
             onApply={getHistory}
           />
 
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <StatCard label="Total" value={records.length} delay="60ms" />
-            <StatCard
-              label="Bulan"
-              value={currentMonthLabel}
-              large
-              delay="100ms"
-            />
-            <StatCard label="Tahun" value={year} delay="140ms" />
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-emerald-50 dark:bg-emerald-950/10 p-4 text-center">
+              <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">Hadir</p>
+              <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">{countStats.hadir}</h4>
+            </div>
+            <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50 dark:bg-amber-950/10 p-4 text-center">
+              <p className="text-xs font-black text-amber-800 dark:text-amber-400">Telat</p>
+              <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">{countStats.telat}</h4>
+            </div>
+            <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-blue-50 dark:bg-blue-950/10 p-4 text-center">
+              <p className="text-xs font-black text-blue-800 dark:text-blue-400">Cuti</p>
+              <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">{countStats.cuti}</h4>
+            </div>
+            <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-yellow-50 dark:bg-yellow-950/10 p-4 text-center">
+              <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">Izin / Sakit</p>
+              <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">{countStats.izinSakit}</h4>
+            </div>
           </div>
 
           {/* Toggle View Mode */}
-          <div className="mt-6 flex gap-2">
+          <div className="mt-6 flex flex-wrap gap-2">
             <button
               onClick={() => setViewMode("list")}
               className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
                 viewMode === "list"
                   ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
-                  : "bg-[#f8fbff] text-slate-600 border border-blue-50 hover:bg-blue-50/50"
+                  : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
               }`}
             >
               Tampilan Daftar
@@ -792,10 +824,17 @@ export default function HistoryPage() {
               className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
                 viewMode === "calendar"
                   ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
-                  : "bg-[#f8fbff] text-slate-600 border border-blue-50 hover:bg-blue-50/50"
+                  : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
               }`}
             >
               Tampilan Kalender
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="rounded-2xl px-4 py-2.5 text-xs font-black bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-850 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/15"
+            >
+              <Printer size={13} strokeWidth={2.5} />
+              Cetak Laporan PDF
             </button>
           </div>
 

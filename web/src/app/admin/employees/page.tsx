@@ -829,10 +829,10 @@ export default function AdminEmployeesPage() {
       return;
     }
 
-    if (form.bank_account_number && !/^\d+$/.test(form.bank_account_number)) {
+    if (form.bank_account_number && (!/^\d+$/.test(form.bank_account_number) || form.bank_account_number.length < 11 || form.bank_account_number.length > 13)) {
       showEmployeeAlert(
         "Nomor Rekening tidak valid",
-        "Nomor rekening harus berupa angka.",
+        "Nomor rekening harus berupa angka dengan panjang antara 11 sampai 13 digit.",
         "warning"
       );
       return;
@@ -1557,181 +1557,176 @@ export default function AdminEmployeesPage() {
                 </AppFormReveal>
               ) : null}
 
-              <AppFormReveal delay={70} className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Gaji / Salary
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="number"
-                      value={form.base_salary}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          base_salary: event.target.value,
-                        }))
-                      }
-                      placeholder="Masukkan nominal gaji (angka)"
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Tempat Lahir
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="text"
-                      value={form.birth_place}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          birth_place: event.target.value,
-                        }))
-                      }
-                      placeholder="Kota Lahir"
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Tanggal Lahir
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="date"
-                      value={form.birth_date}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          birth_date: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
-              </AppFormReveal>
-
-              <AppFormReveal delay={80} className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    NIK (Nomor Induk Kependudukan - 12 Digit)
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="text"
-                      value={form.nik}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          nik: event.target.value.replace(/\D/g, "").substring(0, 12),
-                        }))
-                      }
-                      placeholder="Contoh: 123456789012"
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Nomor Rekening
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="text"
-                      value={form.bank_account_number}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          bank_account_number: event.target.value.replace(/\D/g, ""),
-                        }))
-                      }
-                      placeholder="Masukkan nomor rekening saja"
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Tanggal Mulai {form.employment_status === "kartap" ? "Kerja" : "Magang / Kontrak / PKL"}
-                  </label>
-                  <div className="app-field-smooth relative rounded-2xl">
-                    <input
-                      type="date"
-                      value={form.contract_start_date}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          contract_start_date: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
-
-                {form.employment_status && form.employment_status !== "kartap" && (
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Tanggal Selesai Magang / Kontrak / PKL
-                    </label>
-                    <div className="app-field-smooth relative rounded-2xl">
-                      <input
-                        type="date"
-                        value={form.contract_end_date}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            contract_end_date: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                      />
+              {Boolean(editingEmployee) && (form.employment_status === "magang" ||
+                form.employment_status === "pkl" ||
+                form.employment_status === "kartap" ||
+                form.employment_status === "kontrak") && (
+                <>
+                  <AppFormReveal delay={75} className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Tempat Lahir {Boolean(editingEmployee) && <span className="text-[10px] text-slate-400 font-normal">(Hanya Baca)</span>}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="text"
+                          value={form.birth_place}
+                          readOnly={Boolean(editingEmployee)}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              birth_place: event.target.value,
+                            }))
+                          }
+                          placeholder="Kota Lahir"
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] read-only:bg-slate-100 read-only:opacity-60 read-only:cursor-not-allowed py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {(form.employment_status === "kartap" || form.employment_status === "kontrak") && (
-                  <div className="md:col-span-2">
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Upload SK / Surat Kerja / Surat Kontrak
-                    </label>
-                    <div className="app-field-smooth relative rounded-2xl">
-                      <input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Tanggal Lahir {Boolean(editingEmployee) && <span className="text-[10px] text-slate-400 font-normal">(Hanya Baca)</span>}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="date"
+                          value={form.birth_date}
+                          readOnly={Boolean(editingEmployee)}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              birth_date: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] read-only:bg-slate-100 read-only:opacity-60 read-only:cursor-not-allowed py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+                  </AppFormReveal>
+
+                  <AppFormReveal delay={80} className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        NIK (Nomor Induk Kependudukan) {Boolean(editingEmployee) && <span className="text-[10px] text-slate-400 font-normal">(Hanya Baca)</span>}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="text"
+                          value={form.nik}
+                          readOnly={Boolean(editingEmployee)}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              nik: event.target.value.replace(/\D/g, "").substring(0, 12),
+                            }))
+                          }
+                          placeholder="Contoh: 123456789012"
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] read-only:bg-slate-100 read-only:opacity-60 read-only:cursor-not-allowed py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Nomor Rekening {Boolean(editingEmployee) && <span className="text-[10px] text-slate-400 font-normal">(Hanya Baca)</span>}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="text"
+                          value={form.bank_account_number}
+                          readOnly={Boolean(editingEmployee)}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              bank_account_number: event.target.value.replace(/\D/g, ""),
+                            }))
+                          }
+                          placeholder="Masukkan nomor rekening saja"
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] read-only:bg-slate-100 read-only:opacity-60 read-only:cursor-not-allowed py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+                  </AppFormReveal>
+
+                  <AppFormReveal delay={85} className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Tanggal Mulai {form.employment_status === "kartap" ? "Kerja" : "Magang / Kontrak / PKL"}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="date"
+                          value={form.contract_start_date}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              contract_start_date: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+
+                    {form.employment_status && form.employment_status !== "kartap" && (
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">
+                          Tanggal Selesai Magang / Kontrak / PKL
+                        </label>
+                        <div className="app-field-smooth relative rounded-2xl">
+                          <input
+                            type="date"
+                            value={form.contract_end_date}
+                            onChange={(event) =>
                               setForm((prev) => ({
                                 ...prev,
-                                uploaded_document_url: reader.result as string,
-                              }));
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-2.5 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                      />
-                      {form.uploaded_document_url && (
-                        <p className="mt-1 text-xs text-emerald-600 font-bold">
-                          ✓ File berhasil diproses
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </AppFormReveal>
+                                contract_end_date: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {(form.employment_status === "kartap" || form.employment_status === "kontrak") && (
+                      <div className="md:col-span-2">
+                        <label className="mb-2 block text-sm font-black text-slate-700">
+                          Upload SK / Surat Kerja / Surat Kontrak
+                        </label>
+                        <div className="app-field-smooth relative rounded-2xl">
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    uploaded_document_url: reader.result as string,
+                                  }));
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-2.5 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                          />
+                          {form.uploaded_document_url && (
+                            <p className="mt-1 text-xs text-emerald-600 font-bold">
+                              ✓ File berhasil diproses
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </AppFormReveal>
+                </>
+              )}
 
               <AppFormReveal delay={100} className="grid gap-4 md:grid-cols-2">
                 {!editingEmployee ? (

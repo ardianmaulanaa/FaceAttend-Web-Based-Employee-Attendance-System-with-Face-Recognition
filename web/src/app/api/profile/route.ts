@@ -295,6 +295,23 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     "tanggalLahir",
     "tanggal_lahir",
   ]);
+  const birthPlace = findOptionalText(body, [
+    "birthPlace",
+    "birth_place",
+    "tempatLahir",
+    "tempat_lahir",
+  ]);
+  const nik = findOptionalText(body, ["nik", "NIK"]);
+  const bankAccountNumber = findOptionalText(body, [
+    "bankAccountNumber",
+    "bank_account_number",
+    "bankAccount",
+    "bank_account",
+    "nomorRekening",
+    "nomor_rekening",
+    "noRek",
+    "no_rek",
+  ]);
 
   if (name !== undefined && !name) {
     return NextResponse.json(
@@ -356,6 +373,30 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     }
   }
 
+  if (nik !== undefined && nik) {
+    if (nik.length !== 12 || !/^\d+$/.test(nik)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "NIK harus terdiri dari tepat 12 digit angka.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (bankAccountNumber !== undefined && bankAccountNumber) {
+    if (bankAccountNumber.length < 11 || bankAccountNumber.length > 13 || !/^\d+$/.test(bankAccountNumber)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Nomor rekening harus terdiri dari 11 sampai 13 digit angka.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   addUpdate("name", name);
   addUpdate("email", email);
 
@@ -371,6 +412,16 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
   addUpdate("birth_date", birthDate);
   addUpdate("date_of_birth", birthDate);
   addUpdate("tanggal_lahir", birthDate);
+
+  addUpdate("birth_place", birthPlace);
+  addUpdate("tempat_lahir", birthPlace);
+
+  addUpdate("nik", nik);
+
+  addUpdate("bank_account_number", bankAccountNumber);
+  addUpdate("bank_account", bankAccountNumber);
+  addUpdate("nomor_rekening", bankAccountNumber);
+  addUpdate("no_rek", bankAccountNumber);
 
   if (columns.has("updated_at")) {
     updates.push(["updated_at", "NOW()"]);

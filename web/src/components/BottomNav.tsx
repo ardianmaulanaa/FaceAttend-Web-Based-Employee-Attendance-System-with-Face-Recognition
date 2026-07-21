@@ -24,7 +24,7 @@ type MenuItem = {
 const menus: MenuItem[] = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/attendance", label: "Attend", icon: ScanFace },
-  { href: "/history", label: "History", icon: History },
+  { href: "/history", label: "Laporan", icon: History },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 

@@ -63,15 +63,14 @@ type NotificationResponse = {
 const employeeNav = [
   { href: "/home", label: "Beranda", icon: Home },
   { href: "/attendance", label: "Presensi", icon: ScanFace },
-  { href: "/history", label: "Riwayat", icon: History },
+  { href: "/history", label: "Laporan Kehadiran", icon: FileImage },
   { href: "/cuti", label: "Cuti", icon: CalendarDays },
   { href: "/pengumuman", label: "Info", icon: Megaphone },
   { href: "/profile", label: "Profil", icon: UserRound },
   {
-    href: "#",
-    label: "Gaji & Kinerja (Segera Hadir)",
+    href: "/salary",
+    label: "Gaji & Slip Payroll",
     icon: Coins,
-    isComingSoon: true,
   },
 ];
 

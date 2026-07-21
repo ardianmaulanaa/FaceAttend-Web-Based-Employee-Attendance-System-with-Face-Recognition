@@ -79,9 +79,9 @@ export default function EmployeeSalaryPage() {
 
         const totalDays = new Date(yearNum, monthNum, 0).getDate();
         const activeCount = hadir + telat + izin + sakit + cuti;
-        const alpa = Math.max(0, totalDays - activeCount);
+        const alpa = 0;
 
-        const recommended = totalDays > 0 ? Math.round(baseSalary * ((totalDays - alpa) / totalDays)) : baseSalary;
+        const recommended = baseSalary;
 
         setAttendanceStats({
           hadir,
@@ -136,7 +136,7 @@ export default function EmployeeSalaryPage() {
         variant="employee"
       />
 
-      <main className="min-h-screen bg-[#f8fbff] pb-24">
+      <main className="min-h-screen bg-[#f8fbff] dark:bg-[#161b22] pb-24">
         <div className="mx-auto max-w-7xl px-5 py-6 md:px-10 lg:px-16 space-y-6">
           
           {isLoading ? (
@@ -156,61 +156,51 @@ export default function EmployeeSalaryPage() {
                   <div>
                     <h3 className="text-base font-black">Informasi Transparansi Penggajian (Kemnaker)</h3>
                     <p className="mt-1.5 text-xs text-white/80 leading-relaxed">
-                      Sesuai peraturan Kemnaker RI, perhitungan slip gaji Anda diproses secara proporsional. Hari absen tanpa keterangan (Alpa) akan dikalkulasikan sebagai pengurang dari total hari berjalan. Izin sakit/resmi & Cuti terdaftar adalah hak berbayar penuh.
+                      Sesuai peraturan Kemnaker RI, perhitungan slip gaji Anda diproses secara proporsional. Izin sakit/resmi & Cuti terdaftar adalah hak berbayar penuh.
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* ESTIMASI KEMNAKER BULAN INI */}
-              <div className="rounded-[2rem] border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/50">
-                <h3 className="text-lg font-black text-slate-800 border-b border-slate-100 pb-3 mb-5 flex items-center gap-2">
-                  <Calendar size={18} className="text-[#123c8c]" />
+              <div className="rounded-[2rem] border border-blue-100 bg-white dark:bg-[#0d1117] p-6 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                <h3 className="text-lg font-black text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-5 flex items-center gap-2">
+                  <Calendar size={18} className="text-[#123c8c] dark:text-blue-400" />
                   Estimasi Kehadiran & Prorata Bulan Ini
                 </h3>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                  <div className="grid grid-cols-3 gap-2 text-xs font-bold text-slate-600 dark:text-slate-350">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                       <span className="block text-[10px] text-slate-400">Hadir + Telat</span>
-                      <span className="text-base font-black text-emerald-600">{attendanceStats.hadir + attendanceStats.telat}</span>
+                      <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{attendanceStats.hadir + attendanceStats.telat}</span>
                     </div>
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                       <span className="block text-[10px] text-slate-400">Sakit / Izin</span>
-                      <span className="text-base font-black text-yellow-600">{attendanceStats.sakit + attendanceStats.izin}</span>
+                      <span className="text-base font-black text-yellow-600 dark:text-yellow-400">{attendanceStats.sakit + attendanceStats.izin}</span>
                     </div>
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                       <span className="block text-[10px] text-slate-400">Cuti</span>
-                      <span className="text-base font-black text-blue-600">{attendanceStats.cuti}</span>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                      <span className="block text-[10px] text-slate-400">Alpa / Mangkir</span>
-                      <span className="text-base font-black text-red-600">{attendanceStats.alpa}</span>
+                      <span className="text-base font-black text-blue-600 dark:text-blue-400">{attendanceStats.cuti}</span>
                     </div>
                   </div>
 
                   {/* Calculations */}
-                  <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+                  <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6">
                     <p className="text-[10px] font-black text-slate-400 uppercase">Gaji Pokok Terdaftar</p>
-                    <p className="text-base font-black text-slate-800">
+                    <p className="text-base font-black text-slate-800 dark:text-white">
                       {profile.base_salary ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(profile.base_salary)) : "-"}
                     </p>
 
                     <div className="mt-3">
-                      <p className="text-[10px] font-black text-emerald-600 uppercase">Rekomendasi Prorata (Est.)</p>
-                      <p className="text-xl font-black text-emerald-600 mt-0.5">
+                      <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-450 uppercase">Rekomendasi Prorata (Est.)</p>
+                      <p className="text-xl font-black text-emerald-600 dark:text-emerald-450 mt-0.5">
                         {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(attendanceStats.recommendedSalary)}
                       </p>
-                      {attendanceStats.alpa > 0 ? (
-                        <p className="text-[9px] text-red-600 mt-1 font-bold">
-                          * Terdapat potongan untuk {attendanceStats.alpa} hari alpa
-                        </p>
-                      ) : (
-                        <p className="text-[9px] text-emerald-600 mt-1 font-bold">
-                          * Kehadiran terpenuhi penuh
-                        </p>
-                      )}
+                      <p className="text-[9px] text-emerald-600 dark:text-emerald-450 mt-1 font-bold">
+                        * Kehadiran terpenuhi penuh
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -88,6 +88,10 @@ type PasswordForm = {
 type EditProfileForm = {
   name: string;
   phone: string;
+  birth_place: string;
+  birth_date: string;
+  nik: string;
+  bank_account_number: string;
 };
 
 type ProfileView = "menu" | "personal-detail";
@@ -107,6 +111,10 @@ const initialPasswordForm: PasswordForm = {
 const initialEditProfileForm: EditProfileForm = {
   name: "",
   phone: "",
+  birth_place: "",
+  birth_date: "",
+  nik: "",
+  bank_account_number: "",
 };
 
 const dayLabels: Record<string, string> = {
@@ -691,6 +699,10 @@ export default function ProfilePage() {
     setEditProfileForm({
       name: user.name || "",
       phone: user.phone || "",
+      birth_place: (user as any).birth_place || "",
+      birth_date: (user as any).birth_date ? String((user as any).birth_date).substring(0, 10) : "",
+      nik: (user as any).nik || "",
+      bank_account_number: (user as any).bank_account_number || "",
     });
 
     setIsEditProfileModalOpen(true);
@@ -706,6 +718,10 @@ export default function ProfilePage() {
 
     const name = editProfileForm.name.trim();
     const phone = editProfileForm.phone.trim();
+    const birth_place = editProfileForm.birth_place.trim();
+    const birth_date = editProfileForm.birth_date.trim();
+    const nik = editProfileForm.nik.trim();
+    const bank_account_number = editProfileForm.bank_account_number.trim();
 
     if (!name) {
       showProfileAlert(
@@ -743,6 +759,24 @@ export default function ProfilePage() {
       return;
     }
 
+    if (nik && (!/^\d+$/.test(nik) || nik.length !== 12)) {
+      showProfileAlert(
+        "NIK tidak valid",
+        "NIK harus berupa angka dan berjumlah tepat 12 digit.",
+        "warning"
+      );
+      return;
+    }
+
+    if (bank_account_number && (!/^\d+$/.test(bank_account_number) || bank_account_number.length < 11 || bank_account_number.length > 13)) {
+      showProfileAlert(
+        "Nomor Rekening tidak valid",
+        "Nomor rekening harus berupa angka dengan panjang antara 11 sampai 13 digit.",
+        "warning"
+      );
+      return;
+    }
+
     try {
       setIsUpdatingProfile(true);
 
@@ -754,6 +788,10 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name,
           phone,
+          birth_place,
+          birth_date: birth_date || null,
+          nik,
+          bank_account_number,
         }),
       });
 
@@ -774,6 +812,10 @@ export default function ProfilePage() {
               ...currentUser,
               name: data.user?.name || name,
               phone: data.user?.phone || phone || null,
+              birth_place: data.user?.birth_place || birth_place || null,
+              birth_date: data.user?.birth_date || birth_date || null,
+              nik: data.user?.nik || nik || null,
+              bank_account_number: data.user?.bank_account_number || bank_account_number || null,
             }
           : currentUser,
       );
@@ -1429,12 +1471,84 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Tempat Lahir
+                    </label>
+                    <input
+                      value={editProfileForm.birth_place}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          birth_place: event.target.value,
+                        }))
+                      }
+                      placeholder="Kota Lahir"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Tanggal Lahir
+                    </label>
+                    <input
+                      type="date"
+                      value={editProfileForm.birth_date}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          birth_date: event.target.value,
+                        }))
+                      }
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      NIK (12 Digit)
+                    </label>
+                    <input
+                      value={editProfileForm.nik}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          nik: event.target.value.replace(/\D/g, "").substring(0, 12),
+                        }))
+                      }
+                      placeholder="Contoh: 123456789012"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Nomor Rekening
+                    </label>
+                    <input
+                      value={editProfileForm.bank_account_number}
+                      onChange={(event) =>
+                        setEditProfileForm((prev) => ({
+                          ...prev,
+                          bank_account_number: event.target.value.replace(/\D/g, ""),
+                        }))
+                      }
+                      placeholder="Masukkan nomor rekening"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
                 <div
                   className="profile-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500"
                   style={{ animationDelay: "80ms" }}
                 >
                   Email, status, role, unit, divisi, jabatan, shift, dan kantor
-                  terdaftar hanya dapat diubah oleh admin.
+                  terdaftar hanya dapat diubah oleh admin/owner.
                 </div>
 
                 <div
