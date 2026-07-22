@@ -7,25 +7,60 @@ export const runtime = "nodejs";
 type AllowedRole = "admin" | "owner";
 
 const ALLOWED_ROLES: AllowedRole[] = ["admin", "owner"];
+const EMPLOYEE_ROLE = "employee";
+const LEAVE_TYPES_COUNTED_AS_CUTI = ["annual_leave", "annual"];
+
+function mapChartEmployee(user?: {
+  id?: string | null;
+  name?: string | null;
+  employee_code?: string | null;
+  profile_photo?: string | null;
+}) {
+  return {
+    id: user?.id || "",
+    name: user?.name || "Tanpa Nama",
+    employeeCode: user?.employee_code || null,
+    profilePhoto: user?.profile_photo || null,
+    profile_photo: user?.profile_photo || null,
+  };
+}
 
 function getDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value || 0);
+
   return {
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
+    year: getPart("year"),
+    month: getPart("month"),
+    day: getPart("day"),
   };
 }
 
 function dateOnly(year: number, month: number, day: number) {
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function formatDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function formatJakartaDateKey(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 function formatTime(date?: Date | null) {
@@ -38,7 +73,35 @@ function formatTime(date?: Date | null) {
 }
 
 function normalizeDate(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const [year, month, day] = formatJakartaDateKey(date).split("-").map(Number);
+
+  return dateOnly(year, month, day);
+}
+
+function normalizeWorkMode(mode?: string | null) {
+  return String(mode || "office").trim().toLowerCase();
+}
+
+function isWfhRecord(record: { is_wfh?: boolean | null; work_mode?: string | null }) {
+  return Boolean(record.is_wfh) || normalizeWorkMode(record.work_mode) === "wfh";
+}
+
+function isVisitRecord(record: {
+  is_visit?: boolean | null;
+  work_mode?: string | null;
+}) {
+  const mode = normalizeWorkMode(record.work_mode);
+
+  return Boolean(record.is_visit) || mode === "visit" || mode === "kunjungan";
+}
+
+function isOfficeRecord(record: {
+  check_in_time?: Date | null;
+  is_wfh?: boolean | null;
+  is_visit?: boolean | null;
+  work_mode?: string | null;
+}) {
+  return Boolean(record.check_in_time) && !isWfhRecord(record) && !isVisitRecord(record);
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -76,11 +139,14 @@ export async function GET(req: NextRequest) {
     const year = selectedYear;
 
     const todayDate = dateOnly(nowParts.year, nowParts.month, nowParts.day);
+    const tomorrowDate = dateOnly(nowParts.year, nowParts.month, nowParts.day + 1);
     const todayKey = formatDateKey(todayDate);
 
     const monthStart = dateOnly(year, month, 1);
     const nextMonthStart = dateOnly(year, month + 1, 1);
     const daysInMonth = new Date(year, month, 0).getDate();
+    const isCurrentMonth = year === nowParts.year && month === nowParts.month;
+    const chartDaysInMonth = isCurrentMonth ? nowParts.day : daysInMonth;
 
     const activeEmployees = await prisma.user.findMany({
       where: {
@@ -92,6 +158,8 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         name: true,
+        employee_code: true,
+        profile_photo: true,
         role: true,
         department: {
           select: {
@@ -106,13 +174,21 @@ export async function GET(req: NextRequest) {
 
     const todayRecords = await prisma.attendance.findMany({
       where: {
-        attendance_date: todayDate,
+        attendance_date: {
+          gte: todayDate,
+          lt: tomorrowDate,
+        },
+        user: {
+          role: EMPLOYEE_ROLE,
+        },
       },
       include: {
         user: {
           select: {
             id: true,
             name: true,
+            employee_code: true,
+            profile_photo: true,
             role: true,
             department: {
               select: {
@@ -133,6 +209,9 @@ export async function GET(req: NextRequest) {
           gte: monthStart,
           lt: nextMonthStart,
         },
+        user: {
+          role: EMPLOYEE_ROLE,
+        },
       },
       select: {
         id: true,
@@ -152,6 +231,9 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             name: true,
+            employee_code: true,
+            profile_photo: true,
+            role: true,
             department: {
               select: {
                 name: true,
@@ -168,11 +250,17 @@ export async function GET(req: NextRequest) {
     const approvedLeaveThisMonth = await prisma.leaveRequest.findMany({
       where: {
         status: "approved",
+        leave_type: {
+          in: LEAVE_TYPES_COUNTED_AS_CUTI,
+        },
         start_date: {
           lt: nextMonthStart,
         },
         end_date: {
           gte: monthStart,
+        },
+        user: {
+          role: EMPLOYEE_ROLE,
         },
       },
       select: {
@@ -181,44 +269,73 @@ export async function GET(req: NextRequest) {
         start_date: true,
         end_date: true,
         leave_type: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            employee_code: true,
+            profile_photo: true,
+          },
+        },
       },
-    });
-
-    const approvedLeaveToday = approvedLeaveThisMonth.filter((leave) => {
-      const start = normalizeDate(leave.start_date);
-      const end = normalizeDate(leave.end_date);
-      const today = normalizeDate(todayDate);
-
-      return start <= today && end >= today;
     });
 
     const totalActiveEmployees = activeEmployees.length;
 
-    const todayPresent = todayRecords.filter((record) =>
-      Boolean(record.check_in_time),
-    ).length;
+    const isSelectedCurrentMonth = year === nowParts.year && month === nowParts.month;
+    const todayApprovedLeaveEmployees = isSelectedCurrentMonth
+      ? new Set(
+          approvedLeaveThisMonth
+            .filter((leave) => {
+              const startKey = formatDateKey(normalizeDate(leave.start_date));
+              const endKey = formatDateKey(normalizeDate(leave.end_date));
 
-    const todayLate = todayRecords.filter(
-      (record) =>
-        record.check_in_status === "LATE" ||
-        record.status === "LATE" ||
-        Number(record.late_minutes || 0) > 0,
-    ).length;
+              return startKey <= todayKey && endKey >= todayKey;
+            })
+            .map((leave) => leave.user_id),
+        )
+      : new Set<string>();
 
-    const todayWfh = todayRecords.filter(
-      (record) => record.is_wfh || record.work_mode === "wfh",
-    ).length;
-
-    const todayVisit = todayRecords.filter(
-      (record) => record.is_visit || record.work_mode === "visit",
-    ).length;
-
-    const todayCuti = approvedLeaveToday.length;
-
-    const todayPending = Math.max(
-      totalActiveEmployees - todayPresent - todayCuti,
-      0,
+    const todayRecordUserIds = new Set(
+      todayRecords
+        .filter((record) => Boolean(record.check_in_time))
+        .map((record) => record.user.id),
     );
+
+    const todayPresent = isSelectedCurrentMonth
+      ? todayRecords.filter((record) => isOfficeRecord(record)).length
+      : 0;
+
+    const todayLate = isSelectedCurrentMonth
+      ? todayRecords.filter(
+          (record) =>
+            record.check_in_status === "LATE" ||
+            record.status === "LATE" ||
+            Number(record.late_minutes || 0) > 0,
+        ).length
+      : 0;
+
+    const todayWfh = isSelectedCurrentMonth
+      ? todayRecords.filter((record) => isWfhRecord(record)).length
+      : 0;
+
+    const todayVisit = isSelectedCurrentMonth
+      ? todayRecords.filter((record) => isVisitRecord(record)).length
+      : 0;
+
+    const todayOffice = isSelectedCurrentMonth
+      ? todayRecords.filter((record) => isOfficeRecord(record)).length
+      : 0;
+
+    const todayCuti = todayApprovedLeaveEmployees.size;
+
+    const todayPending = isSelectedCurrentMonth
+      ? activeEmployees.filter(
+          (employee) =>
+            !todayRecordUserIds.has(employee.id) &&
+            !todayApprovedLeaveEmployees.has(employee.id),
+        ).length
+      : 0;
 
     const totalLateMinutesMonth = monthRecords.reduce(
       (sum, record) => sum + Number(record.late_minutes || 0),
@@ -230,7 +347,7 @@ export async function GET(req: NextRequest) {
       0,
     );
 
-    const percent = (value: number) => {
+    const dayPercent = (value: number) => {
       if (totalActiveEmployees === 0) return 0;
       return Math.round((value / totalActiveEmployees) * 100);
     };
@@ -252,7 +369,7 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => b.total - a.total);
 
-    const leaveCountByDate = new Map<string, number>();
+    const leaveUserIdsByDate = new Map<string, Set<string>>();
 
     for (const leave of approvedLeaveThisMonth) {
       const startDate = normalizeDate(leave.start_date);
@@ -265,23 +382,29 @@ export async function GET(req: NextRequest) {
       ) {
         if (cursor >= monthStart && cursor < nextMonthStart) {
           const key = formatDateKey(cursor);
-          leaveCountByDate.set(key, (leaveCountByDate.get(key) || 0) + 1);
+          const userIds = leaveUserIdsByDate.get(key) || new Set<string>();
+
+          userIds.add(leave.user_id);
+          leaveUserIdsByDate.set(key, userIds);
         }
       }
     }
 
-    const dailyChart = Array.from({ length: daysInMonth }, (_, index) => {
+    const dailyChart = Array.from({ length: chartDaysInMonth }, (_, index) => {
       const day = index + 1;
       const currentDate = dateOnly(year, month, day);
       const currentKey = formatDateKey(currentDate);
 
       const records = monthRecords.filter(
-        (record) => formatDateKey(record.attendance_date) === currentKey,
-      );
+        (record) => formatJakartaDateKey(record.attendance_date) === currentKey,
+      ).sort((a, b) => {
+        const aTime = a.check_in_time?.getTime() || Number.MAX_SAFE_INTEGER;
+        const bTime = b.check_in_time?.getTime() || Number.MAX_SAFE_INTEGER;
 
-      const present = records.filter((record) =>
-        Boolean(record.check_in_time),
-      ).length;
+        return aTime - bTime;
+      });
+
+      const present = records.filter((record) => isOfficeRecord(record)).length;
 
       const late = records.filter(
         (record) =>
@@ -291,21 +414,43 @@ export async function GET(req: NextRequest) {
       ).length;
 
       const wfh = records.filter(
-        (record) => record.is_wfh || record.work_mode === "wfh",
+        (record) => isWfhRecord(record),
       ).length;
 
       const visit = records.filter(
-        (record) => record.is_visit || record.work_mode === "visit",
+        (record) => isVisitRecord(record),
       ).length;
 
-      const cuti = leaveCountByDate.get(currentKey) || 0;
+      const office = records.filter((record) => isOfficeRecord(record)).length;
 
-      const pending = Math.max(totalActiveEmployees - present - cuti, 0);
+      const cuti = leaveUserIdsByDate.get(currentKey)?.size || 0;
+      const recordsByUserId = new Set(
+        records
+          .filter((record) => Boolean(record.check_in_time))
+          .map((record) => record.user.id),
+      );
+      const leaveEmployees = approvedLeaveThisMonth
+        .filter((leave) => {
+          const startKey = formatDateKey(normalizeDate(leave.start_date));
+          const endKey = formatDateKey(normalizeDate(leave.end_date));
+
+          return startKey <= currentKey && endKey >= currentKey;
+        })
+        .map((leave) => ({
+          ...mapChartEmployee(leave.user),
+          id: leave.user?.id || leave.user_id,
+        }));
+      const leaveUserIds = new Set(leaveEmployees.map((employee) => employee.id));
+      const pending = activeEmployees.filter(
+        (employee) =>
+          !recordsByUserId.has(employee.id) && !leaveUserIds.has(employee.id),
+      ).length;
 
       return {
         label: String(day),
         date: currentKey,
         present,
+        office,
         late,
         wfh,
         visit,
@@ -313,6 +458,35 @@ export async function GET(req: NextRequest) {
         pending,
         active: totalActiveEmployees,
         todayRecords: records.length,
+        employees: {
+          office: records
+            .filter((record) => isOfficeRecord(record))
+            .map((record) => mapChartEmployee(record.user)),
+          present: records
+            .filter((record) => isOfficeRecord(record))
+            .map((record) => mapChartEmployee(record.user)),
+          late: records
+            .filter(
+              (record) =>
+                record.check_in_status === "LATE" ||
+                record.status === "LATE" ||
+                Number(record.late_minutes || 0) > 0,
+            )
+            .map((record) => mapChartEmployee(record.user)),
+          wfh: records
+            .filter((record) => isWfhRecord(record))
+            .map((record) => mapChartEmployee(record.user)),
+          visit: records
+            .filter((record) => isVisitRecord(record))
+            .map((record) => mapChartEmployee(record.user)),
+          cuti: leaveEmployees,
+          pending: activeEmployees
+            .filter(
+              (employee) =>
+                !recordsByUserId.has(employee.id) && !leaveUserIds.has(employee.id),
+            )
+            .map((employee) => mapChartEmployee(employee)),
+        },
       };
     });
 
@@ -331,15 +505,13 @@ export async function GET(req: NextRequest) {
         checkIn: formatTime(record.check_in_time),
       }));
 
-    const lateReasons = monthRecords
+    const lateReasons = todayRecords
       .filter(
         (record) =>
           record.is_over_tolerance ||
           record.late_reason ||
           Number(record.late_minutes || 0) > 0,
       )
-      .slice(-8)
-      .reverse()
       .map((record) => ({
         id: record.id,
         employeeName: record.user?.name || "Tanpa Nama",
@@ -356,21 +528,22 @@ export async function GET(req: NextRequest) {
       generatedAt: new Date().toISOString(),
       summary: {
         activeEmployees: totalActiveEmployees,
-        todayRecords: todayRecords.length,
+        todayRecords: isSelectedCurrentMonth ? todayRecords.length : 0,
 
         present: todayPresent,
+        office: todayOffice,
         late: todayLate,
         wfh: todayWfh,
         visit: todayVisit,
         cuti: todayCuti,
         pending: todayPending,
 
-        presentPercentage: percent(todayPresent),
-        latePercentage: percent(todayLate),
-        wfhPercentage: percent(todayWfh),
-        visitPercentage: percent(todayVisit),
-        cutiPercentage: percent(todayCuti),
-        pendingPercentage: percent(todayPending),
+        presentPercentage: dayPercent(todayPresent),
+        latePercentage: dayPercent(todayLate),
+        wfhPercentage: dayPercent(todayWfh),
+        visitPercentage: dayPercent(todayVisit),
+        cutiPercentage: dayPercent(todayCuti),
+        pendingPercentage: dayPercent(todayPending),
 
         totalLateMinutesMonth,
         totalWorkMinutesMonth,

@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   Camera,
@@ -174,10 +175,17 @@ function AttendanceReportMotionStyles() {
           box-shadow 180ms ease;
       }
 
+      .attendance-report-opening {
+        opacity: 0.72 !important;
+        transform: translateY(-2px) scale(0.992) !important;
+        box-shadow: 0 18px 40px rgb(148 163 184 / 0.28) !important;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .attendance-report-enter,
         .attendance-report-row-enter,
-        .attendance-report-avatar-enter {
+        .attendance-report-avatar-enter,
+        .attendance-report-opening {
           animation: none !important;
           opacity: 1 !important;
           transform: none !important;
@@ -212,6 +220,7 @@ function EmployeeProfileAvatar({ item }: { item: AttendanceReport }) {
 }
 
 export default function AdminAttendanceReportPage() {
+  const router = useRouter();
   const [reports, setReports] = useState<AttendanceReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -220,6 +229,7 @@ export default function AdminAttendanceReportPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [openingReportId, setOpeningReportId] = useState("");
 
   async function getAttendanceReports(
     searchOverride?: string,
@@ -282,6 +292,29 @@ export default function AdminAttendanceReportPage() {
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void getAttendanceReports();
+  }
+
+  function openAttendanceDetail(
+    event: MouseEvent<HTMLAnchorElement>,
+    reportId: string,
+  ) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    setOpeningReportId(reportId);
+
+    window.setTimeout(() => {
+      router.push(`/admin/laporan-kehadiran/${reportId}`);
+    }, 140);
   }
 
   function handleExportPdf() {
@@ -608,7 +641,14 @@ export default function AdminAttendanceReportPage() {
                           <Link
                             key={item.id}
                             href={`/admin/laporan-kehadiran/${item.id}`}
-                            className="attendance-report-row-enter group block rounded-2xl border border-blue-100 bg-white px-3 py-3 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:rounded-[1.6rem] md:px-5 md:py-4"
+                            onClick={(event) =>
+                              openAttendanceDetail(event, item.id)
+                            }
+                            className={`attendance-report-row-enter group block rounded-2xl border border-blue-100 bg-white px-3 py-3 shadow-sm shadow-slate-200/60 transition duration-300 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:rounded-[1.6rem] md:px-5 md:py-4 ${
+                              openingReportId === item.id
+                                ? "attendance-report-opening"
+                                : ""
+                            }`}
                             style={{
                               animationDelay: `${index * 45}ms`,
                             }}

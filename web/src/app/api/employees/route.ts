@@ -832,17 +832,8 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
-    if (
-      !employee ||
-      !["admin", "employee", "owner"].includes(
-        String(employee.role || "").toLowerCase(),
-      )
-    ) {
+    if (!employee || String(employee.role || "").toLowerCase() !== "employee") {
       return jsonError("Akun tidak ditemukan.", 404);
-    }
-
-    if (String(employee.role || "").toLowerCase() === "owner") {
-      return jsonError("Akun owner lama tidak bisa dihapus dari halaman ini.", 400);
     }
 
     await prisma.$transaction(async (tx) => {

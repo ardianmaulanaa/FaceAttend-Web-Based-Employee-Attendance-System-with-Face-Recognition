@@ -28,14 +28,14 @@ describe("auth helpers", () => {
   it("creates and verifies a JWT payload", async () => {
     const token = await createToken({
       id: "user-1",
-      email: "owner@creativemu.com",
-      role: "owner",
+      email: "admin@creativemu.com",
+      role: "admin",
     });
 
     await expect(verifyToken(token)).resolves.toMatchObject({
       id: "user-1",
-      email: "owner@creativemu.com",
-      role: "owner",
+      email: "admin@creativemu.com",
+      role: "admin",
     });
   });
 
@@ -45,8 +45,8 @@ describe("auth helpers", () => {
     await expect(
       createToken({
         id: "user-1",
-        email: "owner@creativemu.com",
-        role: "owner",
+        email: "admin@creativemu.com",
+        role: "admin",
       }),
     ).rejects.toThrow("JWT_SECRET belum diatur");
   });

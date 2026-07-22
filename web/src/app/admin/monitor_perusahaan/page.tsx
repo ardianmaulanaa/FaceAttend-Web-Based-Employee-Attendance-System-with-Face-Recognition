@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   BarChart3,
-  BriefcaseBusiness,
-  CheckCircle2,
+  ChevronDown,
   Clock3,
-  Home,
   Loader2,
-  TrendingUp,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
 
-const metricOptions = [
-  { value: "present", label: "Hadir" },
-  { value: "late", label: "Terlambat" },
-  { value: "wfh", label: "WFH" },
-  { value: "visit", label: "Kunjungan" },
-  { value: "cuti", label: "Cuti" },
+const histogramSegments = [
+  { key: "present", label: "Hadir", color: "#1d9bf0" },
+  { key: "late", label: "Terlambat", color: "#1d9bf0" },
+  { key: "visit", label: "Kunjungan", color: "#1d9bf0" },
+  { key: "cuti", label: "Cuti", color: "#1d9bf0" },
 ] as const;
 
 const displayModeOptions = [
@@ -27,7 +23,7 @@ const displayModeOptions = [
   { value: "numbers", label: "Angka Ringkas" },
 ] as const;
 
-type MetricValue = (typeof metricOptions)[number]["value"];
+type SegmentKey = (typeof histogramSegments)[number]["key"];
 type DisplayMode = (typeof displayModeOptions)[number]["value"];
 
 type Summary = {
@@ -35,6 +31,7 @@ type Summary = {
   todayRecords: number;
 
   present: number;
+  office?: number;
   late: number;
   wfh: number;
   visit: number;
@@ -56,6 +53,7 @@ type DailyChartPoint = {
   label: string;
   date: string;
   present: number;
+  office?: number;
   late: number;
   wfh: number;
   visit: number;
@@ -63,6 +61,12 @@ type DailyChartPoint = {
   pending: number;
   active: number;
   todayRecords: number;
+  employees?: Partial<Record<SegmentKey, ChartEmployee[]>>;
+};
+
+type ChartEmployee = {
+  id: string;
+  name: string;
 };
 
 type AlertItem = {
@@ -92,48 +96,6 @@ type MonitorResponse = {
   lateReasons: LateReasonItem[];
 };
 
-type AdminLeaveRequest = {
-  id: string;
-  employeeName?: string;
-  employeeCode?: string | null;
-  leaveType?: string;
-  leaveTypeLabel?: string;
-  startDate: string;
-  endDate: string;
-  startDateRaw?: string | null;
-  endDateRaw?: string | null;
-  totalDays?: number;
-  reason?: string;
-  status: string;
-  statusLabel?: string;
-  adminNote?: string | null;
-  createdAt?: string | null;
-};
-
-type LeaveEndpointResponse = {
-  success: boolean;
-  message?: string;
-  error?: string;
-  requests?: AdminLeaveRequest[];
-};
-
-type LeaveChartPoint = {
-  label: string;
-  value: number;
-};
-
-type FlexibleModeKey = "wfh" | "visit";
-
-type FlexibleModeTotals = Record<FlexibleModeKey, number>;
-
-type FlexibleModeCardItem = {
-  key: FlexibleModeKey;
-  label: string;
-  value: number;
-  percentage: number;
-  description: string;
-};
-
 const monthOptions = [
   { value: 1, label: "Januari" },
   { value: 2, label: "Februari" },
@@ -149,40 +111,6 @@ const monthOptions = [
   { value: 12, label: "Desember" },
 ];
 
-const indonesianMonthMap: Record<string, number> = {
-  januari: 0,
-  februari: 1,
-  maret: 2,
-  april: 3,
-  mei: 4,
-  juni: 5,
-  juli: 6,
-  agustus: 7,
-  september: 8,
-  oktober: 9,
-  november: 10,
-  desember: 11,
-};
-
-function getMetricValue(point: DailyChartPoint, metric: MetricValue) {
-  if (metric === "cuti") return 0;
-  return Number(point[metric] || 0);
-}
-
-function getMetricLabel(metric: MetricValue) {
-  return (
-    metricOptions.find((option) => option.value === metric)?.label || "Kategori"
-  );
-}
-
-function formatWorkMode(mode: string) {
-  if (mode === "wfh") return "WFH";
-  if (mode === "visit") return "Kunjungan";
-  if (mode === "office") return "Kantor";
-
-  return "Lainnya";
-}
-
 function formatMinutes(minutes: number) {
   if (!minutes || minutes <= 0) return "0 menit";
 
@@ -194,98 +122,6 @@ function formatMinutes(minutes: number) {
   if (restMinutes === 0) return `${hours} jam`;
 
   return `${hours} jam ${restMinutes} menit`;
-}
-
-function normalizeDateOnly(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function parseDateValue(value?: string | null) {
-  if (!value) return null;
-
-  const cleanValue = String(value).trim();
-
-  if (!cleanValue || cleanValue === "-") return null;
-
-  const normalDate = new Date(cleanValue);
-
-  if (!Number.isNaN(normalDate.getTime())) {
-    return normalizeDateOnly(normalDate);
-  }
-
-  const parts = cleanValue
-    .replace(",", "")
-    .split(/\s+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (parts.length >= 3) {
-    const day = Number(parts[0]);
-    const monthName = parts[1].toLowerCase();
-    const year = Number(parts[2]);
-    const monthIndex = indonesianMonthMap[monthName];
-
-    if (
-      !Number.isNaN(day) &&
-      !Number.isNaN(year) &&
-      typeof monthIndex === "number"
-    ) {
-      return new Date(year, monthIndex, day);
-    }
-  }
-
-  return null;
-}
-
-function isApprovedLeave(status: string) {
-  return String(status || "").toLowerCase() === "approved";
-}
-
-function getLeaveChartData(
-  monitorData: MonitorResponse | null,
-  leaveRequests: AdminLeaveRequest[],
-  month: number,
-  year: number,
-) {
-  const fallbackPoints = monitorData?.dailyChart || [];
-
-  const approvedRequests = leaveRequests.filter((item) =>
-    isApprovedLeave(item.status),
-  );
-
-  const approvedRequestsInMonth = approvedRequests.filter((request) => {
-    const submittedDate = parseDateValue(request.createdAt);
-
-    if (!submittedDate) return false;
-
-    return (
-      submittedDate.getFullYear() === year &&
-      submittedDate.getMonth() === month - 1
-    );
-  });
-
-  const dailyPoints: LeaveChartPoint[] = fallbackPoints.map((point) => {
-    const labelDay = Number(point.label);
-
-    const totalSubmissionOnDay = approvedRequestsInMonth.filter((request) => {
-      const submittedDate = parseDateValue(request.createdAt);
-
-      if (!submittedDate || Number.isNaN(labelDay)) return false;
-
-      return submittedDate.getDate() === labelDay;
-    }).length;
-
-    return {
-      label: point.label,
-      value: totalSubmissionOnDay,
-    };
-  });
-
-  return {
-    dailyPoints,
-    approvedRequestsInMonth,
-    totalApprovedRequests: approvedRequestsInMonth.length,
-  };
 }
 
 async function readJsonResponse(response: Response) {
@@ -304,65 +140,37 @@ function toSafeNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
-function getDailyChartModeTotals(
-  dailyChart: DailyChartPoint[] = [],
-): FlexibleModeTotals {
-  return dailyChart.reduce<FlexibleModeTotals>(
-    (total, point) => {
-      total.wfh += toSafeNumber(point.wfh);
-      total.visit += toSafeNumber(point.visit);
-
-      return total;
-    },
-    {
-      wfh: 0,
-      visit: 0,
-    },
-  );
-}
-
-function getSummaryModeValue(
-  summary: Summary,
-  key: FlexibleModeKey,
-  dailyTotals?: FlexibleModeTotals,
+function polarToCartesian(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInDegrees: number,
 ) {
-  const summaryValue =
-    key === "wfh" ? toSafeNumber(summary.wfh) : toSafeNumber(summary.visit);
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
 
-  const dailyValue = dailyTotals ? toSafeNumber(dailyTotals[key]) : 0;
-
-  return Math.max(summaryValue, dailyValue);
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
 }
 
-function getMonitoringBase(summary: Summary, dailyTotals?: FlexibleModeTotals) {
-  const todayRecords = toSafeNumber(summary.todayRecords);
-  const activeEmployees = toSafeNumber(summary.activeEmployees);
-  const flexibleSummaryTotal =
-    toSafeNumber(summary.wfh) + toSafeNumber(summary.visit);
-
-  const flexibleDailyTotal = dailyTotals
-    ? toSafeNumber(dailyTotals.wfh) + toSafeNumber(dailyTotals.visit)
-    : 0;
-
-  if (todayRecords > 0) return todayRecords;
-  if (activeEmployees > 0) return activeEmployees;
-  if (flexibleSummaryTotal > 0) return flexibleSummaryTotal;
-  if (flexibleDailyTotal > 0) return flexibleDailyTotal;
-
-  return 0;
-}
-
-function getSummaryModePercentage(
-  summary: Summary,
-  key: FlexibleModeKey,
-  dailyTotals?: FlexibleModeTotals,
+function describePieSlice(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
 ) {
-  const value = getSummaryModeValue(summary, key, dailyTotals);
-  const base = getMonitoringBase(summary, dailyTotals);
+  const start = polarToCartesian(centerX, centerY, radius, endAngle);
+  const end = polarToCartesian(centerX, centerY, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
-  if (base <= 0 || value <= 0) return 0;
-
-  return Math.min(Number(((value / base) * 100).toFixed(1)), 100);
+  return [
+    `M ${centerX} ${centerY}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+    "Z",
+  ].join(" ");
 }
 
 function MonitorMotionStyles() {
@@ -395,12 +203,12 @@ function MonitorMotionStyles() {
       @keyframes monitorBarEnter {
         0% {
           opacity: 0;
-          transform: scaleY(0.15);
+          transform: translateY(16px) scaleY(0);
         }
 
         100% {
           opacity: 1;
-          transform: scaleY(1);
+          transform: translateY(0) scaleY(1);
         }
       }
 
@@ -439,23 +247,30 @@ function MonitorMotionStyles() {
 }
 
 function AnimatedHistogram({
-  metricLabel,
-  unit,
   points,
   maxValue,
+  selectedSegment,
+  onSelectedSegmentChange,
+  month,
+  year,
 }: {
-  metricLabel: string;
-  unit: string;
-  points: Array<{
-    label: string;
-    value: number;
-  }>;
+  points: DailyChartPoint[];
   maxValue: number;
+  selectedSegment: SegmentKey;
+  onSelectedSegmentChange: (segment: SegmentKey) => void;
+  month: number;
+  year: number;
 }) {
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const safeMaxValue = Math.max(maxValue, 1);
   const activePoint =
     activeIndex !== null && points[activeIndex] ? points[activeIndex] : null;
+  const selectedSegmentConfig =
+    histogramSegments.find((segment) => segment.key === selectedSegment) ||
+    histogramSegments[0];
+  const chartWidth = Math.max(points.length * 44 + 84, 640);
 
   return (
     <>
@@ -471,206 +286,357 @@ function AnimatedHistogram({
           }
         }
 
-        @keyframes histogramBarGlow {
-          0% {
-            box-shadow: 0 0 0 rgba(18, 60, 140, 0);
-          }
-          100% {
-            box-shadow: 0 14px 30px rgba(18, 60, 140, 0.22);
-          }
-        }
       `}</style>
 
-      <div className="monitor-row-enter mt-6 overflow-x-auto overflow-y-visible rounded-[1.65rem] border border-blue-100 bg-[#123c8c] p-3 text-white shadow-xl shadow-blue-900/15 md:rounded-[2rem] md:p-5">
-        <div className="min-w-[760px] md:min-w-[900px]">
+      <div className="monitor-row-enter mt-6 rounded-[1.65rem] border border-slate-200 bg-white p-3 text-slate-900 shadow-xl shadow-slate-200/70 md:rounded-[2rem] md:p-5">
+        <div className="w-full">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100 md:text-xs">
-                Histogram Monitor
-              </p>
-
-              <h4 className="mt-1 truncate text-xl font-black tracking-tight text-white md:text-2xl">
-                {metricLabel} per Tanggal
+              <h4 className="truncate text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                Kehadiran Karyawan per Tanggal
               </h4>
             </div>
 
-            <div className="w-fit rounded-2xl bg-white/10 px-3 py-2 text-xs font-black text-blue-50 ring-1 ring-white/10 md:px-4 md:py-3 md:text-sm">
-              Maksimum: {safeMaxValue} {unit}
+            <div className="relative w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen((current) => !current)}
+                className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border border-[#1d9bf0] bg-[#1d9bf0] px-4 text-sm font-black text-white shadow-sm transition active:scale-[0.98] md:w-[190px]"
+                aria-expanded={isFilterOpen}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                  {selectedSegmentConfig.label}
+                </span>
+                <ChevronDown
+                  size={17}
+                  strokeWidth={3}
+                  className={`transition ${isFilterOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isFilterOpen ? (
+                <div className="absolute right-0 z-40 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-300/40 md:w-[190px]">
+                  {histogramSegments.map((segment) => {
+                    const isSelected = selectedSegment === segment.key;
+
+                    return (
+                      <button
+                        key={segment.key}
+                        type="button"
+                        onClick={() => {
+                          onSelectedSegmentChange(segment.key);
+                          setActiveIndex(null);
+                          setIsFilterOpen(false);
+                        }}
+                        className={`flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-black transition ${
+                          isSelected
+                            ? "bg-[#eef7ff] text-[#1d9bf0]"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: segment.color }}
+                        />
+                        {segment.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </div>
 
-          <div className="relative mt-5 h-[255px] rounded-[1.35rem] border border-white/10 bg-[#0f3578] px-4 pb-9 pt-6 shadow-inner md:h-[300px] md:rounded-[1.6rem] md:px-5 md:pb-10 md:pt-8">
-            {Array.from({ length: 5 }).map((_, index) => {
-              const percent = index * 25;
-              const value = Math.round((safeMaxValue * percent) / 100);
-
-              return (
-                <div
-                  key={percent}
-                  className="pointer-events-none absolute left-4 right-4 border-t border-white/14 md:left-5 md:right-5"
-                  style={{ bottom: `${34 + percent * 1.92}px` }}
-                >
-                  <span className="absolute -top-2 right-0 rounded-full bg-[#0f3578] px-1.5 text-[9px] font-black text-blue-100/75 md:px-2 md:text-[10px]">
-                    {value}
-                  </span>
-                </div>
-              );
-            })}
-
-            <div className="relative z-10 flex h-[200px] items-end gap-1 md:h-[230px] md:gap-4">
-              {points.map((point, index) => {
-                const rawHeight = (point.value / safeMaxValue) * 190;
-                const height = Math.max(rawHeight, point.value > 0 ? 10 : 3);
-                const isActive = activeIndex === index;
+          <div className="mt-5 overflow-x-auto overflow-y-hidden rounded-[1.35rem] border border-slate-200 bg-white md:rounded-[1.6rem]">
+            <div
+              className="relative h-[300px] px-3 pb-12 pt-7 md:h-[330px] md:px-5 md:pb-14 md:pt-9"
+              style={{ minWidth: chartWidth }}
+            >
+              {Array.from({ length: 5 }).map((_, index) => {
+                const percent = index * 25;
+                const value = Math.round((safeMaxValue * percent) / 100);
 
                 return (
                   <div
-                    key={`${metricLabel}-${point.label}`}
-                    className="relative flex w-3 shrink-0 flex-col items-center md:w-4"
+                    key={percent}
+                    className="pointer-events-none absolute left-10 right-3 border-t border-slate-200 md:left-14 md:right-5"
+                    style={{ bottom: `calc(3rem + ${percent * 0.78}%)` }}
                   >
-                    <button
-                      type="button"
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onMouseLeave={() => setActiveIndex(null)}
-                      onFocus={() => setActiveIndex(index)}
-                      onBlur={() => setActiveIndex(null)}
-                      onClick={() => setActiveIndex(index)}
-                      className={`monitor-bar-enter relative w-full rounded-t-md outline-none transition duration-300 ease-out ${
-                        isActive
-                          ? "scale-x-110 bg-blue-200"
-                          : "bg-blue-300/95 hover:bg-blue-200"
-                      }`}
-                      style={{
-                        height,
-                        animationDelay: `${index * 18}ms`,
-                        animationName: isActive
-                          ? "histogramBarGlow"
-                          : undefined,
-                        animationDuration: isActive ? "160ms" : undefined,
-                        animationTimingFunction: isActive
-                          ? "ease-out"
-                          : undefined,
-                        animationFillMode: isActive ? "forwards" : undefined,
-                      }}
-                      aria-label={`${metricLabel} tanggal ${point.label}: ${point.value} ${unit}`}
-                    >
-                      {isActive ? (
-                        <div
-                          className="absolute left-1/2 z-30 w-24 -translate-x-1/2 rounded-xl border border-white/40 bg-white/70 px-2 py-1.5 text-center shadow-lg shadow-blue-950/10 backdrop-blur-md"
-                          style={{
-                            bottom: height + 10,
-                            animation:
-                              "histogramTooltipIn 160ms ease-out forwards",
-                          }}
-                        >
-                          <p className="text-base font-black leading-none text-[#123c8c]">
-                            {point.value}
-                          </p>
-                          <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
-                            {unit}
-                          </p>
-                        </div>
-                      ) : null}
-                    </button>
-
-                    <p className="mt-2 text-[8px] font-bold text-blue-50/80 md:text-[9px]">
-                      {point.label}
-                    </p>
-
-                    <p className="text-[8px] font-black text-white md:text-[9px]">
-                      {point.value}
-                    </p>
+                    <span className="absolute -left-9 -top-2 w-7 text-right text-[10px] font-black text-slate-400 md:-left-12 md:w-10 md:text-xs">
+                      {value}
+                    </span>
                   </div>
                 );
               })}
-            </div>
 
-            {activePoint ? (
-              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
-                {metricLabel} tanggal {activePoint.label}: {activePoint.value}{" "}
-                {unit}
+              <div className="relative z-10 ml-8 flex h-[235px] items-end justify-start gap-3 md:ml-11 md:h-[255px] md:gap-4">
+                {points.map((point, index) => {
+                  const total = toSafeNumber(point[selectedSegment]);
+                  const rawHeight = (total / safeMaxValue) * 215;
+                  const height = Math.max(rawHeight, total > 0 ? 12 : 3);
+                  const isActive = activeIndex === index;
+
+                  return (
+                    <div
+                      key={`histogram-${selectedSegment}-${point.date || point.label}`}
+                      className="relative flex w-8 shrink-0 flex-col items-center md:w-10"
+                    >
+                      {total > 0 ? (
+                        <p className="mb-2 text-xs font-black text-slate-500">
+                          {total}
+                        </p>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onMouseLeave={() => setActiveIndex(null)}
+                        onFocus={() => setActiveIndex(index)}
+                        onBlur={() => setActiveIndex(null)}
+                        onClick={() => {
+                          setActiveIndex(index);
+                          const params = new URLSearchParams({
+                            month: String(month),
+                            year: String(year),
+                            date: point.date,
+                            filter: selectedSegment,
+                          });
+
+                          router.push(
+                            `/admin/monitor_perusahaan/histogram?${params.toString()}`,
+                          );
+                        }}
+                        className={`monitor-bar-enter relative flex w-6 overflow-visible rounded-none bg-[#1d9bf0] outline-none transition duration-300 ease-out md:w-7 ${
+                          isActive
+                            ? "scale-x-110 bg-[#0d8ee5]"
+                            : "hover:bg-[#0d8ee5]"
+                        }`}
+                        style={{
+                          height,
+                          animationDelay: `${index * 18}ms`,
+                        }}
+                        aria-label={`${selectedSegmentConfig.label} tanggal ${point.label}: ${total} karyawan`}
+                      >
+                        {isActive ? (
+                          <div
+                            className="absolute left-1/2 z-30 w-24 -translate-x-1/2 rounded-xl border border-slate-200 bg-white/90 px-2 py-1.5 text-center shadow-lg shadow-slate-300/50"
+                            style={{
+                              bottom: height + 10,
+                              animation:
+                                "histogramTooltipIn 160ms ease-out forwards",
+                            }}
+                          >
+                            <p className="text-base font-black leading-none text-slate-950">
+                              {total}
+                            </p>
+                            <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">
+                              karyawan
+                            </p>
+                          </div>
+                        ) : null}
+                      </button>
+
+                      <p className="mt-2 text-[9px] font-black text-slate-500 md:text-[10px]">
+                        {point.label}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="absolute bottom-2 left-4 max-w-[calc(100%-2rem)] rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-blue-50/80 ring-1 ring-white/10 md:bottom-3 md:left-5 md:text-xs">
-                Hover / tap batang untuk melihat info
-              </div>
-            )}
+
+              {activePoint ? (
+                <div className="absolute bottom-3 left-4 max-w-[calc(100%-2rem)] rounded-full bg-slate-50 px-3 py-1.5 text-[10px] font-black text-slate-600 ring-1 ring-slate-200 md:bottom-4 md:left-5 md:text-xs">
+                  Tanggal {activePoint.label}:{" "}
+                  {toSafeNumber(activePoint[selectedSegment])}{" "}
+                  {selectedSegmentConfig.label.toLowerCase()}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
+
     </>
   );
 }
 
-function PieProgressCard({
-  label,
-  value,
-  percentage,
-  description,
-  icon,
+function AttendancePieChart({
+  summary,
 }: {
-  label: string;
-  value: number;
-  percentage: number;
-  description: string;
-  icon: ReactNode;
+  summary: Summary;
 }) {
-  const safePercentage = Math.max(0, Math.min(100, toSafeNumber(percentage)));
-  const visualPercentage =
-    value > 0 && safePercentage > 0
-      ? Math.max(safePercentage, 1.5)
-      : safePercentage;
-  const rest = 100 - safePercentage;
+  const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
+  const totalEmployees = Math.max(toSafeNumber(summary.activeEmployees), 0);
+  const wfh = toSafeNumber(summary.wfh);
+  const visit = toSafeNumber(summary.visit);
+  const cuti = toSafeNumber(summary.cuti);
+  const office = Math.max(
+    toSafeNumber(summary.office) || toSafeNumber(summary.present),
+    0,
+  );
+  const remaining = Math.max(totalEmployees - office - wfh - visit - cuti, 0);
+  const base = Math.max(totalEmployees, 1);
+  const items = [
+    { label: "Hadir Kantor", value: office, color: "#8b5cf6" },
+    { label: "WFH", value: wfh, color: "#f59e0b" },
+    { label: "Kunjungan", value: visit, color: "#ef4444" },
+    { label: "Cuti", value: cuti, color: "#14b8a6" },
+  ];
+  const chartItems = [
+    ...items,
+    { label: "Belum Hadir", value: remaining, color: "#e2e8f0" },
+  ];
+  const hasAttendanceData = office + wfh + visit + cuti > 0;
+  const chartSlices = chartItems.reduce<
+    Array<
+      (typeof chartItems)[number] & {
+        startAngle: number;
+        endAngle: number;
+        percentage: number;
+      }
+    >
+  >((slices, item) => {
+    const previousAngle = slices[slices.length - 1]?.endAngle || 0;
+    const percentage = base > 0 ? (item.value / base) * 100 : 0;
+    const size = (percentage / 100) * 360;
+
+    if (item.value <= 0) return slices;
+
+    return [
+      ...slices,
+      {
+        ...item,
+        startAngle: previousAngle,
+        endAngle: previousAngle + size,
+        percentage,
+      },
+    ];
+  }, []);
+  const activePieItem =
+    activePieIndex !== null ? chartSlices[activePieIndex] : null;
 
   return (
-    <div className="monitor-row-enter rounded-3xl border border-blue-100 bg-white p-5 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-            {label}
-          </p>
-          <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
-          <p className="mt-1 text-xs font-bold text-slate-500">{description}</p>
-        </div>
+    <div className="monitor-row-enter mt-6 grid gap-5 rounded-[1.65rem] border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 sm:grid-cols-[220px_1fr] sm:items-center md:rounded-[2rem] md:p-6">
+      <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-full border border-slate-100 bg-slate-50 sm:h-52 sm:w-52 md:h-56 md:w-56">
+        <div className="relative h-44 w-44 rounded-full sm:h-48 sm:w-48 md:h-52 md:w-52">
+          <svg
+            viewBox="0 0 100 100"
+            className="h-full w-full overflow-visible rounded-full outline-none"
+            aria-label="Pie chart komposisi kehadiran karyawan"
+          >
+            {chartSlices.length > 0 ? (
+              chartSlices.map((item, index) => {
+                const isFullCircle = item.percentage >= 99.99;
+                const isActive = activePieIndex === index;
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6f8ff] text-[#123c8c] ring-1 ring-blue-100">
-          {icon}
+                return isFullCircle ? (
+                  <circle
+                    key={item.label}
+                    cx="50"
+                    cy="50"
+                    r="49"
+                    fill={item.color}
+                    className="cursor-pointer outline-none transition duration-200"
+                    opacity={isActive ? 0.9 : 1}
+                    onMouseEnter={() => setActivePieIndex(index)}
+                    onMouseLeave={() => setActivePieIndex(null)}
+                    onFocus={() => setActivePieIndex(index)}
+                    onBlur={() => setActivePieIndex(null)}
+                    style={{ outline: "none" }}
+                    tabIndex={0}
+                  />
+                ) : (
+                  <path
+                    key={item.label}
+                    d={describePieSlice(
+                      50,
+                      50,
+                      isActive ? 50 : 49,
+                      item.startAngle,
+                      item.endAngle,
+                    )}
+                    fill={item.color}
+                    className="cursor-pointer outline-none transition duration-200"
+                    opacity={isActive ? 0.9 : 1}
+                    onMouseEnter={() => setActivePieIndex(index)}
+                    onMouseLeave={() => setActivePieIndex(null)}
+                    onFocus={() => setActivePieIndex(index)}
+                    onBlur={() => setActivePieIndex(null)}
+                    style={{ outline: "none" }}
+                    tabIndex={0}
+                  />
+                );
+              })
+            ) : (
+              <circle cx="50" cy="50" r="49" fill="#e2e8f0" />
+            )}
+          </svg>
+
+          {activePieItem ? (
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-28 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 text-center shadow-lg shadow-slate-300/50">
+              <p className="text-lg font-black leading-none text-slate-950">
+                {activePieItem.value}
+              </p>
+              <p className="mt-1 text-[10px] font-black text-slate-500">
+                {activePieItem.percentage.toFixed(1)}%
+              </p>
+              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.08em] text-slate-600">
+                {activePieItem.label}
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-4">
-        <div
-          className="relative h-24 w-24 rounded-full"
-          style={{
-            background: `conic-gradient(#123c8c 0% ${visualPercentage}%, #dbeafe ${visualPercentage}% 100%)`,
-          }}
-        >
-          <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-white">
-            <div className="text-center">
-              <p className="text-lg font-black text-slate-950">
-                {safePercentage.toFixed(1)}%
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                Proporsi
-              </p>
-            </div>
-          </div>
-        </div>
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+          Komposisi Kehadiran
+        </p>
+        <h4 className="mt-2 text-2xl font-black text-slate-950">
+          Persentase dari {totalEmployees} karyawan
+        </h4>
+        <p className="mt-1 text-xs font-black text-[#123c8c]">
+          Data rekap hari ini
+        </p>
+        {!hasAttendanceData ? (
+          <p className="mt-2 text-sm font-semibold text-slate-500">
+            Belum ada presensi kantor, WFH, kunjungan, atau cuti hari ini.
+          </p>
+        ) : null}
 
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center justify-between rounded-2xl bg-[#f8fbff] px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-blue-100">
-            <span>Terpakai</span>
-            <span className="font-black text-[#123c8c]">
-              {safePercentage.toFixed(1)}%
-            </span>
-          </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {chartItems.map((item) => {
+            const percentage =
+              base > 0 ? Number(((item.value / base) * 100).toFixed(1)) : 0;
+            const sliceIndex = chartSlices.findIndex(
+              (slice) => slice.label === item.label,
+            );
 
-          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
-            <span>Sisa</span>
-            <span className="font-black text-slate-700">
-              {rest.toFixed(1)}%
-            </span>
-          </div>
+            return (
+              <div
+                key={item.label}
+                onMouseEnter={() =>
+                  setActivePieIndex(sliceIndex >= 0 ? sliceIndex : null)
+                }
+                onMouseLeave={() => setActivePieIndex(null)}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <p className="truncate text-sm font-black text-slate-800">
+                    {item.label}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-black text-slate-950">
+                  {percentage}% ({item.value})
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -681,13 +647,13 @@ export default function AdminCompanyMonitorPage() {
   const now = new Date();
 
   const [displayMode, setDisplayMode] = useState<DisplayMode>("chart");
-  const [selectedMetric, setSelectedMetric] = useState<MetricValue>("present");
+  const [selectedHistogramSegment, setSelectedHistogramSegment] =
+    useState<SegmentKey>("present");
 
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
 
   const [data, setData] = useState<MonitorResponse | null>(null);
-  const [leaveRequests, setLeaveRequests] = useState<AdminLeaveRequest[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -697,16 +663,13 @@ export default function AdminCompanyMonitorPage() {
       setIsLoading(true);
       setErrorMessage("");
 
-      const [monitorResponse, leaveResponse] = await Promise.all([
-        fetch(`/api/admin/monitor-perusahaan?month=${month}&year=${year}`, {
+      const monitorResponse = await fetch(
+        `/api/admin/monitor-perusahaan?month=${month}&year=${year}`,
+        {
           method: "GET",
           cache: "no-store",
-        }),
-        fetch("/api/admin/leave-requests", {
-          method: "GET",
-          cache: "no-store",
-        }),
-      ]);
+        },
+      );
 
       const monitorResult = await readJsonResponse(monitorResponse);
 
@@ -714,20 +677,6 @@ export default function AdminCompanyMonitorPage() {
         throw new Error(
           monitorResult?.message || "Gagal mengambil data monitor perusahaan.",
         );
-      }
-
-      let leaveResult: LeaveEndpointResponse = {
-        success: false,
-        requests: [],
-      };
-
-      try {
-        leaveResult = await readJsonResponse(leaveResponse);
-      } catch {
-        leaveResult = {
-          success: false,
-          requests: [],
-        };
       }
 
       setData({
@@ -739,6 +688,7 @@ export default function AdminCompanyMonitorPage() {
           ),
           todayRecords: toSafeNumber(monitorResult?.summary?.todayRecords),
           present: toSafeNumber(monitorResult?.summary?.present),
+          office: toSafeNumber(monitorResult?.summary?.office),
           late: toSafeNumber(monitorResult?.summary?.late),
           wfh: toSafeNumber(monitorResult?.summary?.wfh),
           visit: toSafeNumber(monitorResult?.summary?.visit),
@@ -767,6 +717,7 @@ export default function AdminCompanyMonitorPage() {
           ? monitorResult.dailyChart.map((item: DailyChartPoint) => ({
               ...item,
               present: toSafeNumber(item?.present),
+              office: toSafeNumber(item?.office),
               late: toSafeNumber(item?.late),
               wfh: toSafeNumber(item?.wfh),
               visit: toSafeNumber(item?.visit),
@@ -774,6 +725,7 @@ export default function AdminCompanyMonitorPage() {
               pending: toSafeNumber(item?.pending),
               active: toSafeNumber(item?.active),
               todayRecords: toSafeNumber(item?.todayRecords),
+              employees: item?.employees || {},
             }))
           : [],
         alerts: Array.isArray(monitorResult?.alerts)
@@ -783,17 +735,8 @@ export default function AdminCompanyMonitorPage() {
           ? monitorResult.lateReasons
           : [],
       });
-
-      setLeaveRequests(
-        leaveResponse.ok &&
-          leaveResult.success &&
-          Array.isArray(leaveResult.requests)
-          ? leaveResult.requests
-          : [],
-      );
     } catch (error) {
       setData(null);
-      setLeaveRequests([]);
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -809,44 +752,16 @@ export default function AdminCompanyMonitorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
 
-  const leaveChartData = useMemo(() => {
-    return getLeaveChartData(data, leaveRequests, month, year);
-  }, [data, leaveRequests, month, year]);
+  const histogramMaxValue = useMemo(() => {
+    if (!data) return 1;
 
-  const flexibleModeTotals = useMemo<FlexibleModeTotals>(() => {
-    return getDailyChartModeTotals(data?.dailyChart || []);
-  }, [data]);
-
-  const metricChart = useMemo(() => {
-    if (!data) {
-      return {
-        unit: "data",
-        points: [],
-        maxValue: 1,
-      };
-    }
-
-    if (selectedMetric === "cuti") {
-      const values = leaveChartData.dailyPoints.map((point) => point.value);
-
-      return {
-        unit: "pengajuan",
-        points: leaveChartData.dailyPoints,
-        maxValue: Math.max(...values, 1),
-      };
-    }
-
-    const points = data.dailyChart.map((point) => ({
-      label: point.label,
-      value: getMetricValue(point, selectedMetric),
-    }));
-
-    return {
-      unit: "data",
-      points,
-      maxValue: Math.max(...points.map((item) => item.value), 1),
-    };
-  }, [data, selectedMetric, leaveChartData]);
+    return Math.max(
+      ...data.dailyChart.map((point) =>
+        toSafeNumber(point[selectedHistogramSegment]),
+      ),
+      1,
+    );
+  }, [data, selectedHistogramSegment]);
 
   const summaryCards = useMemo(() => {
     if (!data) return [];
@@ -855,67 +770,30 @@ export default function AdminCompanyMonitorPage() {
       {
         label: "Hadir",
         value: data.summary.present,
-        note: `${data.summary.presentPercentage}% dari total karyawan`,
+        note: `${data.summary.presentPercentage}% rekap hari ini`,
       },
       {
         label: "Terlambat",
         value: data.summary.late,
-        note: `${data.summary.latePercentage}% dari total karyawan`,
+        note: `${data.summary.latePercentage}% rekap hari ini`,
       },
       {
         label: "WFH",
-        value: getSummaryModeValue(data.summary, "wfh", flexibleModeTotals),
-        note: `${getSummaryModePercentage(
-          data.summary,
-          "wfh",
-          flexibleModeTotals,
-        )}% dari total data`,
+        value: data.summary.wfh,
+        note: `${data.summary.wfhPercentage}% rekap hari ini`,
       },
       {
         label: "Kunjungan",
-        value: getSummaryModeValue(data.summary, "visit", flexibleModeTotals),
-        note: `${getSummaryModePercentage(
-          data.summary,
-          "visit",
-          flexibleModeTotals,
-        )}% dari total data`,
+        value: data.summary.visit,
+        note: `${data.summary.visitPercentage}% rekap hari ini`,
       },
       {
         label: "Cuti",
-        value: leaveChartData.totalApprovedRequests,
-        note: "pengajuan cuti disetujui bulan ini",
+        value: data.summary.cuti,
+        note: "karyawan cuti hari ini",
       },
     ];
-  }, [data, leaveChartData, flexibleModeTotals]);
-
-  const flexibleModeCards = useMemo<FlexibleModeCardItem[]>(() => {
-    if (!data) return [];
-
-    return [
-      {
-        key: "wfh",
-        label: "WFH",
-        value: getSummaryModeValue(data.summary, "wfh", flexibleModeTotals),
-        percentage: getSummaryModePercentage(
-          data.summary,
-          "wfh",
-          flexibleModeTotals,
-        ),
-        description: "Monitoring presensi kerja dari rumah.",
-      },
-      {
-        key: "visit",
-        label: "Kunjungan",
-        value: getSummaryModeValue(data.summary, "visit", flexibleModeTotals),
-        percentage: getSummaryModePercentage(
-          data.summary,
-          "visit",
-          flexibleModeTotals,
-        ),
-        description: "Monitoring presensi kunjungan lapangan / client.",
-      },
-    ];
-  }, [data, flexibleModeTotals]);
+  }, [data]);
 
   return (
     <MobileShell variant="admin" withBottomPadding={false}>
@@ -950,7 +828,7 @@ export default function AdminCompanyMonitorPage() {
                     Mode Tampilan
                   </p>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-[#f6f8ff] p-1.5 ring-1 ring-blue-100">
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {displayModeOptions.map((option) => {
                       const active = displayMode === option.value;
 
@@ -959,10 +837,10 @@ export default function AdminCompanyMonitorPage() {
                           key={option.value}
                           type="button"
                           onClick={() => setDisplayMode(option.value)}
-                          className={`h-11 rounded-xl text-sm font-black transition active:scale-[0.98] ${
+                          className={`monitor-field flex h-12 items-center justify-center rounded-2xl border px-4 text-sm font-black outline-none transition active:scale-[0.98] ${
                             active
-                              ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                              : "text-slate-500 hover:bg-white hover:text-[#123c8c]"
+                              ? "border-[#123c8c] bg-[#123c8c] text-white shadow-sm"
+                              : "border-blue-100 bg-[#f6f8ff] text-slate-700 hover:border-slate-300"
                           }`}
                         >
                           {option.label}
@@ -1013,11 +891,11 @@ export default function AdminCompanyMonitorPage() {
                   style={{ animationDelay: "140ms" }}
                 >
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                    Kategori Grafik Aktif
+                    Grafik Aktif
                   </p>
 
                   <p className="mt-2 text-2xl font-black text-slate-950">
-                    {getMetricLabel(selectedMetric)}
+                    Kehadiran Karyawan
                   </p>
                 </div>
               </div>
@@ -1039,314 +917,74 @@ export default function AdminCompanyMonitorPage() {
             </div>
           ) : data ? (
             <>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div
-                  className="monitor-row-enter rounded-2xl border border-amber-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
-                  style={{ animationDelay: "60ms" }}
-                >
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <Clock3 size={18} />
-                    <p className="text-sm font-black text-slate-900">
-                      Telat Bulan Ini
+              <div
+                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
+                style={{ animationDelay: "140ms" }}
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-950">
+                      Grafik Kehadiran per Tanggal
+                    </h3>
+
+                    <p className="mt-2 text-sm font-semibold text-slate-500 md:text-base">
+                      Total waktu terlambat bulan ini:{" "}
+                      <span className="font-black text-slate-700">
+                        {formatMinutes(data.summary.totalLateMinutesMonth)}
+                      </span>
+                    </p>
+
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      Cuti hari ini: {data.summary.cuti} karyawan.
                     </p>
                   </div>
-
-                  <p className="mt-2 text-2xl font-black text-amber-700">
-                    {formatMinutes(data.summary.totalLateMinutesMonth)}
-                  </p>
                 </div>
 
-                <div
-                  className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
-                  style={{ animationDelay: "100ms" }}
-                >
-                  <div className="flex items-center gap-2 text-[#123c8c]">
-                    <TrendingUp size={18} />
-                    <p className="text-sm font-black text-slate-900">
-                      Total Jam Kerja
-                    </p>
-                  </div>
+                {displayMode === "chart" ? (
+                  <>
+                    <AnimatedHistogram
+                      points={data.dailyChart}
+                      maxValue={histogramMaxValue}
+                      selectedSegment={selectedHistogramSegment}
+                      onSelectedSegmentChange={setSelectedHistogramSegment}
+                      month={month}
+                      year={year}
+                    />
 
-                  <p className="mt-2 text-2xl font-black text-slate-950">
-                    {formatMinutes(data.summary.totalWorkMinutesMonth)}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
-                style={{ animationDelay: "100ms" }}
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 text-[#123c8c]">
-                      <BriefcaseBusiness size={18} />
-                      <p className="text-xs font-black uppercase tracking-[0.16em]">
-                        Monitoring Mode Kerja Fleksibel
-                      </p>
-                    </div>
-
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">
-                      Ringkasan WFH dan Kunjungan
-                    </h3>
-                  </div>
-
-                  <div className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-black text-[#123c8c] ring-1 ring-blue-100">
-                    Total data hari ini: {data.summary.todayRecords}
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  {flexibleModeCards.map((item, index) => {
-                    const icon =
-                      item.key === "wfh" ? (
-                        <Home size={20} strokeWidth={2.5} />
-                      ) : (
-                        <BriefcaseBusiness size={20} strokeWidth={2.5} />
-                      );
-
-                    return (
-                      <div
-                        key={item.key}
-                        className="monitor-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60"
-                        style={{
-                          animationDelay: `${index * 70}ms`,
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                              {item.label}
-                            </p>
-                            <p className="mt-2 text-3xl font-black text-slate-950">
-                              {item.value}
-                            </p>
-                          </div>
-
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#123c8c] ring-1 ring-blue-100">
-                            {icon}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 h-3 overflow-hidden rounded-full bg-blue-100">
-                          <div
-                            className="h-full rounded-full bg-[#123c8c] transition-all duration-700 ease-out"
-                            style={{
-                              width: `${Math.min(item.percentage, 100)}%`,
-                            }}
-                          />
-                        </div>
-
-                        <p className="mt-3 text-sm font-black text-[#123c8c]">
-                          {item.percentage.toFixed(1)}% dari total data
-                        </p>
-
-                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                          {item.description}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {displayMode === "chart" ? (
-                <div
-                  className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
-                  style={{ animationDelay: "140ms" }}
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 text-[#123c8c]">
-                        <BarChart3 size={18} />
-
-                        <p className="text-xs font-black uppercase tracking-[0.16em]">
-                          Analitik Monitor Perusahaan
-                        </p>
-                      </div>
-
-                      <h3 className="mt-2 text-2xl font-black text-slate-950">
-                        Grafik Bar Berdasarkan Kategori
-                      </h3>
-
-                      <p className="mt-2 text-sm font-semibold text-slate-500 md:text-base">
-                        Total waktu terlambat bulan ini:{" "}
-                        <span className="font-black text-slate-700">
-                          {formatMinutes(data.summary.totalLateMinutesMonth)}
-                        </span>
-                      </p>
-
-                      {selectedMetric === "cuti" ? (
-                        <p className="mt-1 text-xs font-bold text-slate-400">
-                          Cuti bulan ini: {leaveChartData.totalApprovedRequests}{" "}
-                          pengajuan disetujui.
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-black text-[#123c8c] ring-1 ring-blue-100">
-                      {getMetricLabel(selectedMetric)}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {metricOptions.map((option) => {
-                      const active = selectedMetric === option.value;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setSelectedMetric(option.value)}
-                          className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-black transition active:scale-[0.98] ${
-                            active
-                              ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20"
-                              : "bg-[#f6f8ff] text-slate-500 ring-1 ring-blue-100 hover:bg-[#eaf1ff] hover:text-[#123c8c]"
-                          }`}
-                        >
-                          {active ? (
-                            <CheckCircle2
-                              size={14}
-                              strokeWidth={2.7}
-                              className="mr-1.5"
-                            />
-                          ) : null}
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <AnimatedHistogram
-                    metricLabel={getMetricLabel(selectedMetric)}
-                    unit={metricChart.unit}
-                    points={metricChart.points}
-                    maxValue={metricChart.maxValue}
-                  />
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {summaryCards.map((item, index) => (
-                    <div
-                      key={item.label}
-                      className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
-                      style={{
-                        animationDelay: `${index * 55}ms`,
-                      }}
-                    >
-                      <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500">
-                        {item.label}
-                      </p>
-
-                      <p className="mt-2 text-3xl font-black text-slate-950">
-                        {item.value}
-                      </p>
-
-                      <p className="mt-1 text-xs font-black text-[#123c8c]">
-                        {item.note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
-                style={{ animationDelay: "180ms" }}
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 text-[#123c8c]">
-                      <TrendingUp size={18} />
-                      <p className="text-xs font-black uppercase tracking-[0.16em]">
-                        Pie Chart Monitoring
-                      </p>
-                    </div>
-
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">
-                      Pie Chart Terpisah per Kategori
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <PieProgressCard
-                    label="WFH"
-                    value={getSummaryModeValue(
-                      data.summary,
-                      "wfh",
-                      flexibleModeTotals,
-                    )}
-                    percentage={getSummaryModePercentage(
-                      data.summary,
-                      "wfh",
-                      flexibleModeTotals,
-                    )}
-                    description="Proporsi presensi WFH pada periode monitor."
-                    icon={<Home size={20} strokeWidth={2.5} />}
-                  />
-
-                  <PieProgressCard
-                    label="Kunjungan"
-                    value={getSummaryModeValue(
-                      data.summary,
-                      "visit",
-                      flexibleModeTotals,
-                    )}
-                    percentage={getSummaryModePercentage(
-                      data.summary,
-                      "visit",
-                      flexibleModeTotals,
-                    )}
-                    description="Proporsi presensi kunjungan pada periode monitor."
-                    icon={<BriefcaseBusiness size={20} strokeWidth={2.5} />}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
-                style={{ animationDelay: "220ms" }}
-              >
-                <div className="flex items-center gap-2 text-amber-700">
-                  <AlertTriangle size={18} />
-
-                  <h3 className="text-lg font-black text-slate-950">
-                    Perlu Tindak Lanjut
-                  </h3>
-                </div>
-
-                {data.alerts.length === 0 ? (
-                  <p className="mt-4 text-sm font-semibold text-slate-500">
-                    Tidak ada alert belum check-out hari ini.
-                  </p>
+                    <AttendancePieChart summary={data.summary} />
+                  </>
                 ) : (
-                  <div className="mt-4 grid gap-2 md:grid-cols-2">
-                    {data.alerts.map((alert, index) => (
+                <div className="space-y-5">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {summaryCards.map((item, index) => (
                       <div
-                        key={alert.id}
-                        className="monitor-row-enter rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2"
+                        key={item.label}
+                        className="monitor-row-enter rounded-2xl border border-blue-100 bg-white p-4 shadow-lg shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40"
                         style={{
                           animationDelay: `${index * 55}ms`,
                         }}
                       >
-                        <p className="text-sm font-black text-slate-900">
-                          {alert.employeeName}
+                        <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500">
+                          {item.label}
                         </p>
 
-                        <p className="mt-1 text-xs font-semibold text-slate-600">
-                          Check-in {alert.checkIn} • mode{" "}
-                          {formatWorkMode(alert.mode)} • belum check-out
+                        <p className="mt-2 text-3xl font-black text-slate-950">
+                          {item.value}
+                        </p>
+
+                        <p className="mt-1 text-xs font-black text-[#123c8c]">
+                          {item.note}
                         </p>
                       </div>
                     ))}
                   </div>
+                </div>
                 )}
               </div>
 
               <div
                 className="monitor-enter rounded-3xl border border-white/70 bg-white/95 p-5 shadow-xl shadow-slate-300/30"
-                style={{ animationDelay: "260ms" }}
+                style={{ animationDelay: "220ms" }}
               >
                 <div className="flex items-center gap-2 text-amber-700">
                   <Clock3 size={18} />
@@ -1358,7 +996,7 @@ export default function AdminCompanyMonitorPage() {
 
                 {data.lateReasons.length === 0 ? (
                   <p className="mt-4 text-sm font-semibold text-slate-500">
-                    Belum ada data keterlambatan pada periode ini.
+                    Belum ada karyawan terlambat hari ini.
                   </p>
                 ) : (
                   <div className="mt-4 overflow-x-auto">

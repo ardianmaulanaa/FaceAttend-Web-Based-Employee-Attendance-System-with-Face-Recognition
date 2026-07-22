@@ -398,7 +398,7 @@ export default function AppHeader({
           type="button"
           aria-label="Tutup menu"
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-slate-950/40"
         />
       ) : null}
 

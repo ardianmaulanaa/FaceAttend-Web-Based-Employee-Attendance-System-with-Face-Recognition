@@ -44,9 +44,18 @@ async function getUserIdFromRequest(req: NextRequest) {
 }
 
 function getTodayDateOnly() {
-  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value || 0);
 
-  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  return new Date(
+    Date.UTC(getPart("year"), getPart("month") - 1, getPart("day")),
+  );
 }
 
 function toJakartaDate(date = new Date()) {

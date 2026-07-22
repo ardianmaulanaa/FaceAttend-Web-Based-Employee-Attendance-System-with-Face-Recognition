@@ -412,12 +412,12 @@ function PhotoCard({
 }) {
   return (
     <div
-      className="history-detail-row-enter overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-slate-300/40"
+      className="history-detail-row-enter min-w-0"
       style={{ animationDelay: delay }}
     >
-      <div className="flex items-center justify-between gap-4 border-b border-blue-50 p-5">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="history-detail-icon-pop flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+          <div className="history-detail-icon-pop flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
             <Camera size={23} strokeWidth={2.6} />
           </div>
 
@@ -426,7 +426,7 @@ function PhotoCard({
               {title}
             </p>
 
-            <h3 className="mt-1 text-lg font-black text-slate-950">
+            <h3 className="mt-1 text-base font-black text-slate-950">
               {subtitle}
             </h3>
           </div>
@@ -443,18 +443,18 @@ function PhotoCard({
         )}
       </div>
 
-      <div className="p-5">
+      <div className="mt-4">
         {isAvailable ? (
-          <div className="overflow-hidden rounded-3xl bg-slate-100">
+          <div className="overflow-hidden rounded-2xl bg-slate-100">
             <img
               src={imageUrl}
               alt={subtitle}
-              className="history-detail-image-enter h-80 w-full object-cover transition duration-300 hover:scale-[1.03]"
+              className="history-detail-image-enter h-60 w-full object-cover transition duration-300 hover:scale-[1.02] md:h-72"
             />
           </div>
         ) : (
-          <div className="flex h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] p-6 text-center">
-            <div className="history-detail-icon-pop flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-slate-400 shadow-sm">
+          <div className="flex min-h-60 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6 text-center md:min-h-72">
+            <div className="history-detail-icon-pop flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
               <ImageIcon size={30} strokeWidth={2.4} />
             </div>
 
@@ -497,12 +497,12 @@ function LocationCard({
 
   return (
     <div
-      className="history-detail-row-enter rounded-[2rem] border border-blue-100 bg-white p-5 shadow-xl shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-slate-300/40"
+      className="history-detail-row-enter min-w-0"
       style={{ animationDelay: delay }}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="history-detail-icon-pop flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+          <div className="history-detail-icon-pop flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
             <MapPin size={23} strokeWidth={2.6} />
           </div>
 
@@ -511,7 +511,9 @@ function LocationCard({
               Lokasi GPS
             </p>
 
-            <h3 className="mt-1 text-lg font-black text-slate-950">{title}</h3>
+            <h3 className="mt-1 text-base font-black text-slate-950">
+              {title}
+            </h3>
           </div>
         </div>
 
@@ -534,7 +536,7 @@ function LocationCard({
 
       {hasCoordinate || hasAddress ? (
         <div className="mt-5">
-          <div className="rounded-3xl bg-[#f8fbff] p-5 ring-1 ring-blue-50">
+          <div className="rounded-2xl bg-slate-50 p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
               Lokasi Tercatat
             </p>
@@ -546,13 +548,13 @@ function LocationCard({
 
             <div className="mt-4 flex flex-wrap gap-2">
               {accuracy !== null ? (
-                <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-blue-100">
+                <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-100">
                   Akurasi: ±{Math.round(accuracy)} meter
                 </span>
               ) : null}
 
               {distance !== null ? (
-                <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-blue-100">
+                <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-100">
                   Jarak: {Math.round(distance)} meter
                 </span>
               ) : null}
@@ -564,7 +566,7 @@ function LocationCard({
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:-translate-y-0.5 hover:bg-[#0f3274] active:scale-[0.98]"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:-translate-y-0.5 hover:bg-[#0f3274] active:scale-[0.98]"
             >
               <Navigation size={18} strokeWidth={2.6} />
               Buka Lokasi di Google Maps
@@ -573,8 +575,8 @@ function LocationCard({
           ) : null}
         </div>
       ) : (
-        <div className="mt-5 flex min-h-52 flex-col items-center justify-center rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] p-6 text-center">
-          <div className="history-detail-icon-pop flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-slate-400 shadow-sm">
+        <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl bg-slate-50 p-6 text-center">
+          <div className="history-detail-icon-pop flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
             <MapPin size={30} strokeWidth={2.4} />
           </div>
 
@@ -784,37 +786,61 @@ export default function HistoryDetailPage() {
               />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <PhotoCard
-                title="Foto Check-in"
-                subtitle="Foto presensi masuk"
-                imageUrl={`/api/attendance/${attendance.id}/photo?type=check-in`}
-                isAvailable={attendance.hasCheckInPhoto}
-                delay="180ms"
-              />
+            <section className="history-detail-row-enter rounded-[1.75rem] bg-white p-5 shadow-lg shadow-slate-200/50">
+              <div className="flex flex-col gap-1 border-b border-slate-100 pb-4">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                  Dokumentasi
+                </p>
+                <h3 className="text-xl font-black text-slate-950">
+                  Foto Presensi
+                </h3>
+              </div>
 
-              <PhotoCard
-                title="Foto Check-out"
-                subtitle="Foto presensi pulang"
-                imageUrl={`/api/attendance/${attendance.id}/photo?type=check-out`}
-                isAvailable={attendance.hasCheckOutPhoto}
-                delay="220ms"
-              />
-            </div>
+              <div className="mt-5 grid gap-6 lg:grid-cols-2">
+                <PhotoCard
+                  title="Foto Check-in"
+                  subtitle="Foto presensi masuk"
+                  imageUrl={`/api/attendance/${attendance.id}/photo?type=check-in`}
+                  isAvailable={attendance.hasCheckInPhoto}
+                  delay="180ms"
+                />
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <LocationCard
-                title="Lokasi Check-in"
-                location={attendance.checkInLocation}
-                delay="260ms"
-              />
+                <PhotoCard
+                  title="Foto Check-out"
+                  subtitle="Foto presensi pulang"
+                  imageUrl={`/api/attendance/${attendance.id}/photo?type=check-out`}
+                  isAvailable={attendance.hasCheckOutPhoto}
+                  delay="220ms"
+                />
+              </div>
+            </section>
 
-              <LocationCard
-                title="Lokasi Check-out"
-                location={attendance.checkOutLocation}
-                delay="300ms"
-              />
-            </div>
+            <section className="history-detail-row-enter rounded-[1.75rem] bg-white p-5 shadow-lg shadow-slate-200/50">
+              <div className="flex flex-col gap-1 border-b border-slate-100 pb-4">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                  GPS
+                </p>
+                <h3 className="text-xl font-black text-slate-950">
+                  Lokasi Presensi
+                </h3>
+              </div>
+
+              <div className="mt-5 grid gap-6 divide-y divide-slate-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                <LocationCard
+                  title="Lokasi Check-in"
+                  location={attendance.checkInLocation}
+                  delay="260ms"
+                />
+
+                <div className="pt-6 lg:pl-6 lg:pt-0">
+                  <LocationCard
+                    title="Lokasi Check-out"
+                    location={attendance.checkOutLocation}
+                    delay="300ms"
+                  />
+                </div>
+              </div>
+            </section>
           </>
         )}
       </section>

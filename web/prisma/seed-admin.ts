@@ -74,24 +74,24 @@ async function main() {
 
   await prisma.user.upsert({
     where: {
-      email: "owner@creativemu.com",
+      email: "admin@creativemu.com",
     },
     update: {
-      name: "Owner Creativemu",
+      name: "Admin Creativemu",
       password_hash,
       role: "admin",
       status: "active",
     },
     create: {
-      name: "Owner Creativemu",
-      email: "owner@creativemu.com",
+      name: "Admin Creativemu",
+      email: "admin@creativemu.com",
       password_hash,
       role: "admin",
       status: "active",
     },
   });
 
-  console.log("Admin owner@creativemu.com berhasil dibuat");
+  console.log("Admin admin@creativemu.com berhasil dibuat");
 }
 
 main()

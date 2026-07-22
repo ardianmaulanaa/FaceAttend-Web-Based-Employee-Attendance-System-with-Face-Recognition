@@ -626,17 +626,17 @@ export default function AdminAnnouncementsPage() {
       </main>
 
       {isModalOpen && (
-        <div className="admin-announcement-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="admin-announcement-modal-panel max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
-            <div className="flex items-start justify-between gap-4">
+        <div className="admin-announcement-modal-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4">
+          <div className="admin-announcement-modal-panel flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-xl shadow-slate-950/25">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 md:px-6">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#123c8c]">
                   {editingAnnouncementId
                     ? "Edit Pengumuman"
                     : "Tambah Pengumuman"}
                 </p>
 
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                <h2 className="mt-1 text-xl font-black text-slate-950 md:text-2xl">
                   {editingAnnouncementId
                     ? "Edit Data Pengumuman"
                     : "Tambah Pengumuman Baru"}
@@ -650,13 +650,17 @@ export default function AdminAnnouncementsPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 active:scale-[0.96]"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 active:scale-[0.96]"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 md:px-6">
               <div className="admin-announcement-row-enter">
                 <label className="mb-2 block text-sm font-black text-slate-700">
                   Judul Pengumuman
@@ -671,7 +675,7 @@ export default function AdminAnnouncementsPage() {
                     }))
                   }
                   placeholder="Contoh: Pengingat Presensi Harian"
-                  className="admin-announcement-field w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="admin-announcement-field w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
@@ -693,7 +697,7 @@ export default function AdminAnnouncementsPage() {
                   }
                   rows={6}
                   placeholder="Tulis isi pemberitahuan..."
-                  className="admin-announcement-field w-full resize-none rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold leading-6 text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="admin-announcement-field w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold leading-6 text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
@@ -713,7 +717,7 @@ export default function AdminAnnouncementsPage() {
                       status: event.target.value as AnnouncementStatus,
                     }))
                   }
-                  className="admin-announcement-field w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="admin-announcement-field w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="published">Published</option>
                   <option value="draft">Draft</option>
@@ -729,9 +733,9 @@ export default function AdminAnnouncementsPage() {
                   Dokumen PDF
                 </label>
 
-                <label className="admin-announcement-field flex cursor-pointer flex-col gap-3 rounded-2xl border border-dashed border-blue-200 bg-[#f6f8ff] px-4 py-4 text-sm font-bold text-slate-600 outline-none transition hover:border-[#123c8c] hover:bg-white hover:ring-4 hover:ring-blue-100 md:flex-row md:items-center md:justify-between">
+                <label className="admin-announcement-field flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm font-bold text-slate-600 outline-none transition hover:border-[#123c8c] hover:ring-2 hover:ring-blue-100 md:flex-row md:items-center md:justify-between">
                   <span className="inline-flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#123c8c] shadow-sm">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-[#123c8c]">
                       <Paperclip size={20} strokeWidth={2.6} />
                     </span>
                     <span className="min-w-0">
@@ -748,7 +752,7 @@ export default function AdminAnnouncementsPage() {
                     </span>
                   </span>
 
-                  <span className="rounded-xl bg-white px-3 py-2 text-xs font-black text-[#123c8c] shadow-sm">
+                  <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-[#123c8c]">
                     Pilih File
                   </span>
 
@@ -792,7 +796,7 @@ export default function AdminAnnouncementsPage() {
                 </label>
 
                 {form.existingDocumentUrl && !form.document ? (
-                  <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-blue-100 bg-white p-3 text-xs font-bold text-slate-500 md:flex-row md:items-center md:justify-between">
+                  <div className="mt-3 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-500 md:flex-row md:items-center md:justify-between">
                     <a
                       href={form.existingDocumentUrl}
                       target="_blank"
@@ -823,14 +827,16 @@ export default function AdminAnnouncementsPage() {
                 ) : null}
               </div>
 
+              </div>
+
               <div
-                className="admin-announcement-row-enter flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end"
+                className="admin-announcement-row-enter flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:flex-row md:justify-end md:px-6"
                 style={{ animationDelay: "160ms" }}
               >
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-200 active:scale-[0.98]"
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-600 transition hover:bg-slate-50 active:scale-[0.98]"
                 >
                   Batal
                 </button>
@@ -838,7 +844,7 @@ export default function AdminAnnouncementsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-2xl bg-[#123c8c] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-[#123c8c] px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0f3274] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting
                     ? "Menyimpan..."

@@ -44,6 +44,8 @@ type EmployeeRecap = {
 type EmployeeAttendanceRecapResponse = {
   success?: boolean;
   message?: string;
+  startDate?: string;
+  endDate?: string;
   employees?: EmployeeRecap[];
 };
 
@@ -55,26 +57,6 @@ async function readJsonResponse(response: Response) {
   } catch {
     throw new Error("Response API bukan JSON.");
   }
-}
-
-function getDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function getDefaultStartDate() {
-  const date = new Date();
-
-  date.setDate(1);
-
-  return getDateInputValue(date);
-}
-
-function getDefaultEndDate() {
-  return getDateInputValue(new Date());
 }
 
 function formatDateRange(startDate: string, endDate: string) {
@@ -124,7 +106,7 @@ function getInitialDate(searchParams: URLSearchParams, key: string) {
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
-  return key === "startDate" ? getDefaultStartDate() : getDefaultEndDate();
+  return "";
 }
 
 function escapeExcelCell(value: string | number | null | undefined) {
@@ -198,13 +180,7 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const getRecap = useCallback(async () => {
-    if (!startDate || !endDate) {
-      setEmployee(null);
-      setErrorMessage("Pilih tanggal mulai dan tanggal akhir.");
-      return;
-    }
-
-    if (startDate > endDate) {
+    if (startDate && endDate && startDate > endDate) {
       setEmployee(null);
       setErrorMessage("Tanggal mulai tidak boleh melewati tanggal akhir.");
       return;
@@ -214,11 +190,10 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
       setIsLoading(true);
       setErrorMessage("");
 
-      const queryParams = new URLSearchParams({
-        employeeId,
-        startDate,
-        endDate,
-      });
+      const queryParams = new URLSearchParams({ employeeId });
+
+      if (startDate) queryParams.set("startDate", startDate);
+      if (endDate) queryParams.set("endDate", endDate);
 
       const response = await fetch(
         `/api/admin/employee-attendance-recap?${queryParams.toString()}`,
@@ -237,6 +212,14 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
       }
 
       setEmployee(data.employees?.[0] || null);
+
+      if (data.startDate && data.startDate !== startDate) {
+        setStartDate(data.startDate);
+      }
+
+      if (data.endDate && data.endDate !== endDate) {
+        setEndDate(data.endDate);
+      }
     } catch (error) {
       setEmployee(null);
       setErrorMessage(

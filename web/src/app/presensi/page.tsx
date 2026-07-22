@@ -12,8 +12,6 @@ import {
   LogIn,
   LogOut,
   MapPin,
-  Power,
-  RotateCcw,
   ScanFace,
   ShieldCheck,
   X,
@@ -535,15 +533,8 @@ function StatusPill({
 function PhotoFrameOverlay() {
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
-      <div className="absolute inset-0 rounded-[1.35rem] border border-white/45 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" />
-      <div className="absolute inset-[0.55rem] rounded-[1.05rem] border border-white/25" />
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/18 via-white/5 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/20 via-slate-950/5 to-transparent" />
-
-      <div className="absolute left-4 top-4 h-10 w-10 rounded-tl-[1.1rem] border-l-[3px] border-t-[3px] border-white/70" />
-      <div className="absolute right-4 top-4 h-10 w-10 rounded-tr-[1.1rem] border-r-[3px] border-t-[3px] border-white/70" />
-      <div className="absolute bottom-4 left-4 h-10 w-10 rounded-bl-[1.1rem] border-b-[3px] border-l-[3px] border-white/70" />
-      <div className="absolute bottom-4 right-4 h-10 w-10 rounded-br-[1.1rem] border-b-[3px] border-r-[3px] border-white/70" />
     </div>
   );
 }
@@ -581,38 +572,10 @@ function CameraEmptyState({
             ? "Check-in dan check-out hanya dapat dilakukan melalui HP."
             : cameraStarting
               ? "Mohon tunggu sampai kamera memuat gambar."
-              : "Kamera sedang mati. Klik Aktifkan Kamera di bawah layar kamera."}
+              : "Kamera sedang memuat otomatis."}
         </p>
       </div>
     </div>
-  );
-}
-
-function CameraControlButton({
-  onClick,
-  disabled,
-  danger,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  danger?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <AppButton
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      variant="soft"
-      full
-      className={cn(
-        "min-h-11 rounded-2xl px-3 text-xs shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 active:scale-[0.98] md:min-h-12 md:text-sm",
-        danger ? "bg-red-500/95 text-white" : "bg-white text-[#123c8c]",
-      )}
-    >
-      {children}
-    </AppButton>
   );
 }
 
@@ -840,7 +803,7 @@ function VisitDataModal({
         }
       `}</style>
 
-      <div className="fixed inset-0 z-[82] flex items-end justify-center bg-slate-950/45 px-4 pb-4 backdrop-blur-sm animate-[visitOverlayIn_180ms_ease-out] md:items-center md:pb-0">
+      <div className="fixed inset-0 z-[82] flex items-end justify-center bg-slate-950/45 px-4 pb-4 animate-[visitOverlayIn_180ms_ease-out] md:items-center md:pb-0">
         <AppCard className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border-white/80 bg-white p-0 shadow-2xl shadow-slate-950/25 animate-[visitModalIn_230ms_ease-out]">
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
 
@@ -1087,7 +1050,7 @@ function EarlyCheckoutConfirmModal({
         }
       `}</style>
 
-      <div className="fixed inset-0 z-[84] flex items-end justify-center bg-slate-950/45 px-4 pb-4 backdrop-blur-sm animate-[earlyOverlayIn_180ms_ease-out] md:items-center md:pb-0">
+      <div className="fixed inset-0 z-[84] flex items-end justify-center bg-slate-950/45 px-4 pb-4 animate-[earlyOverlayIn_180ms_ease-out] md:items-center md:pb-0">
         <AppCard className="relative w-full max-w-md overflow-hidden border-white/80 bg-white p-0 shadow-2xl shadow-slate-950/25 animate-[earlyModalIn_230ms_ease-out]">
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
 
@@ -1217,7 +1180,7 @@ function LateReasonModal({
         }
       `}</style>
 
-      <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 px-4 pb-4 backdrop-blur-sm animate-[lateOverlayIn_180ms_ease-out] md:items-center md:pb-0">
+      <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 px-4 pb-4 animate-[lateOverlayIn_180ms_ease-out] md:items-center md:pb-0">
         <AppCard className="relative w-full max-w-md overflow-hidden border-white/80 bg-white p-0 shadow-2xl shadow-slate-950/25 animate-[lateModalIn_230ms_ease-out]">
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
 
@@ -1841,20 +1804,6 @@ export default function AttendancePage() {
     }
   }
 
-  async function toggleCamera() {
-    if (isLaptopBlocked) {
-      showLaptopBlockedAlert();
-      return;
-    }
-
-    if (streamRef.current) {
-      releaseCamera(true, true);
-      return;
-    }
-
-    await startCamera();
-  }
-
   function getCurrentLocation(): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -2357,8 +2306,8 @@ export default function AttendancePage() {
               </div>
             ) : null}
 
-            <div className="attendance-camera-enter mt-3 rounded-[1.9rem] bg-white p-2 shadow-[0_22px_55px_rgba(15,23,42,0.20)] ring-1 ring-slate-200/80">
-              <div className="relative overflow-hidden rounded-[1.45rem] border border-slate-200 bg-slate-950 shadow-inner">
+            <div className="attendance-camera-enter mt-3 overflow-hidden bg-slate-950 shadow-[0_18px_42px_rgba(15,23,42,0.18)]">
+              <div className="relative overflow-hidden bg-slate-950 shadow-inner">
                 <div className="relative h-[56dvh] min-h-[360px] max-h-[620px] md:h-auto md:aspect-[16/10] md:min-h-0 md:max-h-none lg:aspect-[16/10]">
                   <video
                     ref={videoRef}
@@ -2425,33 +2374,6 @@ export default function AttendancePage() {
                   ) : null}
                 </div>
               </div>
-            </div>
-
-            <div className="attendance-row-enter mt-3 grid grid-cols-2 gap-2">
-              <CameraControlButton
-                onClick={toggleCamera}
-                disabled={loading || cameraStarting || isLaptopBlocked}
-                danger={cameraReady}
-              >
-                {cameraStarting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Power size={16} />
-                )}
-                {cameraReady ? "Matikan" : "Aktifkan"}
-              </CameraControlButton>
-
-              <CameraControlButton
-                onClick={startCamera}
-                disabled={loading || cameraStarting || isLaptopBlocked}
-              >
-                {cameraStarting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <RotateCcw size={16} />
-                )}
-                Restart
-              </CameraControlButton>
             </div>
 
             <canvas ref={canvasRef} className="hidden" />

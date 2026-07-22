@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   Clock3,
@@ -520,11 +521,13 @@ export default function AdminDashboardPage() {
                       <MobileAttendanceCard item={item} index={index} />
                     </div>
 
-                    <div
-                      className="dashboard-row-enter hidden px-5 py-4 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid md:grid-cols-[0.55fr_1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] md:items-center"
+                    <Link
+                      href={`/admin/employees/${item.id}`}
+                      className="dashboard-row-enter hidden cursor-pointer px-5 py-4 text-sm transition duration-200 hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123c8c] focus-visible:ring-offset-2 md:grid md:grid-cols-[0.55fr_1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] md:items-center"
                       style={{
                         animationDelay: `${index * 45}ms`,
                       }}
+                      aria-label={`Buka detail karyawan ${item.name}`}
                     >
                       <EmployeeProfileAvatar item={item} />
 
@@ -560,7 +563,7 @@ export default function AdminDashboardPage() {
                       >
                         {getStatusLabel(item)}
                       </span>
-                    </div>
+                    </Link>
                   </div>
                 ))
               ) : (

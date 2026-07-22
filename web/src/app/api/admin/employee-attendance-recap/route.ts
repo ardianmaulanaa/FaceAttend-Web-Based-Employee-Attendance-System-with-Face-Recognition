@@ -42,8 +42,37 @@ function parseDateParam(value: string, label: string) {
   return date;
 }
 
+function parseOptionalDateParam(value: string | null, label: string) {
+  const dateText = String(value || "").trim();
+
+  if (!dateText) return null;
+
+  return parseDateParam(dateText, label);
+}
+
 function toDateKey(value: Date) {
   return value.toISOString().slice(0, 10);
+}
+
+function getDefaultMonthStartDate() {
+  const date = new Date();
+
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(1);
+
+  return date;
+}
+
+function getDefaultTodayDate() {
+  const date = new Date();
+
+  date.setUTCHours(0, 0, 0, 0);
+
+  return date;
+}
+
+function minDate(first: Date, second: Date) {
+  return first.getTime() <= second.getTime() ? first : second;
 }
 
 function clampDate(value: Date, min: Date, max: Date) {
@@ -128,18 +157,14 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const employeeId = String(searchParams.get("employeeId") || "").trim();
-    const startDate = parseDateParam(
-      searchParams.get("startDate") || "",
+    const requestedStartDate = parseOptionalDateParam(
+      searchParams.get("startDate"),
       "Tanggal mulai",
     );
-    const endDate = parseDateParam(
-      searchParams.get("endDate") || "",
+    const requestedEndDate = parseOptionalDateParam(
+      searchParams.get("endDate"),
       "Tanggal akhir",
     );
-
-    if (startDate.getTime() > endDate.getTime()) {
-      throw new Error("Tanggal mulai tidak boleh melewati tanggal akhir.");
-    }
 
     const employees = await prisma.user.findMany({
       where: {
@@ -181,6 +206,20 @@ export async function GET(req: NextRequest) {
         },
         { status: 404 },
       );
+    }
+
+    const selectedEmployee = employeeId ? employees[0] : null;
+    const todayDate = getDefaultTodayDate();
+    const defaultStartDate =
+      selectedEmployee?.employment_start_date || getDefaultMonthStartDate();
+    const defaultEndDate = selectedEmployee?.employment_end_date
+      ? minDate(selectedEmployee.employment_end_date, todayDate)
+      : todayDate;
+    const startDate = requestedStartDate || defaultStartDate;
+    const endDate = requestedEndDate || defaultEndDate;
+
+    if (startDate.getTime() > endDate.getTime()) {
+      throw new Error("Tanggal mulai tidak boleh melewati tanggal akhir.");
     }
 
     const employeeSummaries = new Map(

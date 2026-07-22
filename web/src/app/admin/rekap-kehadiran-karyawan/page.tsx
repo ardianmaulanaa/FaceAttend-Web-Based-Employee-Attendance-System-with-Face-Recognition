@@ -602,7 +602,7 @@ export default function AdminEmployeeAttendanceRecapPage() {
                   return (
                     <Link
                       key={employee.id}
-                      href={`/admin/rekap-kehadiran-karyawan/${employee.id}?startDate=${startDate}&endDate=${endDate}`}
+                      href={`/admin/rekap-kehadiran-karyawan/${employee.id}`}
                       onClick={() => setSelectedEmployeeId(employee.id)}
                       className={`group attendance-recap-row-enter flex w-full items-center gap-4 border-l-4 p-4 text-left transition hover:bg-[#f8fbff] md:p-5 ${
                         hasPendingLeave
