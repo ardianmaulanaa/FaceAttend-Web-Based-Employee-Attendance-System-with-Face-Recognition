@@ -1102,8 +1102,8 @@ export default function AdminEmployeesPage() {
           </div>
 
           <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
-            <div className="md:min-w-[1180px]">
-              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.85fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
+            <div className="md:min-w-[1300px]">
+              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
                 <p>Karyawan</p>
                 <p>Email</p>
                 <p>Kantor</p>
@@ -1139,7 +1139,7 @@ export default function AdminEmployeesPage() {
                           router.push(`/admin/employees/${employee.id}`);
                         }
                       }}
-                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.85fr] md:items-center md:gap-3"
+                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] md:items-center md:gap-3"
                       style={{
                         animationDelay: `${index * 45}ms`,
                       }}
@@ -1198,14 +1198,14 @@ export default function AdminEmployeesPage() {
                         </span>
                       </div>
 
-                      <div className="grid gap-2 md:flex md:justify-center">
+                      <div className="grid gap-2 whitespace-nowrap md:flex md:items-center md:justify-center md:gap-2">
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
                             openEditModal(employee);
                           }}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-10 md:rounded-xl md:border md:border-blue-100 md:bg-white md:px-3 md:py-0 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-10 md:rounded-xl md:border md:border-blue-100 md:bg-white md:px-3 md:py-0 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
                         >
                           <Edit size={15} />
                           Edit
@@ -1218,7 +1218,7 @@ export default function AdminEmployeesPage() {
                             handleDeleteEmployee(employee);
                           }}
                           disabled={deletingId === employee.id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:rounded-xl md:px-3 md:py-0"
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:rounded-xl md:px-3 md:py-0"
                         >
                           <Trash2 size={15} />
                           {deletingId === employee.id ? "..." : "Hapus"}

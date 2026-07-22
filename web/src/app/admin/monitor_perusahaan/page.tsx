@@ -564,17 +564,31 @@ function AnimatedHistogram({
           {/* ====== MOBILE VIEW: Horizontal bar rows (hidden on md+) ====== */}
           <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-[#0f3578] p-3 shadow-inner md:hidden">
             <div className="space-y-1.5">
-              {mobilePoints.map((point, index) => {
+              {mobilePoints.map((point) => {
                 const widthPercent = Math.max(
                   (point.value / safeMaxValue) * 100,
                   point.value > 0 ? 6 : 0,
                 );
 
+                const originalIndex = points.findIndex(
+                  (p) => p.label === point.label,
+                );
+                const isActive = activeIndex === originalIndex;
+
                 return (
-                  <div
+                  <button
                     key={`mobile-${metricLabel}-${point.label}`}
-                    className="monitor-row-enter flex items-center gap-2"
-                    style={{ animationDelay: `${index * 25}ms` }}
+                    type="button"
+                    onClick={() =>
+                      setActiveIndex(
+                        isActive ? null : originalIndex >= 0 ? originalIndex : null,
+                      )
+                    }
+                    className={`monitor-row-enter flex w-full items-center gap-2 rounded-lg p-1 text-left transition ${
+                      isActive
+                        ? "bg-white/15 ring-1 ring-white/30"
+                        : "hover:bg-white/5 active:bg-white/10"
+                    }`}
                   >
                     {/* Date label */}
                     <span className="w-7 shrink-0 text-right text-[11px] font-black text-blue-100/80">
@@ -584,12 +598,13 @@ function AnimatedHistogram({
                     {/* Bar track */}
                     <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-white/5">
                       <div
-                        className="absolute inset-y-0 left-0 rounded-lg bg-gradient-to-r from-blue-300/90 to-blue-200/80 transition-all duration-500 ease-out"
+                        className={`absolute inset-y-0 left-0 rounded-lg transition-all duration-500 ease-out ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-100 to-blue-200"
+                            : "bg-gradient-to-r from-blue-300/90 to-blue-200/80"
+                        }`}
                         style={{
                           width: `${widthPercent}%`,
-                          animation: "mobileBarFill 600ms ease-out",
-                          animationDelay: `${index * 30}ms`,
-                          animationFillMode: "backwards",
                         }}
                       />
 
@@ -613,10 +628,49 @@ function AnimatedHistogram({
                         </span>
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
+
+            {/* Mobile Detail Box for Selected Point */}
+            {activePoint ? (
+              <div className="mt-3 rounded-xl border border-white/15 bg-white/10 p-3 text-xs font-black text-blue-50">
+                <div className="flex items-center justify-between border-b border-white/15 pb-1.5 mb-1.5">
+                  <p className="text-blue-200 font-black">
+                    Detail {metricLabel} Tgl {activePoint.label}: {activePoint.value} {unit}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveIndex(null)}
+                    className="text-[10px] font-bold text-blue-300 hover:text-white"
+                  >
+                    ✕ Tutup
+                  </button>
+                </div>
+
+                {(activePoint as any).names && (activePoint as any).names.length > 0 ? (
+                  <div className="mt-1 space-y-1 max-h-[140px] overflow-y-auto pr-1">
+                    <p className="text-[10px] uppercase tracking-wider text-blue-300">
+                      Daftar Karyawan ({(activePoint as any).names.length}):
+                    </p>
+                    <ul className="list-disc list-inside text-[11px] font-bold text-white space-y-0.5">
+                      {(activePoint as any).names.map((name: string, i: number) => (
+                        <li key={i}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-blue-300 text-[10px] font-medium mt-1">
+                    Tidak ada rincian data karyawan untuk tanggal ini.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-center text-[10px] font-bold text-blue-200/70">
+                💡 Klik/Tap pada tanggal untuk melihat rincian nama karyawan
+              </p>
+            )}
 
             {/* Toggle show all / show active only */}
             {hasHiddenZeros ? (

@@ -244,7 +244,7 @@ export default function HRAnalyticsPage() {
                           onDragStart={() => handleColDragStart(col.id)}
                           onDragOver={handleColDragOver}
                           onDrop={() => handleColDrop(col.id)}
-                          className={`px-4 py-3 cursor-move active:cursor-grabbing hover:bg-slate-150 dark:hover:bg-slate-800/80 transition duration-150 select-none ${col.align === "center" ? "text-center" : "text-left"}`}
+                          className={`px-4 py-3 cursor-move active:cursor-grabbing hover:bg-slate-150 dark:hover:bg-slate-800/80 transition duration-150 select-none whitespace-nowrap ${col.align === "center" ? "text-center" : "text-left"}`}
                           title="Tarik kolom ini untuk memindah urutannya"
                         >
                           <div className="inline-flex items-center gap-1">
@@ -356,8 +356,8 @@ export default function HRAnalyticsPage() {
                               }
                               if (col.id === "sisaKontrak") {
                                 return (
-                                  <td key={col.id} className="px-4 py-3">
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${getRemainingDaysText().includes("hari") ? "bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300" : getRemainingDaysText() === "-" ? "text-slate-500 dark:text-slate-400" : "bg-red-50 dark:bg-red-950/20 text-red-800 dark:text-red-300"}`}>
+                                  <td key={col.id} className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black ${getRemainingDaysText().includes("hari") ? "bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300" : getRemainingDaysText() === "-" ? "text-slate-500 dark:text-slate-400" : "bg-red-50 dark:bg-red-950/20 text-red-800 dark:text-red-300"}`}>
                                       {getRemainingDaysText()}
                                     </span>
                                   </td>

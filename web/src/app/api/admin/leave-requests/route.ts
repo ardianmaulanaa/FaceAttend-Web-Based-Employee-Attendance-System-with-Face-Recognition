@@ -83,7 +83,7 @@ async function getCurrentUser(req: NextRequest) {
 }
 
 function canManageLeave(role: string) {
-  return ["owner"].includes(role.toLowerCase());
+  return ["owner", "admin"].includes(role.toLowerCase());
 }
 
 function toIsoDate(value: Date | string | null | undefined) {

@@ -377,14 +377,14 @@ export default function AdminSalaryPage() {
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs text-slate-600 dark:text-slate-300">
+                <table className="w-full min-w-[650px] border-collapse text-left text-xs text-slate-600 dark:text-slate-300">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-[#0d1117] text-slate-500 dark:text-slate-450 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
-                      <th className="px-4 py-3">Nama Karyawan</th>
-                      <th className="px-4 py-3">Status / Divisi</th>
-                      <th className="px-4 py-3">Mulai Kerja</th>
-                      <th className="px-4 py-3">Gaji Pokok</th>
-                      <th className="px-4 py-3 text-center">Aksi</th>
+                    <tr className="bg-slate-50 dark:bg-[#0d1117] text-slate-500 dark:text-slate-450 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      <th className="px-4 py-3 whitespace-nowrap">Nama Karyawan</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Status / Divisi</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Mulai Kerja</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Gaji Pokok</th>
+                      <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -398,10 +398,10 @@ export default function AdminSalaryPage() {
                           key={emp.id}
                           className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                         >
-                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                             {emp.name}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <span className="font-black text-slate-700 dark:text-slate-300 capitalize">
                               {emp.employment_status === "kartap"
                                 ? "Tetap"
@@ -411,7 +411,7 @@ export default function AdminSalaryPage() {
                               {emp.department?.name || "-"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 font-semibold">
+                          <td className="px-4 py-3 font-semibold whitespace-nowrap">
                             {new Date(
                               emp.contract_start_date || emp.created_at,
                             ).toLocaleDateString("id-ID", {
@@ -420,17 +420,17 @@ export default function AdminSalaryPage() {
                               year: "numeric",
                             })}
                           </td>
-                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                             {new Intl.NumberFormat("id-ID", {
                               style: "currency",
                               currency: "IDR",
                               maximumFractionDigits: 0,
                             }).format(Number(emp.base_salary || 2000000))}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
                             <button
                               onClick={() => openPayModal(emp)}
-                              className="inline-flex h-8 items-center justify-center rounded-xl bg-[#123c8c] dark:bg-blue-600 px-4 text-xs font-black text-white shadow-md shadow-blue-200 dark:shadow-none transition hover:bg-[#1b4da4] dark:hover:bg-blue-700 active:scale-[0.98]"
+                              className="inline-flex h-8 shrink-0 whitespace-nowrap items-center justify-center rounded-xl bg-[#123c8c] dark:bg-blue-600 px-4 text-xs font-black text-white shadow-md shadow-blue-200 dark:shadow-none transition hover:bg-[#1b4da4] dark:hover:bg-blue-700 active:scale-[0.98]"
                             >
                               Hitung & Bayar
                             </button>

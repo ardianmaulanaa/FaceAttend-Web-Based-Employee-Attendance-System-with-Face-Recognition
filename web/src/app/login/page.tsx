@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  Eye,
+  EyeOff,
   Loader2,
   LogIn,
   ShieldCheck,
@@ -53,8 +55,9 @@ function isCreativemuEmail(email: string) {
   const normalized = email.trim().toLowerCase();
   return (
     normalized.endsWith("@creativemu.co.id") ||
-    normalized.endsWith("@creativemu.com") ||
-    normalized.endsWith("@creativemu.my.id")
+    normalized.endsWith("@creativemu.id") ||
+    normalized.endsWith(".co.id") ||
+    normalized.endsWith(".id")
   );
 }
 
@@ -476,6 +479,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [introLeaving, setIntroLeaving] = useState(false);
   const [introHintVisible, setIntroHintVisible] = useState(false);
@@ -612,7 +616,7 @@ export default function LoginPage() {
     if (!isValidEmailFormat(normalizedEmail)) {
       showAlert(
         "Format email salah",
-        "Masukkan email dengan format yang benar, contoh: nama@creativemu.my.id",
+        "Masukkan email dengan format yang benar, contoh: nama@creativemu.id",
       );
       return;
     }
@@ -620,7 +624,7 @@ export default function LoginPage() {
     if (!isCreativemuEmail(normalizedEmail)) {
       showAlert(
         "Email tidak valid",
-        "Login hanya dapat menggunakan email resmi Creativemu.",
+        "Login hanya dapat menggunakan domain .co.id atau .id (contoh: nama@creativemu.id atau nama@creativemu.co.id).",
       );
       return;
     }
@@ -875,7 +879,7 @@ export default function LoginPage() {
                       inputMode="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      placeholder="nama@creativemu.my.id"
+                      placeholder="nama@creativemu.id"
                       autoComplete="email"
                       disabled={formIsBusy}
                       className="border-blue-100 bg-[#f8fbff] text-slate-700 placeholder:text-slate-400 focus:border-[#123c8c] focus:bg-white focus:ring-blue-100/50 dark:border-blue-100 dark:bg-[#f8fbff] dark:text-slate-700 dark:placeholder:text-slate-400 dark:focus:border-[#123c8c] dark:focus:bg-white dark:focus:ring-blue-100/50"
@@ -891,13 +895,41 @@ export default function LoginPage() {
                     <AppInput
                       suppressHydrationWarning
                       label="Password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="••••••••"
                       autoComplete="current-password"
                       disabled={formIsBusy}
-                      className="border-blue-100 bg-[#f8fbff] text-slate-700 placeholder:text-slate-400 focus:border-[#123c8c] focus:bg-white focus:ring-blue-100/50 dark:border-blue-100 dark:bg-[#f8fbff] dark:text-slate-700 dark:placeholder:text-slate-400 dark:focus:border-[#123c8c] dark:focus:bg-white dark:focus:ring-blue-100/50"
+                      className="border-blue-100 bg-[#f8fbff] text-slate-700 placeholder:text-slate-400 focus:border-[#123c8c] focus:bg-[#f8fbff] focus:ring-blue-100/50 dark:border-blue-100 dark:bg-[#f8fbff] dark:text-slate-700 dark:placeholder:text-slate-400 dark:focus:border-[#123c8c] dark:focus:bg-[#f8fbff] dark:focus:ring-blue-100/50"
+                      rightElement={
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          tabIndex={-1}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200/50 hover:text-[#123c8c] active:scale-95 cursor-pointer"
+                          aria-label={
+                            showPassword
+                              ? "Sembunyikan password"
+                              : "Tampilkan password"
+                          }
+                          title={
+                            showPassword
+                              ? "Sembunyikan password"
+                              : "Tampilkan password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff
+                              size={18}
+                              strokeWidth={2.4}
+                              className="text-[#123c8c]"
+                            />
+                          ) : (
+                            <Eye size={18} strokeWidth={2.4} />
+                          )}
+                        </button>
+                      }
                     />
                   </div>
                 </div>

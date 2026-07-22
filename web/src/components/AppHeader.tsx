@@ -925,7 +925,7 @@ export default function AppHeader({
   }, [attendanceNotifications, readNotifIds]);
 
   useEffect(() => {
-    async function loadNotifications() {
+    async function loadAdminNotifications() {
       try {
         setIsLoadingNotifications(true);
         const response = await fetch("/api/attendance/notifications", {
@@ -943,12 +943,6 @@ export default function AppHeader({
       }
     }
 
-    if (isAdmin && isBellMenuOpen) {
-      void loadNotifications();
-    }
-  }, [isAdmin, isBellMenuOpen]);
-
-  useEffect(() => {
     async function loadEmployeeNotifications() {
       try {
         const response = await fetch("/api/notifications", {
@@ -985,7 +979,9 @@ export default function AppHeader({
       }
     }
 
-    if (!isAdmin && isBellMenuOpen) {
+    if (isAdmin) {
+      void loadAdminNotifications();
+    } else {
       void loadEmployeeNotifications();
     }
   }, [isAdmin, isBellMenuOpen]);
@@ -1341,23 +1337,19 @@ export default function AppHeader({
 
                 {isBellMenuOpen && (
                   <div
-                    className={`absolute right-0 top-12 md:top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
+                    className={`absolute right-0 top-12 md:top-14 z-50 w-[calc(100vw-2rem)] max-w-sm sm:w-84 md:w-90 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
                   >
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c] dark:text-[#58a6ff]">
                       Pemberitahuan Admin
                     </p>
 
-                    {isLoadingNotifications ? (
-                      <p className="mt-3 text-sm font-semibold text-slate-400">
-                        Memuat...
-                      </p>
-                    ) : attendanceNotifications.length === 0 ? (
+                    {attendanceNotifications.length === 0 ? (
                       <p className="mt-3 text-sm font-semibold text-slate-400">
                         Tidak ada notifikasi baru.
                       </p>
                     ) : (
                       <>
-                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
                           {attendanceNotifications.map((notif) => {
                             const isRead = readNotifIds.includes(notif.id);
                             return (
@@ -1416,14 +1408,33 @@ export default function AppHeader({
                             );
                           })}
                         </div>
-                        <div className="mt-3 border-t pt-2 text-center">
-                          <Link
-                            href="/admin/notifikasi"
-                            onClick={() => setIsBellMenuOpen(false)}
-                            className="text-xs font-bold text-[#123c8c] hover:underline"
+                        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 dark:border-[#30363d] pt-2.5 px-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsBellMenuOpen(false);
+                              router.push("/admin/notifikasi");
+                            }}
+                            className="shrink-0 text-[11px] font-black text-[#123c8c] dark:text-[#58a6ff] hover:opacity-80 cursor-pointer"
                           >
-                            Lihat Semua Notifikasi
-                          </Link>
+                            Lihat semua notifikasi
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const allIds = attendanceNotifications.map((n) => n.id);
+                              setReadNotifIds(allIds);
+                              localStorage.setItem("read_notification_ids", JSON.stringify(allIds));
+                            }}
+                            className="shrink-0 text-[11px] font-black text-[#123c8c] dark:text-[#58a6ff] hover:opacity-80 cursor-pointer"
+                          >
+                            Tandai semua dibaca
+                          </button>
                         </div>
                       </>
                     )}
@@ -1455,9 +1466,9 @@ export default function AppHeader({
 
                 {isBellMenuOpen && (
                   <div
-                    className={`absolute right-0 top-14 z-50 w-80 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
+                    className={`absolute right-0 top-14 z-50 w-[calc(100vw-2rem)] max-w-sm sm:w-84 md:w-90 rounded-2xl border p-4 shadow-2xl ${theme === "dark" ? "border-[#30363d] bg-[#161b22] shadow-black/40" : "border-blue-100 bg-white shadow-slate-300/40"}`}
                   >
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c]">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#123c8c] dark:text-[#58a6ff]">
                       Notifikasi Karyawan
                     </p>
 
@@ -1529,14 +1540,39 @@ export default function AppHeader({
                             );
                           })}
                         </div>
-                        <div className="mt-3 border-t pt-2 text-center">
-                          <Link
-                            href="/notifikasi"
-                            onClick={() => setIsBellMenuOpen(false)}
-                            className="text-xs font-bold text-[#123c8c] hover:underline"
+                        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 dark:border-[#30363d] pt-2.5 px-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsBellMenuOpen(false);
+                              router.push("/notifikasi");
+                            }}
+                            className="shrink-0 text-[11px] font-black text-[#123c8c] dark:text-[#58a6ff] hover:opacity-80 cursor-pointer"
                           >
-                            Lihat Semua Notifikasi
-                          </Link>
+                            Lihat semua notifikasi
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEmployeeNotifications((prev) =>
+                                prev.map((n) => ({ ...n, status: "read", isRead: true }))
+                              );
+                              setNotificationCount(0);
+                              await fetch(`/api/notifications`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ markAll: true }),
+                              }).catch(console.error);
+                            }}
+                            className="shrink-0 text-[11px] font-black text-[#123c8c] dark:text-[#58a6ff] hover:opacity-80 cursor-pointer"
+                          >
+                            Tandai semua dibaca
+                          </button>
                         </div>
                       </>
                     )}
@@ -1766,7 +1802,7 @@ export default function AppHeader({
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.98] dark:bg-rose-950/20 dark:text-rose-400"
             >
               <LogOut size={18} strokeWidth={2.5} />
-              Logout
+              Keluar
             </button>
           </div>
         </div>

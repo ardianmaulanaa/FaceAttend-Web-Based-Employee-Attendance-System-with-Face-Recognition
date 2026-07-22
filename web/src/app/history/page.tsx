@@ -255,14 +255,14 @@ function HeroBadge({
 
 function MobileHeader() {
   return (
-    <section className="history-enter mx-auto max-w-7xl px-5 pt-7 md:hidden">
+    <section className="history-enter mx-auto max-w-7xl px-5 pt-7 pb-5 md:hidden">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
             FaceAttend
           </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456]">
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456] dark:text-white">
             Laporan Presensi
           </h1>
         </div>
@@ -811,7 +811,7 @@ export default function HistoryPage() {
             sort={sort}
           />
 
-          <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
+          <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 mt-3 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
             <FilterCard
               month={month}
               year={year}

@@ -526,9 +526,16 @@ export function AppAnimatedActionButton({
 type AppInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
+  rightElement?: React.ReactNode;
 };
 
-export function AppInput({ label, error, className, ...props }: AppInputProps) {
+export function AppInput({
+  label,
+  error,
+  rightElement,
+  className,
+  ...props
+}: AppInputProps) {
   return (
     <label className="group block">
       {label ? (
@@ -537,15 +544,25 @@ export function AppInput({ label, error, className, ...props }: AppInputProps) {
         </span>
       ) : null}
 
-      <input
-        className={cn(
-          "mt-2 min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition duration-200 placeholder:text-slate-400 hover:-translate-y-[1px] hover:border-blue-200 hover:shadow-[0_4px_12px_rgba(18,60,140,0.03)] focus:-translate-y-[3px] focus:border-[#123c8c] focus:bg-white focus:shadow-[0_10px_20px_-5px_rgba(18,60,140,0.12)] focus:ring-4 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:opacity-60",
-          error &&
-            "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100",
-          className,
-        )}
-        {...props}
-      />
+      <div className="relative mt-2">
+        <input
+          className={cn(
+            "min-h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm font-bold text-slate-700 outline-none transition duration-200 placeholder:text-slate-400 hover:-translate-y-[1px] hover:border-blue-200 hover:shadow-[0_4px_12px_rgba(18,60,140,0.03)] focus:-translate-y-[3px] focus:border-[#123c8c] focus:bg-white focus:shadow-[0_10px_20px_-5px_rgba(18,60,140,0.12)] focus:ring-4 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:opacity-60",
+            rightElement ? "pr-12" : undefined,
+            error
+              ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-100"
+              : undefined,
+            className,
+          )}
+          {...props}
+        />
+
+        {rightElement ? (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+            {rightElement}
+          </div>
+        ) : null}
+      </div>
 
       {error ? (
         <span className="mt-2 block text-xs font-bold text-red-600">

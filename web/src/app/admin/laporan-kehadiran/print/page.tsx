@@ -307,7 +307,7 @@ function AttendanceReportPrintContent() {
       <section className="print-page">
         <section className="header" style={{ borderBottom: "4px solid #123c8c", paddingBottom: "16px", marginBottom: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "#123c8c", color: "#ffffff", display: "flex", alignItems: "center", justifyCenter: "center", fontWeight: "900", fontSize: "22px" }}>
+            <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "#123c8c", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "900", fontSize: "22px" }}>
               FA
             </div>
             <div>

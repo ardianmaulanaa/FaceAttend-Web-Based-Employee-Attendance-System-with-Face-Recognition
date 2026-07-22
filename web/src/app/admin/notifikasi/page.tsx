@@ -358,25 +358,21 @@ export default function AdminNotificationsPage() {
       label: "Total Notifikasi",
       value: stats.total,
       icon: Bell,
-      description: "Semua laporan masuk",
     },
     {
       label: "Belum Dibaca",
       value: stats.unread,
       icon: Clock3,
-      description: "Dari AdminNotification",
     },
     {
       label: "Cuti / Sakit / Izin",
       value: stats.leave + stats.sick + stats.permission,
       icon: FileClock,
-      description: "Dari LeaveRequest",
     },
     {
       label: "WFH / WFC / Kunjungan",
       value: stats.wfh + stats.wfc + stats.visit,
       icon: MapPin,
-      description: "Dari AdminNotification",
     },
   ];
 
@@ -399,17 +395,13 @@ export default function AdminNotificationsPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
                 <ShieldAlert size={15} />
-                Notification Center
+                Pusat Informasi
               </div>
 
               <h1 className="mt-5 text-3xl font-black tracking-tight md:text-4xl">
                 Pusat Notifikasi
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-100">
-                Cuti, sakit, dan izin diambil dari tabel LeaveRequest. WFH, WFC,
-                dan kunjungan diambil dari tabel AdminNotification.
-              </p>
             </div>
 
             <button
@@ -418,7 +410,7 @@ export default function AdminNotificationsPage() {
               className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white dark:bg-[#21262d] px-5 text-sm font-black text-[#123c8c] dark:text-[#58a6ff] shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 dark:hover:bg-[#30363d] active:scale-[0.98]"
             >
               <RefreshCw size={18} />
-              Refresh
+              Muat Ulang
             </button>
           </div>
         </section>
@@ -445,9 +437,7 @@ export default function AdminNotificationsPage() {
                       {isLoading ? "-" : item.value}
                     </h3>
 
-                    <p className="mt-1 text-xs font-semibold text-slate-400">
-                      {item.description}
-                    </p>
+
                   </div>
 
                   <div className="notification-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
