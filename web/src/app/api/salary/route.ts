@@ -7,14 +7,41 @@ import { findDemoUserById, isDatabaseUnavailable } from "@/lib/demoStore";
 
 async function getAuthPayload() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("faceattend_token")?.value;
+  const token =
+    cookieStore.get("faceattend_token")?.value ||
+    cookieStore.get("token")?.value ||
+    cookieStore.get("auth_token")?.value;
 
   if (!token) {
     return null;
   }
 
   try {
-    return await verifyToken(token);
+    const payload = await verifyToken(token);
+    if (!payload) return null;
+
+    let role = payload.role ? String(payload.role).toLowerCase() : "";
+
+    // Check DB or demo store to get actual active role (supports 'admin' and 'owner')
+    const dbUser = await prisma.user
+      .findUnique({
+        where: { id: payload.id },
+        select: { role: true },
+      })
+      .catch((error) => {
+        if (!isDatabaseUnavailable(error)) throw error;
+        const demoUser = findDemoUserById(payload.id);
+        return demoUser ? { role: demoUser.role } : null;
+      });
+
+    if (dbUser?.role) {
+      role = String(dbUser.role).toLowerCase();
+    }
+
+    return {
+      ...payload,
+      role,
+    };
   } catch {
     return null;
   }
@@ -32,7 +59,7 @@ export async function GET() {
 
   const records = listSalaryRecords();
 
-  if (authPayload.role === "admin") {
+  if (authPayload.role === "admin" || authPayload.role === "owner") {
     return NextResponse.json({
       success: true,
       records,
@@ -59,7 +86,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (authPayload.role !== "admin") {
+  if (authPayload.role !== "admin" && authPayload.role !== "owner") {
     return NextResponse.json(
       { success: false, message: "Hanya admin yang bisa memasukkan gaji." },
       { status: 403 },
@@ -109,7 +136,7 @@ export async function POST(req: Request) {
         };
       });
 
-    if (!employee || employee.role !== "employee") {
+    if (!employee) {
       return NextResponse.json(
         { success: false, message: "Karyawan tidak ditemukan." },
         { status: 404 },

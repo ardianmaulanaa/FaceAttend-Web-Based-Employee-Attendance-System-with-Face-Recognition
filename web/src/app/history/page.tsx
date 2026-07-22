@@ -303,11 +303,6 @@ function DesktopHero({
                 Riwayat Presensi
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-blue-100">
-                Lihat daftar absensi, status kehadiran, jam masuk, jam keluar,
-                dan durasi kerja berdasarkan periode yang dipilih.
-              </p>
-
               <div className="mt-4 flex flex-wrap gap-2">
                 <HeroBadge delay="80ms">
                   {monthLabel} {year}
@@ -914,15 +909,72 @@ export default function HistoryPage() {
       </div>
 
       {/* DEDICATED EXCEL/CORPORATE STYLE PRINT TEMPLATE */}
-      <div className="hidden print:block p-8 bg-white text-black font-sans text-sm">
+      <div id="print-area-history" className="hidden print:block p-8 bg-white text-black font-sans text-sm">
+        <style jsx global>{`
+          @media print {
+            body {
+              visibility: hidden !important;
+              background: #ffffff !important;
+            }
+            #print-area-history,
+            #print-area-history * {
+              visibility: visible !important;
+            }
+            #print-area-history {
+              display: block !important;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              z-index: 999999 !important;
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 20px !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+          }
+        `}</style>
+        {/* KOP SURAT PERUSAHAAN */}
+        <div className="border-b-4 border-[#123c8c] pb-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-[#123c8c] text-white flex items-center justify-center font-black text-xl">
+                FA
+              </div>
+              <div>
+                <h1 className="text-lg font-black text-[#123c8c] uppercase tracking-wide">
+                  PT CREATIVEMU INDONESIA
+                </h1>
+                <p className="text-[11px] font-semibold text-slate-600">
+                  Sistem Informasi SDM & Presensi Digital FaceAttend
+                </p>
+                <p className="text-[9px] text-slate-500">
+                  Jl. Raya Utama No. 88, Jakarta | Email: hr@creativemu.co.id | Telp: (021) 555-0199
+                </p>
+              </div>
+            </div>
+            <div className="text-right border-l-2 border-slate-200 pl-4">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-[#123c8c] text-[10px] font-black rounded-full uppercase tracking-wider mb-1">
+                Laporan Kehadiran
+              </span>
+              <p className="text-[10px] font-bold text-slate-500">
+                Dokumen Resmi Presensi
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="text-center mb-6">
           <h2 className="text-xl font-black uppercase tracking-wide">
-            Laporan Kehadiran Resmi Karyawan
+            LAPORAN KEHADIRAN RESMI KARYAWAN
           </h2>
-          <p className="text-xs font-bold text-slate-600 mt-1">
+          <p className="text-xs font-bold text-slate-600 mt-0.5">
             Periode: {currentMonthLabel} {year}
           </p>
-          <div className="w-full border-b-2 border-slate-900 mt-4" />
         </div>
 
         <table className="w-full mb-6 text-xs">

@@ -305,10 +305,22 @@ function AttendanceReportPrintContent() {
       `}</style>
 
       <section className="print-page">
-        <section className="header">
-          <div>
-            <p className="eyebrow">FaceAttend Creativemu</p>
-            <h1>Laporan Kehadiran Karyawan</h1>
+        <section className="header" style={{ borderBottom: "4px solid #123c8c", paddingBottom: "16px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "#123c8c", color: "#ffffff", display: "flex", alignItems: "center", justifyCenter: "center", fontWeight: "900", fontSize: "22px" }}>
+              FA
+            </div>
+            <div>
+              <p className="eyebrow" style={{ color: "#ff8a00", fontSize: "10px", fontWeight: "800", letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>
+                PT CREATIVEMU INDONESIA
+              </p>
+              <h1 style={{ margin: 0, color: "#123c8c", fontSize: "22px", fontWeight: "900" }}>
+                Laporan Kehadiran Karyawan
+              </h1>
+              <p style={{ margin: "2px 0 0", fontSize: "10px", color: "#64748b" }}>
+                Jl. Raya Utama No. 88, Jakarta | Email: hr@creativemu.co.id | Telp: (021) 555-0199
+              </p>
+            </div>
           </div>
 
           <div className="meta">

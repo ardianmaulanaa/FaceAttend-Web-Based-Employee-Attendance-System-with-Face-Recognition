@@ -1258,12 +1258,6 @@ export default function AdminEmployeesPage() {
                     ? "Update Data Karyawan"
                     : "Tambah Karyawan Baru"}
                 </h2>
-
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  {editingEmployee
-                    ? "Ubah data karyawan dengan alur kantor, divisi, unit, jabatan, shift, dan status."
-                    : "Pilih kantor dulu, lalu divisi, unit, jabatan, dan shift."}
-                </p>
               </div>
 
               <button

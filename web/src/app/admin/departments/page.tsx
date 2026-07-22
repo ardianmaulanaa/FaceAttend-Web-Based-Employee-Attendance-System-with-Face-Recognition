@@ -675,10 +675,6 @@ export default function DepartmentsPage() {
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                   {editingDepartment ? "Update Data Divisi" : "Divisi Baru"}
                 </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Pilih kantor pemilik divisi, lalu isi nama divisi.
-                </p>
               </div>
 
               <button

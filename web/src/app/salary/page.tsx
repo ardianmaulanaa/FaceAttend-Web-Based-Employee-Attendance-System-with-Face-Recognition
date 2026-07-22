@@ -194,25 +194,7 @@ export default function EmployeeSalaryPage() {
               </p>
             ) : (
               <>
-                {/* KEMNAKER LAWS INFO CARD */}
-                <div className="rounded-[2rem] border border-blue-100 dark:border-blue-900/20 bg-gradient-to-r from-blue-600 to-[#123c8c] p-6 text-white shadow-xl shadow-blue-900/10">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                      <Scale size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black">
-                        Sistem Transparansi Kemnaker & Pro-rata
-                      </h3>
-                      <p className="mt-1.5 text-xs text-white/80 leading-relaxed">
-                        Laporan penggajian bulanan dihitung secara proporsional
-                        berdasarkan rekaman absensi digital Anda. Semua hak
-                        berbayar penuh (seperti cuti terdaftar, izin resmi, dan
-                        sakit) tidak mengurangi pendapatan pokok Anda.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+
 
                 {/* Cetak PDF Button */}
                 <div className="flex justify-end print:hidden">
@@ -236,10 +218,6 @@ export default function EmployeeSalaryPage() {
                       <h2 className="mt-4 text-3xl font-black text-emerald-600 dark:text-emerald-450">
                         {formatIDR(attendanceStats.netPay)}
                       </h2>
-                      <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Estimasi pendapatan bersih untuk periode bulan berjalan
-                        setelah penambahan tunjangan dan potongan wajib.
-                      </p>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
@@ -396,11 +374,6 @@ export default function EmployeeSalaryPage() {
                       <p className="text-[10px] font-black text-slate-400 uppercase">
                         Informasi Verifikasi
                       </p>
-                      <p className="text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400 mt-1">
-                        Data di atas bersinkronisasi langsung dengan portal
-                        pencatatan presensi admin secara transparan guna menjaga
-                        akurasi pembayaran hak karyawan.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -469,15 +442,72 @@ export default function EmployeeSalaryPage() {
       </div>
 
       {/* DEDICATED CORPORATE SLIP / PAYROLL DRAFT PRINT LAYOUT */}
-      <div className="hidden print:block p-8 bg-white text-black font-sans text-xs">
+      <div id="print-area-emp-salary" className="hidden print:block p-8 bg-white text-black font-sans text-xs">
+        <style jsx global>{`
+          @media print {
+            body {
+              visibility: hidden !important;
+              background: #ffffff !important;
+            }
+            #print-area-emp-salary,
+            #print-area-emp-salary * {
+              visibility: visible !important;
+            }
+            #print-area-emp-salary {
+              display: block !important;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              z-index: 999999 !important;
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 20px !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+          }
+        `}</style>
+        {/* KOP SURAT PERUSAHAAN */}
+        <div className="border-b-4 border-[#123c8c] pb-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-[#123c8c] text-white flex items-center justify-center font-black text-xl">
+                FA
+              </div>
+              <div>
+                <h1 className="text-lg font-black text-[#123c8c] uppercase tracking-wide">
+                  PT CREATIVEMU INDONESIA
+                </h1>
+                <p className="text-[11px] font-semibold text-slate-600">
+                  Sistem Informasi SDM & Presensi Digital FaceAttend
+                </p>
+                <p className="text-[9px] text-slate-500">
+                  Jl. Raya Utama No. 88, Jakarta | Email: hr@creativemu.co.id | Telp: (021) 555-0199
+                </p>
+              </div>
+            </div>
+            <div className="text-right border-l-2 border-slate-200 pl-4">
+              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase tracking-wider mb-1">
+                Lunas / Terbayar
+              </span>
+              <p className="text-[10px] font-bold text-slate-500">
+                Dokumen Resmi Payroll
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="text-center mb-6">
           <h2 className="text-base font-black uppercase tracking-wide">
             SLIP GAJI RESMI KARYAWAN
           </h2>
-          <p className="text-[10px] font-bold text-slate-600 mt-1">
-            Status Pembayaran: LUNAS / DITERIMA
+          <p className="text-[10px] font-bold text-slate-600 mt-0.5">
+            Bukti Pembayaran Gaji Bulanan Digital
           </p>
-          <div className="w-full border-b-2 border-slate-900 mt-3" />
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">

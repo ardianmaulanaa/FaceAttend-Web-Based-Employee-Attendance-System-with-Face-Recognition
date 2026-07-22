@@ -849,7 +849,6 @@ function PieProgressCard({
           <p className="mt-1.5 text-2xl font-black text-slate-950 sm:mt-2 sm:text-3xl">
             {animatedValue}
           </p>
-          <p className="mt-1 text-xs font-bold text-slate-500">{description}</p>
         </div>
 
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6f8ff] text-[#123c8c] ring-1 ring-blue-100">
@@ -1137,7 +1136,7 @@ export default function AdminCompanyMonitorPage() {
           "wfh",
           flexibleModeTotals,
         ),
-        description: "Monitoring absensi kerja dari rumah.",
+        description: "",
       },
       {
         key: "visit",
@@ -1148,7 +1147,7 @@ export default function AdminCompanyMonitorPage() {
           "visit",
           flexibleModeTotals,
         ),
-        description: "Monitoring absensi kunjungan lapangan / client.",
+        description: "",
       },
     ];
   }, [data, flexibleModeTotals]);
@@ -1545,7 +1544,7 @@ export default function AdminCompanyMonitorPage() {
                       "wfh",
                       flexibleModeTotals,
                     )}
-                    description="Proporsi absensi WFH pada periode monitor."
+                    description=""
                     icon={<Home size={20} strokeWidth={2.5} />}
                   />
 
@@ -1561,7 +1560,7 @@ export default function AdminCompanyMonitorPage() {
                       "visit",
                       flexibleModeTotals,
                     )}
-                    description="Proporsi absensi kunjungan pada periode monitor."
+                    description=""
                     icon={<BriefcaseBusiness size={20} strokeWidth={2.5} />}
                   />
                 </div>

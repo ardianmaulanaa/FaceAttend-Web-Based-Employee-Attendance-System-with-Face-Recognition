@@ -731,11 +731,6 @@ export default function AdminOfficePage() {
                     <h1 className="mt-2 break-words text-3xl font-black tracking-tight md:text-4xl">
                       Data Kantor
                     </h1>
-
-                    <p className="mt-3 max-w-2xl break-words text-sm font-semibold leading-7 text-blue-100">
-                      Titik lokasi kantor digunakan untuk menentukan apakah
-                      karyawan berada di dalam radius saat absensi.
-                    </p>
                   </div>
                 </div>
 

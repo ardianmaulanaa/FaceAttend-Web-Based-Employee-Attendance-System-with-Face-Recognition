@@ -432,10 +432,6 @@ function QuickMenuGrid() {
             <p className="mt-2 whitespace-pre-line text-[12px] font-bold leading-tight text-slate-600 md:mt-3 md:text-base">
               {label}
             </p>
-
-            <p className="mt-2 hidden text-sm leading-6 text-slate-400 md:block">
-              {description}
-            </p>
           </Link>
         );
       })}

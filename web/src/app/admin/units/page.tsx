@@ -764,10 +764,6 @@ export default function UnitsPage() {
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                   {editingUnit ? "Update Data Unit" : "Unit Baru"}
                 </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Pilih kantor, lalu pilih divisi, kemudian isi nama unit.
-                </p>
               </div>
 
               <button

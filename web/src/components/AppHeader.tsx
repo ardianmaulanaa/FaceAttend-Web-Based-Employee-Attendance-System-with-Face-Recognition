@@ -1149,11 +1149,6 @@ export default function AppHeader({
                 {title}
               </h1>
 
-              {subtitle ? (
-                <p className="mt-0.5 text-[9px] sm:text-xs md:text-sm font-semibold leading-tight text-slate-500 truncate max-w-[56vw] sm:max-w-[62vw] md:max-w-[400px] lg:max-w-none">
-                  {subtitle}
-                </p>
-              ) : null}
             </div>
           </div>
 
@@ -1563,9 +1558,7 @@ export default function AppHeader({
         </div>
       </header>
 
-      <div
-        className={subtitle ? "h-[88px] md:h-[106px]" : "h-[70px] md:h-[88px]"}
-      />
+      <div className="h-[70px] md:h-[88px]" />
 
       {/* Backdrop: always rendered, animated via opacity */}
       <button
