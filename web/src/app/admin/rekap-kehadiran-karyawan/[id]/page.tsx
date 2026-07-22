@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  Banknote,
   CalendarDays,
+  Download,
   Loader2,
   UserRound,
 } from "lucide-react";
@@ -119,20 +119,30 @@ function formatEmploymentPeriod(employee?: EmployeeRecap | null) {
   return "-";
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-}
-
 function getInitialDate(searchParams: URLSearchParams, key: string) {
   const value = searchParams.get(key) || "";
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
   return key === "startDate" ? getDefaultStartDate() : getDefaultEndDate();
+}
+
+function escapeExcelCell(value: string | number | null | undefined) {
+  return String(value ?? "-")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getExcelFileName(employeeName: string, startDate: string, endDate: string) {
+  const safeName = employeeName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `rekap-kehadiran-${safeName || "karyawan"}-${startDate}-${endDate}.xls`;
 }
 
 function RecapDetailMotionStyles() {
@@ -265,6 +275,64 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
 
   const backHref = `/admin/rekap-kehadiran-karyawan?startDate=${startDate}&endDate=${endDate}`;
 
+  const handleDownloadExcel = () => {
+    if (!employee) return;
+
+    const rows = [
+      ["Karyawan", employee.name],
+      ["Kode Karyawan", employee.employeeCode || "-"],
+      ["Shift", employee.shiftName || "-"],
+      ["Status Kepegawaian", employee.employmentStatus || "-"],
+      ["Masa Kerja", formatEmploymentPeriod(employee)],
+      ["Periode Rekap", formatDateRange(startDate, endDate)],
+      ["Total Hari Kerja", summary.totalHariKerja],
+      ["Total Presensi", summary.totalPresensi],
+      ["Hadir", summary.hadir],
+      ["Terlambat (Menit)", summary.terlambat],
+      ["Menunggu", summary.menunggu],
+      ["Izin", summary.izin],
+      ["Sakit", summary.sakit],
+      ["Cuti", summary.cuti],
+      ["Lainnya", summary.lainnya],
+    ];
+    const tableRows = rows
+      .map(
+        ([label, value]) =>
+          `<tr><td>${escapeExcelCell(label)}</td><td>${escapeExcelCell(value)}</td></tr>`,
+      )
+      .join("");
+    const html = `<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            table { border-collapse: collapse; font-family: Arial, sans-serif; }
+            th, td { border: 1px solid #cbd5e1; padding: 8px 12px; }
+            th { background: #123c8c; color: #ffffff; text-align: left; }
+            td:first-child { font-weight: 700; background: #f8fbff; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <thead><tr><th>Info Rekap</th><th>Nilai</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </body>
+      </html>`;
+    const blob = new Blob([html], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = getExcelFileName(employee.name, startDate, endDate);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const attendanceItems = [
     {
       label: "Hadir",
@@ -296,13 +364,25 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
 
       <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff]">
         <section className="mx-auto max-w-7xl space-y-7 px-5 py-6 md:px-10 lg:px-16">
-          <Link
-            href={backHref}
-            className="recap-detail-enter inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-300/30 ring-1 ring-blue-100 transition hover:bg-[#f8fbff]"
-          >
-            <ArrowLeft size={17} strokeWidth={2.8} />
-            Kembali ke daftar
-          </Link>
+          <div className="recap-detail-enter flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href={backHref}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#123c8c] shadow-lg shadow-slate-300/30 ring-1 ring-blue-100 transition hover:bg-[#f8fbff]"
+            >
+              <ArrowLeft size={17} strokeWidth={2.8} />
+              Kembali ke daftar
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={isLoading || !employee}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0f3274] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+            >
+              <Download size={17} strokeWidth={2.8} />
+              Download Excel
+            </button>
+          </div>
 
           <div className="recap-detail-enter overflow-hidden rounded-[2.25rem] border border-blue-100 bg-white shadow-xl shadow-slate-300/30">
             <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
@@ -408,7 +488,7 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
                 strokeWidth={2.7}
               />
               <p className="text-sm font-bold text-slate-500">
-                Menghitung rekap salary...
+                Menghitung rekap kehadiran...
               </p>
             </div>
           ) : (
@@ -426,55 +506,6 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
                     <p className="mt-5 text-4xl font-black">{item.value}</p>
                   </div>
                 ))}
-              </div>
-
-              <div
-                className="recap-detail-enter rounded-[2.25rem] border border-blue-100 bg-white p-7 shadow-xl shadow-slate-300/30 md:p-9"
-                style={{ animationDelay: "160ms" }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eaf1ff] text-[#123c8c]">
-                    <Banknote size={31} strokeWidth={2.6} />
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#123c8c]">
-                      Estimasi Salary
-                    </p>
-                    <h3 className="mt-2 text-3xl font-black text-slate-950">
-                      {formatCurrency(summary.estimasiSalary)}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="mt-7 grid gap-5 md:grid-cols-3">
-                  <div className="rounded-3xl border border-slate-100 bg-slate-50 p-6">
-                    <p className="text-sm font-black text-slate-500">
-                      Gaji Pokok
-                    </p>
-                    <p className="mt-3 text-xl font-black text-slate-950">
-                      {formatCurrency(summary.gajiPokok)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-3xl border border-amber-100 bg-amber-50 p-6">
-                    <p className="text-sm font-black text-amber-700">
-                      Potongan per Hari
-                    </p>
-                    <p className="mt-3 text-xl font-black text-amber-700">
-                      {formatCurrency(summary.potonganPerHari)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-3xl border border-red-100 bg-red-50 p-6">
-                    <p className="text-sm font-black text-red-700">
-                      Potongan Cuti/Sakit
-                    </p>
-                    <p className="mt-3 text-xl font-black text-red-700">
-                      {formatCurrency(summary.estimasiPotonganTidakMasuk)}
-                    </p>
-                  </div>
-                </div>
               </div>
             </>
           )}

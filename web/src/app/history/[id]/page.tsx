@@ -317,17 +317,6 @@ function HistoryDetailMotionStyles() {
         }
       }
 
-      @keyframes historyDetailGlowFloat {
-        0%,
-        100% {
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-
-        50% {
-          transform: translate3d(12px, -10px, 0) scale(1.04);
-        }
-      }
-
       @keyframes historyDetailImageEnter {
         0% {
           opacity: 0;
@@ -353,10 +342,6 @@ function HistoryDetailMotionStyles() {
         animation: historyDetailIconPop 280ms ease-out both;
       }
 
-      .history-detail-glow-float {
-        animation: historyDetailGlowFloat 6s ease-in-out infinite;
-      }
-
       .history-detail-image-enter {
         animation: historyDetailImageEnter 420ms ease-out both;
       }
@@ -365,7 +350,6 @@ function HistoryDetailMotionStyles() {
         .history-detail-enter,
         .history-detail-row-enter,
         .history-detail-icon-pop,
-        .history-detail-glow-float,
         .history-detail-image-enter {
           animation: none !important;
           opacity: 1 !important;
@@ -720,9 +704,6 @@ export default function HistoryDetailPage() {
         ) : (
           <>
             <div className="history-detail-enter relative overflow-hidden rounded-[2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
-              <div className="history-detail-glow-float absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-              <div className="history-detail-glow-float absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
-
               <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <div className="history-detail-row-enter inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-blue-100 ring-1 ring-white/15">

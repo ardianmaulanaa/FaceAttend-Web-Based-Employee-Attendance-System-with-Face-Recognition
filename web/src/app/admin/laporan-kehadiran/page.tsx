@@ -603,21 +603,21 @@ export default function AdminAttendanceReportPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 space-y-3">
+                      <div className="mt-4 space-y-2.5">
                         {group.items.map((item, index) => (
                           <Link
                             key={item.id}
                             href={`/admin/laporan-kehadiran/${item.id}`}
-                            className="attendance-report-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
+                            className="attendance-report-row-enter group block rounded-2xl border border-blue-100 bg-white px-3 py-3 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:rounded-[1.6rem] md:px-5 md:py-4"
                             style={{
                               animationDelay: `${index * 45}ms`,
                             }}
                           >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                              <div className="flex min-w-0 items-center gap-3 md:w-[260px]">
+                            <div className="flex items-center gap-3 md:justify-between">
+                              <div className="flex min-w-0 flex-1 items-center gap-3 md:w-[260px] md:flex-none">
                                 <EmployeeProfileAvatar item={item} />
 
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <h4 className="truncate text-base font-black text-slate-950">
                                     {item.employeeName}
                                   </h4>
@@ -625,10 +625,26 @@ export default function AdminAttendanceReportPage() {
                                   <p className="mt-1 truncate text-xs font-bold text-slate-400">
                                     {item.employeeCode || item.workModeLabel}
                                   </p>
+
+                                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-black text-slate-500 md:hidden">
+                                    <span>
+                                      Masuk{" "}
+                                      <span className="text-slate-900">
+                                        {item.checkIn}
+                                      </span>
+                                    </span>
+
+                                    <span>
+                                      Keluar{" "}
+                                      <span className="text-slate-900">
+                                        {item.checkOut}
+                                      </span>
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
+                              <div className="hidden grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:grid md:w-[260px]">
                                 <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
                                   <p className="text-slate-400">Masuk</p>
                                   <p className="mt-1 font-black text-slate-800">
@@ -644,37 +660,37 @@ export default function AdminAttendanceReportPage() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-1 flex-wrap items-center gap-2">
+                              <div className="flex shrink-0 flex-col items-end gap-1.5 md:flex-1 md:flex-row md:flex-wrap md:items-center md:gap-2">
                                 <span
-                                  className={`rounded-full px-3 py-1 text-[11px] font-black ring-1 ${getStatusStyle(
+                                  className={`rounded-full px-2.5 py-1 text-[10px] font-black ring-1 md:px-3 md:text-[11px] ${getStatusStyle(
                                     item.status,
                                   )}`}
                                 >
                                   {item.statusLabel}
                                 </span>
 
-                                <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-[#123c8c]">
+                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-[#123c8c] md:px-3 md:text-[11px]">
                                   {item.workModeLabel}
                                 </span>
 
                                 {item.hasPhoto ? (
-                                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
+                                  <span className="hidden rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 sm:inline-flex">
                                     Ada Foto
                                   </span>
                                 ) : (
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+                                  <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 sm:inline-flex">
                                     Tanpa Foto
                                   </span>
                                 )}
 
                                 {item.hasLocation ? (
-                                  <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700">
+                                  <span className="hidden rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700 sm:inline-flex">
                                     Ada Lokasi
                                   </span>
                                 ) : null}
                               </div>
 
-                              <div className="flex shrink-0 items-center justify-start md:w-[220px] md:justify-end">
+                              <div className="hidden shrink-0 items-center justify-start md:flex md:w-[220px] md:justify-end">
                                 <span className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-[#123c8c] transition group-hover:bg-[#eaf1ff]">
                                   <Eye size={15} />
                                   Lihat detail

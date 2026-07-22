@@ -408,11 +408,7 @@ export default function AdminEmployeeDetailPage() {
     <MobileShell variant="admin">
       <EmployeeDetailMotionStyles />
 
-      <AppHeader
-        title="Profil Karyawan"
-        subtitle="Detail data employee untuk admin"
-        variant="admin"
-      />
+      <AppHeader title="Profil Karyawan" variant="admin" />
 
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
         <Link
@@ -441,9 +437,6 @@ export default function AdminEmployeeDetailPage() {
             <section className="employee-detail-enter mt-6 overflow-hidden rounded-[2.2rem] border border-blue-100 bg-white shadow-2xl shadow-slate-300/30">
               <div className="grid lg:grid-cols-[0.82fr_1.18fr]">
                 <div className="relative overflow-hidden bg-[#123c8c] p-7 text-white md:p-8">
-                  <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-                  <div className="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
-
                   <div className="relative z-10">
                     <EmployeeProfileAvatar employee={employee} />
 
@@ -499,14 +492,6 @@ export default function AdminEmployeeDetailPage() {
                     value={employee.phone || "-"}
                     description="Kontak pribadi karyawan"
                     delay={120}
-                  />
-
-                  <DetailCard
-                    icon={IdCard}
-                    label="ID Karyawan"
-                    value={employee.id}
-                    description="ID unik akun di database"
-                    delay={160}
                   />
 
                   <DetailCard

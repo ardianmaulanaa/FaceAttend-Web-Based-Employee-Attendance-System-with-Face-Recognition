@@ -611,9 +611,6 @@ export default function LoginPage() {
       <section className="relative min-h-dvh w-full overflow-hidden bg-[#f6f8ff]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,138,0,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(18,60,140,0.18),transparent_36%)]" />
 
-        <div className="login-bg-float pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-orange-200/20 blur-3xl" />
-        <div className="login-bg-float pointer-events-none absolute -right-28 bottom-20 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
-
         <div className="relative z-10 grid min-h-dvh w-full grid-cols-1 lg:grid-cols-2">
           <div className="login-enter relative flex flex-col px-6 py-7 md:px-12 lg:justify-between lg:px-20 lg:py-14">
             <Image

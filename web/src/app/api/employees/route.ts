@@ -6,10 +6,11 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner";
+type AllowedRole = "admin" | "owner";
+type AccountRole = "admin" | "employee";
 
-const VIEW_ROLES: AllowedRole[] = ["owner"];
-const MANAGE_ROLES: AllowedRole[] = ["owner"];
+const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
+const MANAGE_ROLES: AllowedRole[] = ["admin", "owner"];
 
 const officeSelect = {
   id: true,
@@ -60,6 +61,7 @@ const employeeSelect = {
   id: true,
   name: true,
   email: true,
+  role: true,
   employee_type: true,
   phone: true,
   status: true,
@@ -139,6 +141,15 @@ function normalizeOptionalDate(value: unknown, label = "Tanggal") {
   }
 
   return date;
+}
+
+function normalizeAccountRole(value: unknown): AccountRole {
+  const role = String(value || "employee").trim().toLowerCase();
+
+  if (role === "admin") return "admin";
+  if (role === "employee" || role === "user") return "employee";
+
+  throw new Error("Role akun tidak valid.");
 }
 
 function ensureValidEmploymentPeriod(
@@ -395,7 +406,7 @@ export async function POST(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat menambah karyawan.",
+        "Akses ditolak. Hanya admin yang dapat menambah akun.",
         403
       );
     }
@@ -404,6 +415,7 @@ export async function POST(req: NextRequest) {
 
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
+    const role = normalizeAccountRole(body.role || body.account_role);
     const phone = String(body.phone || "").trim();
     const password = String(
       body.password || body.temporaryPassword || body.temp_password || ""
@@ -504,7 +516,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         password_hash: passwordHash,
-        role: "employee",
+        role,
         employee_type: employeeType,
         phone: phone || null,
         status,
@@ -529,7 +541,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil ditambahkan.",
+      message: role === "admin" ? "Admin berhasil ditambahkan." : "Karyawan berhasil ditambahkan.",
       employee,
     });
   } catch (error) {
@@ -542,6 +554,7 @@ export async function POST(req: NextRequest) {
     if (
       error instanceof Error &&
       (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("Role akun") ||
         error.message.includes("Tanggal") ||
         error.message.includes("masa kerja"))
     ) {
@@ -567,7 +580,7 @@ export async function PATCH(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat mengubah karyawan.",
+        "Akses ditolak. Hanya admin yang dapat mengubah akun.",
         403
       );
     }
@@ -577,6 +590,7 @@ export async function PATCH(req: NextRequest) {
     const id = String(body.id || "").trim();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
+    const role = normalizeAccountRole(body.role || body.account_role);
     const phone = String(body.phone || "").trim();
     const password = String(
       body.password || body.temporaryPassword || body.temp_password || ""
@@ -659,8 +673,13 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    if (!existingEmployee || existingEmployee.role !== "employee") {
-      return jsonError("Karyawan tidak ditemukan.", 404);
+    if (
+      !existingEmployee ||
+      !["admin", "employee", "owner"].includes(
+        String(existingEmployee.role || "").toLowerCase(),
+      )
+    ) {
+      return jsonError("Akun tidak ditemukan.", 404);
     }
 
     await validateEmployeeHierarchy({
@@ -690,6 +709,7 @@ export async function PATCH(req: NextRequest) {
     const updateData: {
       name: string;
       email: string;
+      role: string;
       phone: string | null;
       employee_type: string;
       status: string;
@@ -712,6 +732,7 @@ export async function PATCH(req: NextRequest) {
     } = {
       name,
       email,
+      role,
       phone: phone || null,
       employee_type: employeeType,
       status,
@@ -746,7 +767,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil diperbarui.",
+      message: "Akun berhasil diperbarui.",
       employee,
     });
   } catch (error) {
@@ -759,6 +780,7 @@ export async function PATCH(req: NextRequest) {
     if (
       error instanceof Error &&
       (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("Role akun") ||
         error.message.includes("Tanggal") ||
         error.message.includes("masa kerja"))
     ) {
@@ -784,7 +806,7 @@ export async function DELETE(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat menghapus karyawan.",
+        "Akses ditolak. Hanya admin yang dapat menghapus akun.",
         403
       );
     }
@@ -795,6 +817,10 @@ export async function DELETE(req: NextRequest) {
       return jsonError("ID karyawan wajib dikirim.");
     }
 
+    if (currentUser.id === id) {
+      return jsonError("Akun yang sedang login tidak bisa menghapus dirinya sendiri.", 400);
+    }
+
     const employee = await prisma.user.findUnique({
       where: {
         id,
@@ -803,50 +829,94 @@ export async function DELETE(req: NextRequest) {
         id: true,
         role: true,
         name: true,
-        _count: {
-          select: {
-            attendances: true,
-            leave_requests: true,
-            visits: true,
-            payrolls: true,
-          },
-        },
       },
     });
 
-    if (!employee || employee.role !== "employee") {
-      return jsonError("Karyawan tidak ditemukan.", 404);
+    if (
+      !employee ||
+      !["admin", "employee", "owner"].includes(
+        String(employee.role || "").toLowerCase(),
+      )
+    ) {
+      return jsonError("Akun tidak ditemukan.", 404);
     }
 
-    const hasRelations =
-      employee._count.attendances > 0 ||
-      employee._count.leave_requests > 0 ||
-      employee._count.visits > 0 ||
-      employee._count.payrolls > 0;
-
-    if (hasRelations) {
-      return jsonError(
-        "Karyawan tidak bisa dihapus karena sudah memiliki data presensi, cuti, kunjungan, atau payroll. Ubah status menjadi Nonaktif.",
-        400
-      );
+    if (String(employee.role || "").toLowerCase() === "owner") {
+      return jsonError("Akun owner lama tidak bisa dihapus dari halaman ini.", 400);
     }
 
-    await prisma.user.delete({
-      where: {
-        id,
-      },
+    await prisma.$transaction(async (tx) => {
+      const payrolls = await tx.payroll.findMany({
+        where: { user_id: id },
+        select: { id: true },
+      });
+      const payrollIds = payrolls.map((payroll) => payroll.id);
+
+      if (payrollIds.length > 0) {
+        await tx.payrollItem.deleteMany({
+          where: {
+            payroll_id: {
+              in: payrollIds,
+            },
+          },
+        });
+      }
+
+      await tx.payroll.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.adminNotification.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.employeeVisit.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.attendanceMonthlySummary.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.leaveRequest.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.wfhRequest.updateMany({
+        where: { approved_by_id: id },
+        data: { approved_by_id: null },
+      });
+
+      await tx.wfhRequest.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.announcement.updateMany({
+        where: { author_id: id },
+        data: { author_id: null },
+      });
+
+      await tx.attendance.deleteMany({
+        where: { user_id: id },
+      });
+
+      await tx.user.delete({
+        where: {
+          id,
+        },
+      });
     });
 
     return NextResponse.json({
       success: true,
-      message: "Karyawan berhasil dihapus.",
+      message: "Akun dan data terkait berhasil dihapus.",
     });
   } catch (error) {
     console.error("DELETE /api/employees error:", error);
 
     if (isPrismaForeignKeyError(error)) {
       return jsonError(
-        "Karyawan tidak bisa dihapus karena masih memiliki relasi data lain. Ubah status menjadi Nonaktif.",
+        "Karyawan tidak bisa dihapus karena masih memiliki relasi data lain.",
         400
       );
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Edit,
   FileText,
@@ -267,11 +268,6 @@ export default function AdminAnnouncementsPage() {
     (item) => item.status === "archived",
   ).length;
 
-  function resetFilter() {
-    setSearch("");
-    setFilterStatus("all");
-  }
-
   function openAddModal() {
     setEditingAnnouncementId(null);
     setForm(initialForm);
@@ -386,40 +382,6 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  async function updateStatus(id: string, status: AnnouncementStatus) {
-    try {
-      const response = await fetch("/api/announcements", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id,
-          target: "all",
-          status,
-        }),
-      });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || data.message || "Gagal mengubah status pengumuman.",
-        );
-      }
-
-      await loadAnnouncements();
-    } catch (error) {
-      console.error("UPDATE_STATUS_ANNOUNCEMENT_ERROR:", error);
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Gagal mengubah status pengumuman.",
-      );
-    }
-  }
-
   return (
     <MobileShell variant="admin">
       <AnnouncementMotionStyles />
@@ -427,17 +389,9 @@ export default function AdminAnnouncementsPage() {
       <AppHeader title="Pengumuman" variant="admin" />
 
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
-        <section className="admin-announcement-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-24 left-16 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
-
+        <section className="admin-announcement-enter relative overflow-hidden rounded-[2rem] bg-[#123c8c] p-6 text-white shadow-md shadow-slate-300/40 md:p-8">
           <div className="relative z-10 flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
-                <Megaphone size={15} />
-                Announcement Center
-              </div>
-
               <h1 className="mt-5 text-3xl font-black tracking-tight md:text-4xl">
                 Pengumuman Admin
               </h1>
@@ -446,7 +400,7 @@ export default function AdminAnnouncementsPage() {
             <button
               type="button"
               onClick={openAddModal}
-              className="inline-flex items-center justify-center gap-3 rounded-[1.6rem] bg-white px-6 py-4 text-sm font-black text-[#123c8c] shadow-2xl shadow-blue-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-3 rounded-[1.4rem] bg-white px-6 py-4 text-sm font-black text-[#123c8c] shadow-sm ring-1 ring-white/70 transition duration-200 hover:bg-blue-50 active:scale-[0.98]"
             >
               <Plus size={20} strokeWidth={3} />
               Tambah Pengumuman
@@ -456,7 +410,7 @@ export default function AdminAnnouncementsPage() {
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <div
-            className="admin-announcement-row-enter rounded-[1.7rem] border border-emerald-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            className="admin-announcement-row-enter rounded-[1.5rem] border border-emerald-100 bg-white p-5 shadow-sm"
             style={{ animationDelay: "70ms" }}
           >
             <p className="text-sm font-bold text-slate-500">Published</p>
@@ -466,7 +420,7 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           <div
-            className="admin-announcement-row-enter rounded-[1.7rem] border border-amber-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            className="admin-announcement-row-enter rounded-[1.5rem] border border-amber-100 bg-white p-5 shadow-sm"
             style={{ animationDelay: "110ms" }}
           >
             <p className="text-sm font-bold text-slate-500">Draft</p>
@@ -476,7 +430,7 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           <div
-            className="admin-announcement-row-enter rounded-[1.7rem] border border-slate-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            className="admin-announcement-row-enter rounded-[1.5rem] border border-slate-100 bg-white p-5 shadow-sm"
             style={{ animationDelay: "150ms" }}
           >
             <p className="text-sm font-bold text-slate-500">Archived</p>
@@ -487,17 +441,20 @@ export default function AdminAnnouncementsPage() {
         </section>
 
         <section
-          className="admin-announcement-enter mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl md:p-6"
+          className="admin-announcement-enter mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-sm md:p-5"
           style={{ animationDelay: "120ms" }}
         >
-          <div className="flex flex-col gap-4">
-            <div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
               <h2 className="text-xl font-black text-slate-950">
                 Daftar Pengumuman
               </h2>
+              <p className="mt-1 text-sm font-semibold text-slate-400">
+                {filteredAnnouncements.length} data ditampilkan
+              </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[1.5fr_0.8fr_auto]">
+            <div className="grid gap-3 md:w-[34rem] md:grid-cols-[1.5fr_0.9fr_auto]">
               <div className="relative">
                 <Search
                   size={18}
@@ -526,15 +483,6 @@ export default function AdminAnnouncementsPage() {
                 <option value="draft">Draft</option>
                 <option value="archived">Archived</option>
               </select>
-
-              <button
-                type="button"
-                onClick={resetFilter}
-                className="inline-flex h-[46px] items-center justify-center rounded-2xl border border-blue-100 bg-white px-4 text-[#123c8c] shadow-sm transition duration-200 hover:bg-[#eaf1ff] active:scale-[0.96]"
-                title="Atur Ulang Filter"
-              >
-                <RefreshCw size={20} strokeWidth={2.6} />
-              </button>
             </div>
           </div>
 
@@ -544,10 +492,9 @@ export default function AdminAnnouncementsPage() {
             </div>
           ) : null}
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
-            <div className="hidden grid-cols-[1.2fr_1.7fr_1fr_0.8fr_1fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
-              <p>Judul</p>
-              <p>Isi Pengumuman</p>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-blue-100">
+            <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.75fr)_0.5fr_0.75fr] items-center bg-[#f6f8ff] px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#123c8c] md:grid">
+              <p>Pengumuman</p>
               <p>Dokumen</p>
               <p>Status</p>
               <p className="text-center">Aksi</p>
@@ -574,23 +521,33 @@ export default function AdminAnnouncementsPage() {
                 filteredAnnouncements.map((announcement, index) => (
                   <div
                     key={announcement.id}
-                    className="admin-announcement-row-enter grid gap-4 px-5 py-5 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid-cols-[1.2fr_1.7fr_1fr_0.8fr_1fr] md:items-center"
+                    className="admin-announcement-row-enter grid gap-3 px-4 py-4 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.75fr)_0.5fr_0.75fr] md:items-start md:px-5"
                     style={{
                       animationDelay: `${index * 55}ms`,
                     }}
                   >
-                    <div>
-                      <p className="font-black text-slate-950">
-                        {announcement.title}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold text-slate-400">
-                        {formatDate(announcement.created_at)}
-                      </p>
-                    </div>
+                    <Link
+                      href={`/admin/pengumuman/${announcement.id}`}
+                      className="min-w-0 rounded-2xl transition hover:bg-blue-50/50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#123c8c]">
+                          <Megaphone size={17} strokeWidth={2.6} />
+                        </span>
 
-                    <p className="line-clamp-2 font-semibold leading-6 text-slate-600">
-                      {announcement.content}
-                    </p>
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 break-words font-black leading-6 text-slate-950 [overflow-wrap:anywhere]">
+                            {announcement.title}
+                          </p>
+                          <p className="mt-1 line-clamp-2 break-words text-xs font-semibold leading-5 text-slate-500 [overflow-wrap:anywhere]">
+                            {announcement.content}
+                          </p>
+                          <p className="mt-2 text-[11px] font-bold text-slate-400">
+                            {formatDate(announcement.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
 
                     {announcement.document_url || announcement.documentUrl ? (
                       <a
@@ -601,11 +558,11 @@ export default function AdminAnnouncementsPage() {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex w-fit items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-[#123c8c] transition hover:bg-blue-100"
+                        className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-[#123c8c] transition hover:bg-blue-100 md:mt-1"
                       >
-                        <FileText size={14} />
+                        <FileText size={15} className="shrink-0" />
                         <span className="min-w-0">
-                          <span className="block max-w-[12rem] truncate">
+                          <span className="block truncate">
                             {announcement.document_name ||
                               announcement.documentName ||
                               "Dokumen PDF"}
@@ -624,13 +581,13 @@ export default function AdminAnnouncementsPage() {
                         </span>
                       </a>
                     ) : (
-                      <span className="text-xs font-bold text-slate-300">
+                      <span className="inline-flex w-fit rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-300">
                         Tidak ada
                       </span>
                     )}
 
                     <span
-                      className={`w-fit rounded-full px-3 py-1 text-xs font-black ${
+                      className={`w-fit rounded-full px-3 py-1 text-xs font-black md:justify-self-start ${
                         announcement.status === "published"
                           ? "bg-emerald-50 text-emerald-700"
                           : announcement.status === "draft"
@@ -641,44 +598,20 @@ export default function AdminAnnouncementsPage() {
                       {formatStatus(announcement.status)}
                     </span>
 
-                    <div className="flex flex-wrap gap-2 md:justify-center">
+                    <div className="grid grid-cols-2 gap-2 md:mt-1 md:justify-self-end">
                       <button
                         type="button"
                         onClick={() => openEditModal(announcement)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c] transition hover:bg-[#eaf1ff] active:scale-[0.97]"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 text-xs font-black text-[#123c8c] transition hover:bg-[#eaf1ff] active:scale-[0.97]"
                       >
                         <Edit size={14} />
                         Edit
                       </button>
 
-                      {announcement.status !== "published" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateStatus(announcement.id, "published")
-                          }
-                          className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 active:scale-[0.97]"
-                        >
-                          Publish
-                        </button>
-                      )}
-
-                      {announcement.status !== "archived" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateStatus(announcement.id, "archived")
-                          }
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-200 active:scale-[0.97]"
-                        >
-                          Archive
-                        </button>
-                      )}
-
                       <button
                         type="button"
                         onClick={() => deleteAnnouncement(announcement.id)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.97]"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-rose-50 px-3 text-xs font-black text-rose-600 transition hover:bg-rose-100 active:scale-[0.97]"
                       >
                         <Trash2 size={14} />
                         Hapus

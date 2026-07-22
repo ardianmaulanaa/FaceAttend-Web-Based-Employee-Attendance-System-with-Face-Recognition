@@ -36,8 +36,6 @@ export default function MobileShell({
             backgroundImage: "url('/images/creativemu-logo/creativemu.png')",
           }}
         />
-
-        <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-100/20 blur-3xl md:h-[820px] md:w-[820px]" />
       </div>
 
       <div className="relative z-10 min-h-dvh">{children}</div>

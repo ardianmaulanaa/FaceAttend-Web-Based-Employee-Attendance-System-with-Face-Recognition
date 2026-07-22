@@ -228,7 +228,9 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    const redirectTo = user.role === "owner" ? "/admin/dashboard" : "/beranda";
+    const role = String(user.role || "").toLowerCase();
+    const redirectTo =
+      role === "admin" || role === "owner" ? "/admin/dashboard" : "/beranda";
 
     const response = NextResponse.json({
       success: true,

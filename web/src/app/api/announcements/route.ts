@@ -233,6 +233,7 @@ export async function GET(req: NextRequest) {
     const audience = searchParams.get("audience") || "admin";
     const status = searchParams.get("status") || "all";
     const search = searchParams.get("search") || "";
+    const id = searchParams.get("id") || "";
 
     const where: Prisma.AnnouncementWhereInput = {};
 
@@ -245,6 +246,54 @@ export async function GET(req: NextRequest) {
       if (status !== "all") {
         where.status = normalizeStatus(status);
       }
+    }
+
+    if (id) {
+      const announcement = await prisma.announcement.findFirst({
+        where: {
+          ...where,
+          id,
+        },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          document_url: true,
+          document_public_id: true,
+          document_name: true,
+          document_mime: true,
+          document_size: true,
+          target: true,
+          status: true,
+          created_at: true,
+          updated_at: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!announcement) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Pengumuman tidak ditemukan.",
+          },
+          { status: 404 }
+        );
+      }
+
+      const formattedAnnouncement = formatAnnouncement(announcement);
+
+      return NextResponse.json({
+        success: true,
+        data: formattedAnnouncement,
+        announcement: formattedAnnouncement,
+      });
     }
 
     if (search) {

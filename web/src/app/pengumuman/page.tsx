@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CalendarDays, FileText, Loader2, Megaphone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -95,17 +96,6 @@ function AnnouncementMotionStyles() {
         }
       }
 
-      @keyframes announcementGlowFloat {
-        0%,
-        100% {
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-
-        50% {
-          transform: translate3d(12px, -10px, 0) scale(1.04);
-        }
-      }
-
       .announcement-enter {
         animation: announcementEnter 340ms ease-out both;
       }
@@ -119,15 +109,10 @@ function AnnouncementMotionStyles() {
         animation: announcementIconPop 280ms ease-out both;
       }
 
-      .announcement-glow-float {
-        animation: announcementGlowFloat 6s ease-in-out infinite;
-      }
-
       @media (prefers-reduced-motion: reduce) {
         .announcement-enter,
         .announcement-row-enter,
-        .announcement-icon-pop,
-        .announcement-glow-float {
+        .announcement-icon-pop {
           animation: none !important;
           opacity: 1 !important;
           transform: none !important;
@@ -195,14 +180,8 @@ export default function AnnouncementPage() {
       </div>
 
       <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-[calc(8rem+env(safe-area-inset-bottom))] text-slate-950 md:pb-28">
-        <div className="announcement-glow-float pointer-events-none fixed -left-32 top-24 hidden h-72 w-72 rounded-full bg-orange-200/20 blur-3xl md:block" />
-        <div className="announcement-glow-float pointer-events-none fixed -right-32 bottom-24 hidden h-72 w-72 rounded-full bg-blue-300/20 blur-3xl md:block" />
-
         <section className="mx-auto max-w-5xl px-5 pt-7 md:hidden">
           <div className="announcement-enter relative overflow-hidden rounded-[2rem] bg-[#123c8c] p-5 text-white shadow-xl shadow-blue-900/20">
-            <div className="announcement-glow-float absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
-            <div className="announcement-glow-float absolute -bottom-20 left-14 h-44 w-44 rounded-full bg-blue-300/20 blur-2xl" />
-
             <div className="relative z-10 flex items-center gap-3">
               <div className="announcement-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
                 <Megaphone size={25} strokeWidth={2.6} />
@@ -271,33 +250,38 @@ export default function AnnouncementPage() {
                       animationDelay: `${index * 55}ms`,
                     }}
                   >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0">
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#eaf1ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#123c8c]">
-                          <Megaphone size={14} />
-                          Pengumuman
+                    <Link
+                      href={`/pengumuman/${announcement.id}`}
+                      className="block min-w-0"
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#eaf1ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                            <Megaphone size={14} />
+                            Pengumuman
+                          </div>
+
+                          <h2 className="break-words text-xl font-black leading-8 text-slate-950 [overflow-wrap:anywhere] md:text-2xl md:leading-9">
+                            {announcement.title}
+                          </h2>
                         </div>
 
-                        <h2 className="break-words text-xl font-black leading-8 text-slate-950 [overflow-wrap:anywhere] md:text-2xl md:leading-9">
-                          {announcement.title}
-                        </h2>
+                        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-[#f8fbff] px-3 py-2 text-xs font-black text-slate-500 ring-1 ring-blue-100">
+                          <CalendarDays size={14} strokeWidth={2.6} />
+                          {formatDate(dateValue)}
+                        </div>
                       </div>
 
-                      <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-[#f8fbff] px-3 py-2 text-xs font-black text-slate-500 ring-1 ring-blue-100">
-                        <CalendarDays size={14} strokeWidth={2.6} />
-                        {formatDate(dateValue)}
-                      </div>
-                    </div>
-
-                    {announcement.content ? (
-                      <p className="mt-5 whitespace-pre-wrap break-words rounded-3xl bg-[#f8fbff] p-4 text-sm font-semibold leading-7 text-slate-600 [overflow-wrap:anywhere] md:p-5 md:text-base md:leading-8">
-                        {announcement.content}
-                      </p>
-                    ) : (
-                      <p className="mt-5 rounded-3xl bg-[#f8fbff] p-4 text-sm font-semibold text-slate-400">
-                        Tidak ada isi pengumuman.
-                      </p>
-                    )}
+                      {announcement.content ? (
+                        <p className="mt-5 line-clamp-3 whitespace-pre-wrap break-words rounded-3xl bg-[#f8fbff] p-4 text-sm font-semibold leading-7 text-slate-600 [overflow-wrap:anywhere] md:p-5 md:text-base md:leading-8">
+                          {announcement.content}
+                        </p>
+                      ) : (
+                        <p className="mt-5 rounded-3xl bg-[#f8fbff] p-4 text-sm font-semibold text-slate-400">
+                          Tidak ada isi pengumuman.
+                        </p>
+                      )}
+                    </Link>
 
                     {announcement.document_url || announcement.documentUrl ? (
                       <a

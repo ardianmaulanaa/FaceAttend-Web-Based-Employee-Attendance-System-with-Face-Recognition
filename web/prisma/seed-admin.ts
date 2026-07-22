@@ -79,19 +79,19 @@ async function main() {
     update: {
       name: "Owner Creativemu",
       password_hash,
-      role: "owner",
+      role: "admin",
       status: "active",
     },
     create: {
       name: "Owner Creativemu",
       email: "owner@creativemu.com",
       password_hash,
-      role: "owner",
+      role: "admin",
       status: "active",
     },
   });
 
-  console.log("Owner berhasil dibuat");
+  console.log("Admin owner@creativemu.com berhasil dibuat");
 }
 
 main()

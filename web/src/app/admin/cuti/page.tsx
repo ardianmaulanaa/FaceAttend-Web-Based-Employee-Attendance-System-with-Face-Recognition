@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   FileText,
+  Eye,
   Loader2,
   Search,
   UserRound,
-  X,
   XCircle,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -56,90 +56,54 @@ type AdminLeaveResponse = {
   requests: AdminLeaveRequest[];
 };
 
+type Employee = {
+  id: string;
+  name: string;
+  email: string;
+  employee_code?: string | null;
+  phone?: string | null;
+  status?: string | null;
+  employment_status?: string | null;
+  employment_start_date?: string | null;
+  employment_end_date?: string | null;
+  nik?: string | null;
+  profile_photo?: string | null;
+  registered_office?: {
+    name?: string | null;
+  } | null;
+  department?: {
+    name?: string | null;
+  } | null;
+  jabatan?: {
+    name?: string | null;
+  } | null;
+  position?: {
+    name?: string | null;
+  } | null;
+  shift?: {
+    name?: string | null;
+  } | null;
+};
+
+type EmployeesResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+  employees?: Employee[];
+  data?: Employee[];
+};
+
 type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
-type PendingAction = {
-  id: string;
-  status: "approved" | "rejected";
-  employeeName: string;
-} | null;
-
-type LeaveRequestGroup = {
-  key: string;
-  employeeId: string;
-  employeeName: string;
-  employeeCode: string | null;
-  employeeEmail: string | null;
-  employeePhone: string | null;
-  employeeStatus: string | null;
-  employeeEmploymentStatus: string | null;
-  employeeEmploymentStartDate: string | null;
-  employeeEmploymentEndDate: string | null;
-  employeeBirthPlace: string | null;
-  employeeBirthDate: string | null;
-  employeeBankAccountNumber: string | null;
-  employeeNik: string | null;
-  employeeProfilePhoto: string | null;
-  employeeJabatan: string | null;
-  employeePosition: string | null;
-  employeeDepartment: string | null;
-  employeeShift: string | null;
-  employeeOffice: string | null;
+type EmployeeLeaveRow = Employee & {
   requests: AdminLeaveRequest[];
+  latestRequest: AdminLeaveRequest | null;
   pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  leaveStatus: "none" | "pending" | "approved" | "rejected";
+  leaveStatusLabel: string;
 };
-
-type AdminAnswerOption = {
-  label: string;
-  value: string;
-};
-
-const approvedAnswerOptions: AdminAnswerOption[] = [
-  {
-    label: "Disetujui standar",
-    value: "Pengajuan cuti disetujui oleh admin.",
-  },
-  {
-    label: "Disetujui, koordinasi pekerjaan",
-    value:
-      "Pengajuan cuti disetujui. Silakan pastikan pekerjaan yang sedang berjalan sudah dikoordinasikan terlebih dahulu.",
-  },
-  {
-    label: "Disetujui, lampirkan bukti bila diperlukan",
-    value:
-      "Pengajuan cuti disetujui. Apabila diperlukan, silakan lengkapi dokumen pendukung setelah kembali bekerja.",
-  },
-  {
-    label: "Tulis sendiri",
-    value: "custom",
-  },
-];
-
-const rejectedAnswerOptions: AdminAnswerOption[] = [
-  {
-    label: "Ditolak standar",
-    value: "Pengajuan cuti ditolak oleh admin.",
-  },
-  {
-    label: "Ditolak karena jadwal belum memungkinkan",
-    value:
-      "Pengajuan cuti belum dapat disetujui karena jadwal kerja pada tanggal tersebut belum memungkinkan.",
-  },
-  {
-    label: "Ditolak, perlu revisi tanggal",
-    value:
-      "Pengajuan cuti belum dapat disetujui. Silakan ajukan ulang dengan tanggal yang lebih sesuai.",
-  },
-  {
-    label: "Ditolak, alasan belum cukup jelas",
-    value:
-      "Pengajuan cuti belum dapat disetujui karena alasan pengajuan belum cukup jelas. Silakan ajukan ulang dengan keterangan yang lebih lengkap.",
-  },
-  {
-    label: "Tulis sendiri",
-    value: "custom",
-  },
-];
 
 async function readJsonResponse(response: Response) {
   const text = await response.text();
@@ -168,6 +132,10 @@ function getStatusStyle(status: string) {
     return "bg-red-50 text-red-700 ring-red-100";
   }
 
+  if (normalized === "none") {
+    return "bg-slate-50 text-slate-500 ring-slate-200";
+  }
+
   return "bg-orange-50 text-orange-700 ring-orange-100";
 }
 
@@ -176,6 +144,7 @@ function getStatusIcon(status: string) {
 
   if (normalized === "approved") return CheckCircle2;
   if (normalized === "rejected") return XCircle;
+  if (normalized === "none") return CalendarDays;
 
   return Clock3;
 }
@@ -188,36 +157,38 @@ function getStatusLabel(status: StatusFilter) {
   return "Semua Status";
 }
 
-function getAnswerOptions(status: "approved" | "rejected") {
-  if (status === "approved") return approvedAnswerOptions;
-
-  return rejectedAnswerOptions;
+function getEmployeeProfilePhoto(employee: Employee) {
+  return employee.profile_photo || null;
 }
 
-function getDefaultAnswer(status: "approved" | "rejected") {
-  const options = getAnswerOptions(status);
+function getEmployeeLeaveStatus(requests: AdminLeaveRequest[]) {
+  if (requests.some((item) => item.status.toLowerCase() === "pending")) {
+    return {
+      status: "pending" as const,
+      label: "Ada Request",
+    };
+  }
 
-  return options[0]?.value || "";
-}
+  const latestRequest = requests[0] || null;
 
-function formatDateTimeDisplay(value: string | null | undefined) {
-  if (!value) return "-";
+  if (latestRequest?.status.toLowerCase() === "approved") {
+    return {
+      status: "approved" as const,
+      label: "Disetujui",
+    };
+  }
 
-  const date = new Date(value);
+  if (latestRequest?.status.toLowerCase() === "rejected") {
+    return {
+      status: "rejected" as const,
+      label: "Ditolak",
+    };
+  }
 
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getLeaveRequestGroupKey(item: AdminLeaveRequest) {
-  return item.employeeId || item.employeeCode || item.employeeName;
+  return {
+    status: "none" as const,
+    label: "Belum Ada",
+  };
 }
 
 function LeaveReportMotionStyles() {
@@ -309,42 +280,58 @@ function LeaveReportMotionStyles() {
 }
 
 export default function AdminLeaveReportPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [requests, setRequests] = useState<AdminLeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
-
   const [errorMessage, setErrorMessage] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState("");
-  const [adminNote, setAdminNote] = useState("");
-  const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null);
-
-  async function getLeaveRequests() {
+  async function getLeaveReportData() {
     try {
       setIsLoading(true);
       setErrorMessage("");
 
-      const response = await fetch("/api/admin/leave-requests", {
-        method: "GET",
-        cache: "no-store",
-      });
+      const [employeesResponse, leaveResponse] = await Promise.all([
+        fetch("/api/employees", {
+          method: "GET",
+          cache: "no-store",
+        }),
+        fetch("/api/admin/leave-requests", {
+          method: "GET",
+          cache: "no-store",
+        }),
+      ]);
 
-      const data: AdminLeaveResponse = await readJsonResponse(response);
+      const employeesData: EmployeesResponse =
+        await readJsonResponse(employeesResponse);
+      const leaveData: AdminLeaveResponse = await readJsonResponse(leaveResponse);
 
-      if (!response.ok || !data.success) {
+      if (!employeesResponse.ok || !employeesData.success) {
+        setEmployees([]);
         setRequests([]);
         setErrorMessage(
-          data.message || data.error || "Gagal mengambil laporan cuti.",
+          employeesData.message ||
+            employeesData.error ||
+            "Gagal mengambil data karyawan.",
         );
         return;
       }
 
-      setRequests(data.requests || []);
+      if (!leaveResponse.ok || !leaveData.success) {
+        setEmployees(employeesData.employees || employeesData.data || []);
+        setRequests([]);
+        setErrorMessage(
+          leaveData.message || leaveData.error || "Gagal mengambil laporan cuti.",
+        );
+        return;
+      }
+
+      setEmployees(employeesData.employees || employeesData.data || []);
+      setRequests(leaveData.requests || []);
     } catch (error) {
-      console.error("GET_ADMIN_LEAVE_REQUESTS_ERROR:", error);
+      console.error("GET_ADMIN_LEAVE_REPORT_DATA_ERROR:", error);
+      setEmployees([]);
       setRequests([]);
       setErrorMessage("Gagal mengambil laporan cuti.");
     } finally {
@@ -352,88 +339,52 @@ export default function AdminLeaveReportPage() {
     }
   }
 
-  function openAnswerModal(
-    item: AdminLeaveRequest,
-    status: "approved" | "rejected",
-  ) {
-    const defaultAnswer = getDefaultAnswer(status);
-
-    setPendingAction({
-      id: item.id,
-      status,
-      employeeName: item.employeeName,
-    });
-
-    setSelectedAnswer(defaultAnswer);
-    setAdminNote(defaultAnswer);
-  }
-
-  function closeAnswerModal() {
-    setPendingAction(null);
-    setSelectedAnswer("");
-    setAdminNote("");
-  }
-
-  function handleSelectedAnswerChange(value: string) {
-    setSelectedAnswer(value);
-
-    if (value === "custom") {
-      setAdminNote("");
-      return;
-    }
-
-    setAdminNote(value);
-  }
-
-  async function confirmUpdateLeaveStatus() {
-    if (!pendingAction) return;
-
-    try {
-      setIsUpdatingId(pendingAction.id);
-
-      const response = await fetch("/api/admin/leave-requests", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: pendingAction.id,
-          status: pendingAction.status,
-          adminNote: adminNote.trim(),
-        }),
-      });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok || !data.success) {
-        alert(data.message || data.error || "Gagal memperbarui status cuti.");
-        return;
-      }
-
-      closeAnswerModal();
-      await getLeaveRequests();
-    } catch (error) {
-      console.error("UPDATE_LEAVE_STATUS_ERROR:", error);
-      alert("Gagal memperbarui status cuti.");
-    } finally {
-      setIsUpdatingId(null);
-    }
-  }
-
   useEffect(() => {
-    void getLeaveRequests();
+    void getLeaveReportData();
   }, []);
 
+  const employeeRows = useMemo<EmployeeLeaveRow[]>(() => {
+    const requestsByEmployeeId = new Map<string, AdminLeaveRequest[]>();
+
+    requests.forEach((item) => {
+      const employeeRequests = requestsByEmployeeId.get(item.employeeId) || [];
+      employeeRequests.push(item);
+      requestsByEmployeeId.set(item.employeeId, employeeRequests);
+    });
+
+    return employees.map((employee) => {
+      const employeeRequests = requestsByEmployeeId.get(employee.id) || [];
+      const leaveStatus = getEmployeeLeaveStatus(employeeRequests);
+
+      return {
+        ...employee,
+        requests: employeeRequests,
+        latestRequest: employeeRequests[0] || null,
+        pendingCount: employeeRequests.filter(
+          (item) => item.status.toLowerCase() === "pending",
+        ).length,
+        approvedCount: employeeRequests.filter(
+          (item) => item.status.toLowerCase() === "approved",
+        ).length,
+        rejectedCount: employeeRequests.filter(
+          (item) => item.status.toLowerCase() === "rejected",
+        ).length,
+        leaveStatus: leaveStatus.status,
+        leaveStatusLabel: leaveStatus.label,
+      };
+    });
+  }, [employees, requests]);
+
   const stats = useMemo(() => {
-    const total = requests.length;
-    const pending = requests.filter(
-      (item) => item.status.toLowerCase() === "pending",
+    const total = employeeRows.length;
+    const pending = employeeRows.filter(
+      (item) => item.leaveStatus === "pending",
     ).length;
-    const approved = requests.filter(
-      (item) => item.status.toLowerCase() === "approved",
+    const approved = employeeRows.filter(
+      (item) => item.leaveStatus === "approved",
     ).length;
-    const rejected = requests.filter(
-      (item) => item.status.toLowerCase() === "rejected",
+    const rejected = employeeRows.filter(
+      (item) => item.leaveStatus === "rejected",
     ).length;
 
     return {
@@ -442,30 +393,31 @@ export default function AdminLeaveReportPage() {
       approved,
       rejected,
     };
-  }, [requests]);
+  }, [employeeRows]);
 
-  const filteredRequests = useMemo(() => {
+  const filteredEmployees = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
-    return requests.filter((item) => {
+    return employeeRows.filter((item) => {
       const matchStatus =
-        statusFilter === "all" || item.status.toLowerCase() === statusFilter;
+        statusFilter === "all" || item.leaveStatus === statusFilter;
 
       const searchableText = [
-        item.employeeName,
-        item.employeeCode,
-        item.employeeEmail,
-        item.employeePhone,
-        item.employeeOffice,
-        item.employeeDepartment,
-        item.employeeJabatan,
-        item.employeePosition,
-        item.employeeShift,
-        item.employeeEmploymentStatus,
-        item.employeeNik,
-        item.leaveTypeLabel,
-        item.reason,
-        item.statusLabel,
+        item.name,
+        item.employee_code,
+        item.email,
+        item.phone,
+        item.registered_office?.name,
+        item.department?.name,
+        item.jabatan?.name,
+        item.position?.name,
+        item.shift?.name,
+        item.employment_status,
+        item.nik,
+        item.leaveStatusLabel,
+        item.latestRequest?.leaveTypeLabel,
+        item.latestRequest?.reason,
+        item.latestRequest?.statusLabel,
       ]
         .filter(Boolean)
         .join(" ")
@@ -475,73 +427,7 @@ export default function AdminLeaveReportPage() {
 
       return matchStatus && matchKeyword;
     });
-  }, [requests, searchKeyword, statusFilter]);
-
-  const groupedRequests = useMemo<LeaveRequestGroup[]>(() => {
-    const groupMap = new Map<string, LeaveRequestGroup>();
-
-    filteredRequests.forEach((item) => {
-      const key = getLeaveRequestGroupKey(item);
-      const existingGroup = groupMap.get(key);
-
-      if (existingGroup) {
-        existingGroup.requests.push(item);
-
-        if (item.status.toLowerCase() === "pending") {
-          existingGroup.pendingCount += 1;
-        }
-
-        return;
-      }
-
-      groupMap.set(key, {
-        key,
-        employeeId: item.employeeId,
-        employeeName: item.employeeName,
-        employeeCode: item.employeeCode,
-        employeeEmail: item.employeeEmail,
-        employeePhone: item.employeePhone,
-        employeeStatus: item.employeeStatus,
-        employeeEmploymentStatus: item.employeeEmploymentStatus,
-        employeeEmploymentStartDate: item.employeeEmploymentStartDate,
-        employeeEmploymentEndDate: item.employeeEmploymentEndDate,
-        employeeBirthPlace: item.employeeBirthPlace,
-        employeeBirthDate: item.employeeBirthDate,
-        employeeBankAccountNumber: item.employeeBankAccountNumber,
-        employeeNik: item.employeeNik,
-        employeeProfilePhoto: item.employeeProfilePhoto,
-        employeeJabatan: item.employeeJabatan,
-        employeePosition: item.employeePosition,
-        employeeDepartment: item.employeeDepartment,
-        employeeShift: item.employeeShift,
-        employeeOffice: item.employeeOffice,
-        requests: [item],
-        pendingCount: item.status.toLowerCase() === "pending" ? 1 : 0,
-      });
-    });
-
-    return Array.from(groupMap.values()).sort((first, second) => {
-      if (second.pendingCount !== first.pendingCount) {
-        return second.pendingCount - first.pendingCount;
-      }
-
-      return first.employeeName.localeCompare(second.employeeName, "id-ID");
-    });
-  }, [filteredRequests]);
-
-  const currentAnswerOptions = pendingAction
-    ? getAnswerOptions(pendingAction.status)
-    : [];
-
-  const modalTitle =
-    pendingAction?.status === "approved"
-      ? "Setujui Pengajuan Cuti"
-      : "Tolak Pengajuan Cuti";
-
-  const modalDescription =
-    pendingAction?.status === "approved"
-      ? "Pilih atau tulis jawaban admin sebelum pengajuan cuti disetujui."
-      : "Pilih atau tulis jawaban admin sebelum pengajuan cuti ditolak.";
+  }, [employeeRows, searchKeyword, statusFilter]);
 
   return (
     <MobileShell variant="admin" withBottomPadding={false}>
@@ -572,13 +458,13 @@ export default function AdminLeaveReportPage() {
                   className="leave-report-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4"
                   style={{ animationDelay: "60ms" }}
                 >
-                  <p className="text-xs font-bold text-slate-500">Total</p>
-                  <h3 className="mt-3 text-3xl font-black text-[#123c8c]">
-                    {stats.total}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                    Semua laporan
-                  </p>
+	                  <p className="text-xs font-bold text-slate-500">Total</p>
+	                  <h3 className="mt-3 text-3xl font-black text-[#123c8c]">
+	                    {stats.total}
+	                  </h3>
+	                  <p className="mt-1 text-xs font-semibold text-slate-500">
+	                    Semua karyawan
+	                  </p>
                 </div>
 
                 <div
@@ -589,9 +475,9 @@ export default function AdminLeaveReportPage() {
                   <h3 className="mt-3 text-3xl font-black text-orange-700">
                     {stats.pending}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-orange-700/70">
-                    Belum diproses
-                  </p>
+	                  <p className="mt-1 text-xs font-semibold text-orange-700/70">
+	                    Ada request
+	                  </p>
                 </div>
 
                 <div
@@ -604,9 +490,9 @@ export default function AdminLeaveReportPage() {
                   <h3 className="mt-3 text-3xl font-black text-emerald-700">
                     {stats.approved}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-emerald-700/70">
-                    Sudah diterima
-                  </p>
+	                  <p className="mt-1 text-xs font-semibold text-emerald-700/70">
+	                    Status terakhir
+	                  </p>
                 </div>
 
                 <div
@@ -617,9 +503,9 @@ export default function AdminLeaveReportPage() {
                   <h3 className="mt-3 text-3xl font-black text-red-700">
                     {stats.rejected}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-red-700/70">
-                    Tidak diterima
-                  </p>
+	                  <p className="mt-1 text-xs font-semibold text-red-700/70">
+	                    Status terakhir
+	                  </p>
                 </div>
               </div>
             </div>
@@ -641,9 +527,9 @@ export default function AdminLeaveReportPage() {
                   Data Laporan
                 </p>
 
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-                  Daftar Pengajuan Cuti
-                </h2>
+	                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+	                  Daftar Karyawan
+	                </h2>
               </div>
             </div>
 
@@ -655,9 +541,9 @@ export default function AdminLeaveReportPage() {
                 />
 
                 <input
-                  value={searchKeyword}
-                  onChange={(event) => setSearchKeyword(event.target.value)}
-                  placeholder="Cari nama, kode, alasan, atau jenis cuti..."
+	                  value={searchKeyword}
+	                  onChange={(event) => setSearchKeyword(event.target.value)}
+	                  placeholder="Cari nama, kode, divisi, atau status cuti..."
                   className="leave-report-field h-12 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
                 />
               </div>
@@ -682,55 +568,51 @@ export default function AdminLeaveReportPage() {
                   <Loader2 size={18} className="animate-spin text-[#123c8c]" />
                   Memuat laporan cuti...
                 </div>
-              ) : filteredRequests.length === 0 ? (
-                <div className="leave-report-row-enter rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] px-5 py-12 text-center">
+	              ) : filteredEmployees.length === 0 ? (
+	                <div className="leave-report-row-enter rounded-3xl border border-dashed border-blue-100 bg-[#f8fbff] px-5 py-12 text-center">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
                     <CalendarDays size={26} strokeWidth={2.6} />
                   </div>
 
-                  <p className="mt-4 text-sm font-black text-slate-500">
-                    Tidak ada laporan cuti untuk filter{" "}
-                    {getStatusLabel(statusFilter)}.
-                  </p>
+	                  <p className="mt-4 text-sm font-black text-slate-500">
+	                    Tidak ada karyawan untuk filter{" "}
+	                    {getStatusLabel(statusFilter)}.
+	                  </p>
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  {groupedRequests.map((group, index) => {
-                    const isExpanded = expandedGroupKey === group.key;
+	                <div className="grid gap-3">
+	                  {filteredEmployees.map((item, index) => {
+	                    const StatusIcon = getStatusIcon(item.leaveStatus);
+	                    const profilePhoto = getEmployeeProfilePhoto(item);
 
-                    return (
-                      <article
-                        key={group.key}
-                        className="leave-report-row-enter overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-md shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-300/30"
+	                    return (
+	                      <Link
+	                        key={item.id}
+	                        href={`/admin/cuti/karyawan/${item.id}`}
+	                        className="leave-report-row-enter group relative overflow-hidden rounded-3xl border border-blue-100 bg-white p-4 shadow-md shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:shadow-lg hover:shadow-slate-300/30 active:scale-[0.99] md:p-5"
                         style={{
                           animationDelay: `${index * 55}ms`,
                         }}
                       >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedGroupKey(isExpanded ? null : group.key)
-                          }
-                          className="relative flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[#f8fbff] md:flex-row md:items-center md:justify-between md:px-5 md:py-4"
-                        >
-                          {group.pendingCount > 0 ? (
-                            <span className="absolute right-4 top-4 flex h-3 w-3">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
-                            </span>
-                          ) : null}
+	                        {item.leaveStatus === "pending" ? (
+	                          <span className="absolute right-4 top-4 flex h-3 w-3">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+                          </span>
+                        ) : null}
 
-                          <div className="flex min-w-0 items-center gap-3 pr-7">
+                        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                          <div className="flex min-w-0 items-center gap-3 pr-6">
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-base font-black text-[#123c8c]">
                               {index + 1}
                             </div>
 
-                            {group.employeeProfilePhoto ? (
-                              <img
-                                src={group.employeeProfilePhoto}
-                                alt={`Foto profil ${group.employeeName}`}
-                                className="h-12 w-12 shrink-0 rounded-2xl border border-blue-100 object-cover"
-                              />
+	                            {profilePhoto ? (
+	                              <img
+	                                src={profilePhoto}
+	                                alt={`Foto profil ${item.name}`}
+	                                className="h-12 w-12 shrink-0 rounded-2xl border border-blue-100 object-cover"
+	                              />
                             ) : (
                               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-[#f8fbff] text-[#123c8c]">
                                 <UserRound size={24} strokeWidth={2.6} />
@@ -739,290 +621,28 @@ export default function AdminLeaveReportPage() {
 
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="truncate text-lg font-black text-slate-950 md:text-xl">
-                                  {group.employeeName}
-                                </h3>
+	                                <h3 className="truncate text-lg font-black text-slate-950 md:text-xl">
+	                                  {item.name}
+	                                </h3>
 
-                                {group.pendingCount > 0 ? (
-                                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-100">
-                                    {group.pendingCount} baru
-                                  </span>
-                                ) : null}
-                              </div>
-
-                              <p className="mt-0.5 truncate text-xs font-bold text-slate-500 md:text-sm">
-                                {group.employeeCode || "-"}{" "}
-                                {group.employeeOffice
-                                  ? `• ${group.employeeOffice}`
-                                  : ""}
-                                {group.employeeDepartment
-                                  ? ` • ${group.employeeDepartment}`
-                                  : ""}
-                                {group.employeeJabatan
-                                  ? ` • ${group.employeeJabatan}`
-                                  : ""}
-                                {group.employeePosition
-                                  ? ` • ${group.employeePosition}`
-                                  : ""}
-                              </p>
+	                                <span
+	                                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusStyle(
+	                                    item.leaveStatus,
+	                                  )}`}
+	                                >
+	                                  <StatusIcon size={14} strokeWidth={2.6} />
+	                                  {item.leaveStatusLabel}
+	                                </span>
+	                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between gap-3 md:justify-end">
-                            <div className="rounded-2xl bg-[#eaf1ff] px-3 py-2 text-xs font-black text-[#123c8c] md:text-sm">
-                              {group.requests.length} pengajuan
-                            </div>
-
-                            <ChevronDown
-                              size={22}
-                              className={`text-[#123c8c] transition duration-200 ${
-                                isExpanded ? "rotate-180" : ""
-                              }`}
-                              strokeWidth={2.8}
-                            />
-                          </div>
-                        </button>
-
-                        {isExpanded ? (
-                          <div className="grid gap-4 border-t border-blue-50 bg-[#f8fbff] p-4 md:p-5">
-                            <div className="rounded-[1.5rem] border border-blue-100 bg-white p-4">
-                              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="flex min-w-0 items-center gap-3">
-                                  {group.employeeProfilePhoto ? (
-                                    <img
-                                      src={group.employeeProfilePhoto}
-                                      alt={`Foto profil ${group.employeeName}`}
-                                      className="h-14 w-14 shrink-0 rounded-2xl border border-blue-100 object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-[#f8fbff] text-[#123c8c]">
-                                      <UserRound size={26} strokeWidth={2.6} />
-                                    </div>
-                                  )}
-
-                                  <div className="min-w-0">
-                                    <h4 className="truncate text-lg font-black text-slate-950">
-                                      Profil Karyawan
-                                    </h4>
-
-                                    <p className="mt-1 truncate text-sm font-bold text-slate-500">
-                                      {group.employeeEmail || "-"}{" "}
-                                      {group.employeePhone
-                                        ? `• ${group.employeePhone}`
-                                        : ""}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="grid gap-2 text-xs font-bold text-slate-600 sm:grid-cols-2 lg:grid-cols-4 lg:min-w-[640px]">
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Kantor
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeOffice || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Divisi
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeDepartment || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Jabatan
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeJabatan || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Posisi
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeePosition || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Shift
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeShift || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Status Kepegawaian
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeEmploymentStatus || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      Masa Kerja
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeEmploymentStartDate || "-"}{" "}
-                                      - {group.employeeEmploymentEndDate || "-"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-2xl bg-[#f8fbff] p-3">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">
-                                      NIK
-                                    </p>
-                                    <p className="mt-1 text-[#123456]">
-                                      {group.employeeNik || "-"}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {group.requests.map((item, requestIndex) => {
-                              const StatusIcon = getStatusIcon(item.status);
-                              const isPending =
-                                item.status.toLowerCase() === "pending";
-
-                              return (
-                                <div
-                                  key={item.id}
-                                  className="rounded-[1.5rem] border border-blue-100 bg-white p-5"
-                                  style={{
-                                    animationDelay: `${requestIndex * 45}ms`,
-                                  }}
-                                >
-                                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <span className="rounded-full bg-[#eaf1ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                                          {item.leaveTypeLabel}
-                                        </span>
-
-                                        <span
-                                          className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusStyle(
-                                            item.status,
-                                          )}`}
-                                        >
-                                          <StatusIcon
-                                            size={14}
-                                            strokeWidth={2.6}
-                                          />
-                                          {item.statusLabel}
-                                        </span>
-                                      </div>
-
-                                      <h4 className="mt-3 text-lg font-black text-slate-950">
-                                        Detail Pengajuan
-                                      </h4>
-
-                                      <p className="mt-1 text-sm font-bold text-slate-500">
-                                        Diajukan{" "}
-                                        {formatDateTimeDisplay(item.createdAt)}
-                                      </p>
-                                    </div>
-
-                                    <div className="grid gap-2 rounded-3xl bg-[#f8fbff] p-4 text-sm font-bold text-slate-600 sm:grid-cols-3 lg:min-w-[360px]">
-                                      <div>
-                                        <p className="text-[10px] font-black uppercase text-slate-400">
-                                          Mulai
-                                        </p>
-                                        <p className="mt-1 text-[#123456]">
-                                          {item.startDate}
-                                        </p>
-                                      </div>
-
-                                      <div>
-                                        <p className="text-[10px] font-black uppercase text-slate-400">
-                                          Selesai
-                                        </p>
-                                        <p className="mt-1 text-[#123456]">
-                                          {item.endDate}
-                                        </p>
-                                      </div>
-
-                                      <div>
-                                        <p className="text-[10px] font-black uppercase text-slate-400">
-                                          Total
-                                        </p>
-                                        <p className="mt-1 text-[#123456]">
-                                          {item.totalDays} hari
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="mt-4 rounded-3xl bg-[#f8fbff] p-4">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                                      Alasan
-                                    </p>
-
-                                    <p className="mt-2 break-words text-sm font-semibold leading-7 text-slate-600">
-                                      {item.reason}
-                                    </p>
-                                  </div>
-
-                                  {item.adminNote ? (
-                                    <div className="mt-3 rounded-3xl bg-blue-50 p-4">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                                        Jawaban Admin
-                                      </p>
-
-                                      <p className="mt-2 break-words text-sm font-semibold leading-7 text-[#123c8c]">
-                                        {item.adminNote}
-                                      </p>
-                                    </div>
-                                  ) : null}
-
-                                  {isPending ? (
-                                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openAnswerModal(item, "rejected")
-                                        }
-                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-50 px-5 text-sm font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100 active:scale-[0.98]"
-                                      >
-                                        <XCircle
-                                          size={17}
-                                          strokeWidth={2.6}
-                                        />
-                                        Tolak
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openAnswerModal(item, "approved")
-                                        }
-                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-700 active:scale-[0.98]"
-                                      >
-                                        <CheckCircle2
-                                          size={17}
-                                          strokeWidth={2.6}
-                                        />
-                                        Setujui
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : null}
-                      </article>
+                          <span className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 text-sm font-black text-white shadow-lg shadow-blue-950/20 transition group-hover:bg-[#0f3274] md:min-w-44">
+	                            <Eye size={17} strokeWidth={2.6} />
+	                            Detail Karyawan
+	                          </span>
+                        </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -1031,138 +651,6 @@ export default function AdminLeaveReportPage() {
           </div>
         </section>
       </main>
-
-      {pendingAction ? (
-        <div className="leave-report-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="leave-report-modal-panel max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
-                  Jawaban Admin
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  {modalTitle}
-                </h2>
-
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  {modalDescription}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeAnswerModal}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 active:scale-[0.96]"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="leave-report-row-enter mt-5 rounded-2xl bg-[#f8fbff] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                Karyawan
-              </p>
-
-              <p className="mt-1 text-base font-black text-[#123456]">
-                {pendingAction.employeeName}
-              </p>
-            </div>
-
-            <div
-              className="leave-report-row-enter mt-5"
-              style={{ animationDelay: "40ms" }}
-            >
-              <label className="text-sm font-black text-slate-700">
-                Pilih Jawaban
-              </label>
-
-              <select
-                value={selectedAnswer}
-                onChange={(event) =>
-                  handleSelectedAnswerChange(event.target.value)
-                }
-                className="leave-report-field mt-2 h-14 w-full rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-              >
-                {currentAnswerOptions.map((option) => (
-                  <option key={option.label} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div
-              className="leave-report-row-enter mt-4"
-              style={{ animationDelay: "80ms" }}
-            >
-              <label className="text-sm font-black text-slate-700">
-                Catatan Admin
-                <span className="ml-1 text-xs font-bold text-slate-400">
-                  opsional
-                </span>
-              </label>
-
-              <textarea
-                value={adminNote}
-                onChange={(event) => setAdminNote(event.target.value)}
-                placeholder="Tulis jawaban admin jika diperlukan..."
-                className="leave-report-field mt-2 min-h-32 w-full resize-none rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-4 text-sm font-bold leading-6 text-slate-700 outline-none transition focus:border-[#123c8c] focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
-
-            <div
-              className="leave-report-row-enter mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs font-semibold leading-6 text-[#123c8c]"
-              style={{ animationDelay: "120ms" }}
-            >
-              Catatan ini akan tampil pada riwayat pengajuan cuti karyawan
-              sebagai jawaban dari admin.
-            </div>
-
-            <div
-              className="leave-report-row-enter mt-6 flex flex-col-reverse gap-3 md:flex-row md:justify-end"
-              style={{ animationDelay: "160ms" }}
-            >
-              <button
-                type="button"
-                onClick={closeAnswerModal}
-                disabled={Boolean(isUpdatingId)}
-                className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Batal
-              </button>
-
-              <button
-                type="button"
-                onClick={confirmUpdateLeaveStatus}
-                disabled={Boolean(isUpdatingId)}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
-                  pendingAction.status === "approved"
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-red-600 hover:bg-red-700"
-                }`}
-              >
-                {isUpdatingId ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Memproses...
-                  </>
-                ) : pendingAction.status === "approved" ? (
-                  <>
-                    <CheckCircle2 size={18} />
-                    Setujui Sekarang
-                  </>
-                ) : (
-                  <>
-                    <XCircle size={18} />
-                    Tolak Sekarang
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </MobileShell>
   );
 }

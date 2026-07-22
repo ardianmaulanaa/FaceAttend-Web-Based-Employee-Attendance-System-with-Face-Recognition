@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { deactivateExpiredEmployee } from "@/lib/employment-period";
 import { prisma } from "@/lib/prisma";
 
-export type AppRole = "owner" | "employee";
+export type AppRole = "admin" | "employee" | "owner";
 
 export type AuthUser = {
   id: string;
@@ -87,7 +87,7 @@ export async function requireRole(req: NextRequest, roles: AppRole[]) {
 }
 
 export function requireOwner(req: NextRequest) {
-  return requireRole(req, ["owner"]);
+  return requireRole(req, ["admin", "owner"]);
 }
 
 export function requireEmployee(req: NextRequest) {
@@ -113,7 +113,7 @@ export async function requireDbUser(req: NextRequest, roles?: AppRole[]) {
 }
 
 export function requireOwnerUser(req: NextRequest) {
-  return requireDbUser(req, ["owner"]);
+  return requireDbUser(req, ["admin", "owner"]);
 }
 
 export function requireEmployeeUser(req: NextRequest) {

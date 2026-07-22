@@ -4,10 +4,10 @@ import { requireOwner } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner";
+type AllowedRole = "admin" | "owner";
 
-const VIEW_ROLES: AllowedRole[] = ["owner"];
-const MANAGE_ROLES: AllowedRole[] = ["owner"];
+const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
+const MANAGE_ROLES: AllowedRole[] = ["admin", "owner"];
 
 const officeSelect = {
   id: true,
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat menambah posisi.",
+        "Akses ditolak. Hanya admin yang dapat menambah posisi.",
         403,
       );
     }
@@ -317,7 +317,7 @@ export async function PATCH(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat mengubah posisi.",
+        "Akses ditolak. Hanya admin yang dapat mengubah posisi.",
         403,
       );
     }
@@ -428,7 +428,7 @@ export async function DELETE(req: NextRequest) {
       !canAccess(currentUser.role, MANAGE_ROLES)
     ) {
       return jsonError(
-        "Akses ditolak. Hanya owner yang dapat menghapus posisi.",
+        "Akses ditolak. Hanya admin yang dapat menghapus posisi.",
         403,
       );
     }

@@ -214,17 +214,6 @@ function HomeMotionStyles() {
         }
       }
 
-      @keyframes homeFloatGlow {
-        0%,
-        100% {
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-
-        50% {
-          transform: translate3d(12px, -10px, 0) scale(1.05);
-        }
-      }
-
       .home-enter {
         animation: homeEnter 340ms ease-out both;
       }
@@ -246,17 +235,12 @@ function HomeMotionStyles() {
         animation: homePulseDot 1.45s ease-in-out infinite;
       }
 
-      .home-float-glow {
-        animation: homeFloatGlow 6s ease-in-out infinite;
-      }
-
       @media (prefers-reduced-motion: reduce) {
         .home-enter,
         .home-card-enter,
         .home-icon-pop,
         .home-text-reveal,
-        .home-pulse-dot,
-        .home-float-glow {
+        .home-pulse-dot {
           animation: none !important;
           opacity: 1 !important;
           transform: none !important;
@@ -642,9 +626,6 @@ export default function HomePage() {
         </div>
 
         <main className="min-h-dvh overflow-x-hidden bg-white text-slate-950 md:bg-gradient-to-br md:from-[#f6f8ff] md:via-white md:to-[#eef4ff] md:pb-28">
-          <div className="home-float-glow pointer-events-none fixed -left-32 top-24 hidden h-72 w-72 rounded-full bg-orange-200/20 blur-3xl md:block" />
-          <div className="home-float-glow pointer-events-none fixed -right-32 bottom-24 hidden h-72 w-72 rounded-full bg-blue-300/20 blur-3xl md:block" />
-
           <section
             className="home-enter bg-white md:hidden"
             style={{
@@ -737,9 +718,6 @@ export default function HomePage() {
 
           <section className="mx-auto hidden max-w-7xl px-10 pt-8 md:block lg:px-16">
             <div className="home-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-8 text-white shadow-2xl shadow-blue-900/25">
-              <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
-              <div className="absolute bottom-[-7rem] right-24 h-60 w-60 rounded-full bg-blue-300/10" />
-
               <div className="relative z-10 flex items-center justify-between gap-8">
                 <div className="flex items-center gap-5">
                   <ProfileAvatar user={user} size="desktop" variant="blue" />

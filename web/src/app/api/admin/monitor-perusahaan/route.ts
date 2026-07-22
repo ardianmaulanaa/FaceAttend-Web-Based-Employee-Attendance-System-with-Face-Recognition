@@ -4,9 +4,9 @@ import { requireOwner } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner";
+type AllowedRole = "admin" | "owner";
 
-const ALLOWED_ROLES: AllowedRole[] = ["owner"];
+const ALLOWED_ROLES: AllowedRole[] = ["admin", "owner"];
 
 function getDateParts(date = new Date()) {
   return {
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          message: "Akses ditolak. Hanya owner yang diizinkan.",
+          message: "Akses ditolak. Hanya admin yang diizinkan.",
         },
         { status: 403 },
       );
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
       where: {
         status: "active",
         role: {
-          in: ["employee", "owner"],
+          in: ["employee"],
         },
       },
       select: {

@@ -43,7 +43,7 @@ function getCurrentUser(req: NextRequest) {
 }
 
 function canManageLeave(role: string) {
-  return role.toLowerCase() === "owner";
+  return ["admin", "owner"].includes(role.toLowerCase());
 }
 
 function toIsoDate(value: Date | string | null | undefined) {
@@ -118,11 +118,12 @@ function mapLeaveRequest(item: {
   admin_note: string | null;
   created_at: Date;
   updated_at: Date;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string | null;
+	  user?: {
+	    id: string;
+	    name: string;
+	    email: string;
+	    employee_code: string | null;
+	    phone: string | null;
     status: string;
     employment_status: string | null;
     employment_start_date: Date | null;
@@ -153,9 +154,10 @@ function mapLeaveRequest(item: {
     id: item.id,
     userId: item.user_id,
 
-    employeeId: item.user?.id || item.user_id,
-    employeeName: item.user?.name || "-",
-    employeeEmail: item.user?.email || "-",
+	    employeeId: item.user?.id || item.user_id,
+	    employeeName: item.user?.name || "-",
+	    employeeCode: item.user?.employee_code || null,
+	    employeeEmail: item.user?.email || "-",
     employeePhone: item.user?.phone || "-",
     employeeStatus: item.user?.status || "-",
     employeeEmploymentStatus: item.user?.employment_status || "-",
@@ -248,10 +250,22 @@ export async function GET(req: NextRequest) {
 
     const statusFilter = req.nextUrl.searchParams.get("status") || "all";
     const typeFilter = req.nextUrl.searchParams.get("type") || "all";
-    const search = req.nextUrl.searchParams.get("search") || "";
+	    const search = req.nextUrl.searchParams.get("search") || "";
+	    const requestId = req.nextUrl.searchParams.get("id") || "";
+	    const employeeId = req.nextUrl.searchParams.get("employeeId") || "";
 
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
+	        ...(requestId
+	          ? {
+	              id: requestId,
+	            }
+	          : {}),
+	        ...(employeeId
+	          ? {
+	              user_id: employeeId,
+	            }
+	          : {}),
         ...(statusFilter !== "all"
           ? {
               status: statusFilter,
@@ -307,10 +321,11 @@ export async function GET(req: NextRequest) {
         updated_at: true,
         user: {
           select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
+	            id: true,
+	            name: true,
+	            email: true,
+	            employee_code: true,
+	            phone: true,
             status: true,
             employment_status: true,
             employment_start_date: true,
@@ -435,10 +450,11 @@ export async function PATCH(req: NextRequest) {
         updated_at: true,
         user: {
           select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
+	            id: true,
+	            name: true,
+	            email: true,
+	            employee_code: true,
+	            phone: true,
             status: true,
             employment_status: true,
             employment_start_date: true,

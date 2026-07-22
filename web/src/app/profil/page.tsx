@@ -1810,9 +1810,6 @@ export default function ProfilePage() {
               }`}
             >
               <div className="relative p-5">
-                <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-orange-200/30 blur-3xl" />
-                <div className="absolute -right-12 -bottom-12 h-40 w-40 rounded-full bg-blue-300/30 blur-3xl" />
-
                 <div className="relative flex items-start gap-4">
                   <div
                     className={`profile-avatar-pop flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${profileAlertTheme.iconWrap} shadow-lg shadow-slate-300/40`}

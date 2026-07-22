@@ -411,16 +411,6 @@ function AttendanceMotionStyles() {
         }
       }
 
-      @keyframes attendanceFloatGlow {
-        0%, 100% {
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-
-        50% {
-          transform: translate3d(12px, -10px, 0) scale(1.04);
-        }
-      }
-
       .attendance-enter {
         animation: attendanceEnter 330ms ease-out both;
       }
@@ -447,10 +437,6 @@ function AttendanceMotionStyles() {
         animation: attendancePulseScan 2.4s ease-in-out infinite;
       }
 
-      .attendance-float-glow {
-        animation: attendanceFloatGlow 6s ease-in-out infinite;
-      }
-
       .attendance-field {
         transition:
           border-color 180ms ease,
@@ -465,8 +451,7 @@ function AttendanceMotionStyles() {
         .attendance-camera-enter,
         .attendance-row-enter,
         .attendance-icon-pop,
-        .attendance-scan-line,
-        .attendance-float-glow {
+        .attendance-scan-line {
           animation: none !important;
           opacity: 1 !important;
           transform: none !important;
@@ -2266,8 +2251,6 @@ export default function AttendancePage() {
       </div>
 
       <main className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] text-slate-950 md:min-h-dvh md:pb-28">
-        <div className="attendance-float-glow pointer-events-none fixed -left-32 top-20 hidden h-72 w-72 rounded-full bg-orange-200/20 blur-3xl md:block" />
-        <div className="attendance-float-glow pointer-events-none fixed -right-32 bottom-24 hidden h-72 w-72 rounded-full bg-blue-300/20 blur-3xl md:block" />
         <section className="attendance-enter mx-auto w-full max-w-7xl px-5 pt-4 md:hidden">
           <div className="flex items-center justify-between gap-4">
             <div>

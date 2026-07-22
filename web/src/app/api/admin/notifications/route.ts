@@ -4,10 +4,10 @@ import { requireOwner } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner";
+type AllowedRole = "admin" | "owner";
 type NotificationType = "sick" | "leave" | "permission" | "wfh" | "wfc" | "visit";
 
-const VIEW_ROLES: AllowedRole[] = ["owner"];
+const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
 
 function getCurrentUser(req: NextRequest) {
   return requireOwner(req);

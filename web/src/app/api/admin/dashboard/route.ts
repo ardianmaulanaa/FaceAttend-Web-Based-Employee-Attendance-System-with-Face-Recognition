@@ -90,7 +90,9 @@ export async function GET(req: NextRequest) {
       },
       select: {
         id: true,
+        employee_code: true,
         name: true,
+        profile_photo: true,
         department: {
           select: {
             name: true,
@@ -181,6 +183,12 @@ export async function GET(req: NextRequest) {
         id: employee.id,
         attendanceId: attendance?.id || "",
         name: employee.name,
+        employeeCode: employee.employee_code,
+        profilePhoto: employee.profile_photo,
+        profile_photo: employee.profile_photo,
+        profile_photo_url: employee.profile_photo,
+        photo_url: employee.profile_photo,
+        avatar_url: employee.profile_photo,
         position: employee.position?.name || null,
         department: employee.department?.name || null,
         checkInTime: toIsoDate(attendance?.check_in_time),

@@ -42,7 +42,7 @@ function jsonError(message: string, status = 400) {
 }
 
 function canManageLeave(role: string) {
-  return ["owner"].includes(role.toLowerCase());
+  return ["admin", "owner"].includes(role.toLowerCase());
 }
 
 function normalizeDateOnly(value: string) {

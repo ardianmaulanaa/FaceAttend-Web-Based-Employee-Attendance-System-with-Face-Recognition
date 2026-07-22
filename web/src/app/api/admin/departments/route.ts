@@ -4,10 +4,10 @@ import { requireOwner } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
-type AllowedRole = "owner";
+type AllowedRole = "admin" | "owner";
 
-const VIEW_ROLES: AllowedRole[] = ["owner"];
-const MANAGE_ROLES: AllowedRole[] = ["owner"];
+const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
+const MANAGE_ROLES: AllowedRole[] = ["admin", "owner"];
 
 function getCurrentUser(req: NextRequest) {
   return requireOwner(req);
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message:
-            "Akses ditolak. Hanya owner yang dapat menambah divisi.",
+            "Akses ditolak. Hanya admin yang dapat menambah divisi.",
         },
         { status: 403 }
       );
@@ -341,7 +341,7 @@ export async function PATCH(req: NextRequest) {
         {
           success: false,
           message:
-            "Akses ditolak. Hanya owner yang dapat mengubah divisi.",
+            "Akses ditolak. Hanya admin yang dapat mengubah divisi.",
         },
         { status: 403 }
       );
@@ -533,7 +533,7 @@ export async function DELETE(req: NextRequest) {
         {
           success: false,
           message:
-            "Akses ditolak. Hanya owner yang dapat menghapus divisi.",
+            "Akses ditolak. Hanya admin yang dapat menghapus divisi.",
         },
         { status: 403 }
       );

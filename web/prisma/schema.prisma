@@ -15,7 +15,7 @@ model User {
   email         String @unique @db.VarChar(100)
   password_hash String @db.VarChar(255)
 
-  // owner, employee
+  // admin, employee
   role String @default("employee") @db.VarChar(20)
 
   // utama, magang

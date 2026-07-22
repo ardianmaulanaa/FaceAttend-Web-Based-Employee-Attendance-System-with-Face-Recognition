@@ -164,6 +164,7 @@ type Employee = {
   id: string;
   name: string;
   email: string;
+  role: "admin" | "employee" | "owner" | string;
   jabatan: JabatanRelation;
   department: DepartmentRelation;
   position: PositionRelation;
@@ -189,6 +190,7 @@ type Employee = {
 type EmployeeForm = {
   name: string;
   email: string;
+  role: "admin" | "employee";
   department_id: string;
   jabatan_id: string;
   position_id: string;
@@ -215,6 +217,7 @@ type EmployeeAlert = {
 const initialForm: EmployeeForm = {
   name: "",
   email: "",
+  role: "employee",
   department_id: "",
   jabatan_id: "",
   position_id: "",
@@ -242,12 +245,16 @@ function getInitialName(name: string) {
     .toUpperCase();
 }
 
-function getShortEmployeeId(id: string) {
-  return id.slice(0, 8).toUpperCase();
-}
-
 function formatStatus(status: "active" | "inactive") {
   return status === "active" ? "Aktif" : "Nonaktif";
+}
+
+function formatRole(role?: string | null) {
+  const normalizedRole = String(role || "").toLowerCase();
+
+  if (normalizedRole === "admin" || normalizedRole === "owner") return "Admin";
+
+  return "Employee";
 }
 
 function formatDateInput(value?: string | null) {
@@ -256,38 +263,17 @@ function formatDateInput(value?: string | null) {
   return String(value).slice(0, 10);
 }
 
-function formatDisplayDate(value?: string | null) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatEmploymentPeriod(employee: Employee) {
-  const startDate = formatDisplayDate(employee.employment_start_date);
-  const endDate = formatDisplayDate(employee.employment_end_date);
-
-  if (startDate === "-" && endDate === "-") return "-";
-  if (startDate === "-") return `Sampai ${endDate}`;
-  if (endDate === "-") return `Mulai ${startDate}`;
-
-  return `${startDate} - ${endDate}`;
-}
-
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function isCreativemuEmail(email: string) {
-  return email.toLowerCase().endsWith("@creativemu.com");
+  const normalizedEmail = email.toLowerCase();
+
+  return (
+    normalizedEmail.endsWith("@creativemu.com") ||
+    normalizedEmail.endsWith("@creativemu.co.id")
+  );
 }
 
 function normalizeProfilePhotoUrl(photo?: string | null) {
@@ -593,7 +579,12 @@ export default function AdminEmployeesPage() {
         return;
       }
 
-      setEmployees(result.employees || result.data || []);
+      const employeeList = (result.employees || result.data || []).filter(
+        (employee: Employee) =>
+          String(employee.role || "").toLowerCase() === "employee",
+      );
+
+      setEmployees(employeeList);
       setDepartments(result.departments || []);
       setJabatans(result.jabatans || []);
       setPositions(result.positions || []);
@@ -666,12 +657,19 @@ export default function AdminEmployeesPage() {
     return shifts.filter((shift) => shift.status === "active");
   }, [shifts]);
 
+  const employeeAccounts = useMemo(() => {
+    return employees.filter(
+      (employee) => String(employee.role || "").toLowerCase() === "employee",
+    );
+  }, [employees]);
+
   const filteredEmployees = useMemo(() => {
-    return employees.filter((employee) => {
+    return employeeAccounts.filter((employee) => {
       const text = `
         ${employee.id || ""}
         ${employee.name}
         ${employee.email}
+        ${employee.role || ""}
         ${employee.registered_office?.name || ""}
         ${employee.registered_office?.address || ""}
         ${employee.department?.name || ""}
@@ -690,13 +688,13 @@ export default function AdminEmployeesPage() {
 
       return text.includes(keyword.toLowerCase());
     });
-  }, [employees, keyword]);
+  }, [employeeAccounts, keyword]);
 
-  const activeEmployees = employees.filter(
+  const activeEmployees = employeeAccounts.filter(
     (employee) => employee.status === "active",
   ).length;
 
-  const inactiveEmployees = employees.filter(
+  const inactiveEmployees = employeeAccounts.filter(
     (employee) => employee.status === "inactive",
   ).length;
 
@@ -734,6 +732,11 @@ export default function AdminEmployeesPage() {
     setForm({
       name: employee.name,
       email: employee.email,
+      role:
+        String(employee.role || "").toLowerCase() === "admin" ||
+        String(employee.role || "").toLowerCase() === "owner"
+          ? "admin"
+          : "employee",
       registered_office_id: officeId,
       department_id: departmentId,
       jabatan_id: jabatanId,
@@ -800,7 +803,7 @@ export default function AdminEmployeesPage() {
     ) {
       showEmployeeAlert(
         "Data belum lengkap",
-        "Nama, email, kantor, divisi, jabatan, posisi, dan shift wajib diisi.",
+        "Nama, email, role, kantor, divisi, jabatan, posisi, dan shift wajib diisi.",
         "warning",
       );
       return;
@@ -818,7 +821,7 @@ export default function AdminEmployeesPage() {
     if (!isCreativemuEmail(email)) {
       showEmployeeAlert(
         "Email harus Creativemu",
-        "Email employee wajib menggunakan domain @creativemu.com.",
+        "Email akun wajib menggunakan domain resmi Creativemu.",
         "warning",
       );
       return;
@@ -894,6 +897,7 @@ export default function AdminEmployeesPage() {
           id: editingEmployee?.id,
           name: form.name.trim(),
           email,
+          role: form.role,
           temporaryPassword: isEditing
             ? form.temporaryPassword
             : temporaryPassword,
@@ -933,8 +937,8 @@ export default function AdminEmployeesPage() {
       showEmployeeAlert(
         isEditing ? "Karyawan diperbarui" : "Karyawan berhasil dibuat",
         isEditing
-          ? "Data employee berhasil diperbarui dan sudah tersimpan di database."
-          : "Akun employee baru berhasil dibuat dan siap digunakan untuk login.",
+          ? "Data akun berhasil diperbarui dan sudah tersimpan di database."
+          : "Akun baru berhasil dibuat dan siap digunakan untuk login.",
         "success",
       );
     } catch (error) {
@@ -952,7 +956,7 @@ export default function AdminEmployeesPage() {
 
   async function handleDeleteEmployee(employee: Employee) {
     const confirmDelete = window.confirm(
-      `Yakin ingin menghapus employee "${employee.name}"? Data yang dihapus tidak bisa dikembalikan.`,
+      `Yakin ingin menghapus akun "${employee.name}"? Data presensi, cuti, kunjungan, dan payroll milik akun ini ikut terhapus dan angka monitor perusahaan akan berubah.`,
     );
 
     if (!confirmDelete) return;
@@ -979,7 +983,7 @@ export default function AdminEmployeesPage() {
 
       showEmployeeAlert(
         "Karyawan berhasil dihapus",
-        "Data employee berhasil dihapus dari database.",
+        "Data akun dan data terkait berhasil dihapus dari database.",
         "success",
       );
     } catch (error) {
@@ -1006,9 +1010,6 @@ export default function AdminEmployeesPage() {
 
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
         <section className="employee-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-24 left-16 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
-
           <div className="relative z-10 flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
@@ -1041,7 +1042,7 @@ export default function AdminEmployeesPage() {
                   Total Karyawan
                 </p>
                 <h3 className="mt-2 text-3xl font-black text-slate-950">
-                  {employees.length}
+                  {employeeAccounts.length}
                 </h3>
               </div>
 
@@ -1102,7 +1103,7 @@ export default function AdminEmployeesPage() {
                 Daftar Karyawan
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Total {employees.length} karyawan terdaftar
+                Total {employeeAccounts.length} karyawan terdaftar
               </p>
             </div>
 
@@ -1131,18 +1132,14 @@ export default function AdminEmployeesPage() {
             </div>
           </div>
 
-          <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
-            <div className="md:min-w-[1320px]">
-              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.9fr_0.85fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
+          <div className="mt-5 overflow-hidden rounded-3xl border border-blue-100 bg-white">
+            <div className="md:min-w-[920px]">
+              <div className="hidden grid-cols-[1.25fr_minmax(210px,1.15fr)_1fr_0.8fr_0.7fr_0.85fr] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
                 <p>Karyawan</p>
                 <p>Email</p>
                 <p>Kantor</p>
-                <p>Divisi</p>
-                <p>Jabatan</p>
-                <p>Posisi</p>
                 <p>Shift</p>
                 <p>Status</p>
-                <p>Status Kepegawaian</p>
                 <p className="text-center">Aksi</p>
               </div>
 
@@ -1170,54 +1167,136 @@ export default function AdminEmployeesPage() {
                           router.push(`/admin/employees/${employee.id}`);
                         }
                       }}
-                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_0.9fr_0.85fr] md:items-center md:gap-3"
+                      className="employee-row-enter cursor-pointer px-4 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:grid md:min-h-[78px] md:grid-cols-[1.25fr_minmax(210px,1.15fr)_1fr_0.8fr_0.7fr_0.85fr] md:items-center md:gap-3 md:px-5"
                       style={{
                         animationDelay: `${index * 45}ms`,
                       }}
                     >
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="md:hidden">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <EmployeeAvatar employee={employee} />
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-slate-950">
+                                {employee.name}
+                              </p>
+                              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                                <p className="truncate text-xs font-bold text-slate-500">
+                                  {employee.email}
+                                </p>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                                    String(employee.role || "").toLowerCase() ===
+                                      "admin" ||
+                                    String(employee.role || "").toLowerCase() ===
+                                      "owner"
+                                      ? "bg-blue-50 text-[#123c8c]"
+                                      : "bg-slate-100 text-slate-500"
+                                  }`}
+                                >
+                                  {formatRole(employee.role)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${
+                              employee.status === "active"
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {formatStatus(employee.status)}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <div className="rounded-2xl bg-[#f6f8ff] px-3 py-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                              Kantor
+                            </p>
+                            <p className="mt-1 truncate text-xs font-black text-slate-700">
+                              {getRelationName(employee.registered_office)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#f6f8ff] px-3 py-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                              Shift
+                            </p>
+                            <p className="mt-1 truncate text-xs font-black text-slate-700">
+                              {getRelationName(employee.shift)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEditModal(employee);
+                            }}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97]"
+                          >
+                            <Edit size={15} />
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteEmployee(employee);
+                            }}
+                            disabled={deletingId === employee.id}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Trash2 size={15} />
+                            {deletingId === employee.id ? "..." : "Hapus"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="hidden min-w-0 items-center gap-3 md:flex">
                         <EmployeeAvatar employee={employee} />
 
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-slate-950">
                             {employee.name}
                           </p>
-                          <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
-                            ID: {getShortEmployeeId(employee.id)}
-                          </p>
+                          <span
+                            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${
+                              String(employee.role || "").toLowerCase() ===
+                                "admin" ||
+                              String(employee.role || "").toLowerCase() ===
+                                "owner"
+                                ? "bg-blue-50 text-[#123c8c]"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {formatRole(employee.role)}
+                          </span>
                         </div>
                       </div>
 
-                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                      <p className="hidden min-w-0 truncate text-sm font-semibold text-slate-600 md:block">
                         {employee.email}
                       </p>
 
-                      <div className="min-w-0 text-sm font-semibold text-slate-600">
+                      <div className="hidden min-w-0 text-sm font-semibold text-slate-600 md:block">
                         <p className="truncate">
                           {getRelationName(employee.registered_office)}
                         </p>
-                        <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
-                          {employee.registered_office?.address || "-"}
-                        </p>
                       </div>
 
-                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
-                        {getRelationName(employee.department)}
-                      </p>
-
-                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
-                        {getRelationName(employee.jabatan)}
-                      </p>
-
-                      <p className="min-w-0 line-clamp-2 text-sm font-semibold leading-5 text-slate-600">
-                        {getRelationName(employee.position)}
-                      </p>
-
-                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                      <p className="hidden min-w-0 truncate text-sm font-semibold text-slate-600 md:block">
                         {getRelationName(employee.shift)}
                       </p>
 
-                      <div className="flex md:justify-start">
+                      <div className="hidden md:flex md:justify-start">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
                             employee.status === "active"
@@ -1229,23 +1308,14 @@ export default function AdminEmployeesPage() {
                         </span>
                       </div>
 
-                      <div className="min-w-0 text-sm font-semibold text-slate-600">
-                        <p className="truncate">
-                          {employee.employment_status || "-"}
-                        </p>
-                        <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
-                          {formatEmploymentPeriod(employee)}
-                        </p>
-                      </div>
-
-                      <div className="grid gap-2 md:flex md:justify-center">
+                      <div className="hidden gap-2 md:flex md:justify-center">
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
                             openEditModal(employee);
                           }}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-10 md:rounded-xl md:border md:border-blue-100 md:bg-white md:px-3 md:py-0 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-0 text-xs font-black text-[#123c8c] shadow-none transition hover:bg-[#eaf1ff] active:scale-[0.97]"
                         >
                           <Edit size={15} />
                           Edit
@@ -1258,7 +1328,7 @@ export default function AdminEmployeesPage() {
                             handleDeleteEmployee(employee);
                           }}
                           disabled={deletingId === employee.id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:rounded-xl md:px-3 md:py-0"
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-0 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Trash2 size={15} />
                           {deletingId === employee.id ? "..." : "Hapus"}
@@ -1369,6 +1439,33 @@ export default function AdminEmployeesPage() {
                       placeholder="employee@creativemu.com"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
+                  </div>
+                </div>
+              </AppFormReveal>
+
+              <AppFormReveal delay={45}>
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Role Akun
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <ShieldCheck
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.role}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          role: event.target.value as "admin" | "employee",
+                        }))
+                      }
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    >
+                      <option value="employee">Employee</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </div>
                 </div>
               </AppFormReveal>
@@ -1901,9 +1998,6 @@ export default function AdminEmployeesPage() {
             }`}
           >
             <div className="relative p-5">
-              <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-orange-200/30 blur-3xl" />
-              <div className="absolute -right-12 -bottom-12 h-40 w-40 rounded-full bg-blue-300/30 blur-3xl" />
-
               <div className="relative flex items-start gap-4">
                 <div
                   className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${alertTheme.iconWrap} shadow-lg shadow-slate-300/40`}

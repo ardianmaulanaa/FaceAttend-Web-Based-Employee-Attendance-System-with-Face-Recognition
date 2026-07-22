@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   Clock3,
   LayoutDashboard,
   Loader2,
   LogIn,
   LogOut,
+  UserRound,
   UsersRound,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -26,6 +28,11 @@ type RecentAttendance = {
   attendanceId: string;
   name: string;
   employeeCode?: string | null;
+  profilePhoto?: string | null;
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
+  photo_url?: string | null;
+  avatar_url?: string | null;
   position: string | null;
   department: string | null;
   checkInTime: string | null;
@@ -40,14 +47,47 @@ type DashboardResponse = {
   recentAttendance: RecentAttendance[];
 };
 
-function getShortId(id: string | null | undefined) {
-  if (!id) return "-";
+function normalizeProfilePhotoUrl(value: string | null | undefined) {
+  if (!value) return "";
 
-  return id.slice(0, 8).toUpperCase();
+  const cleanPhoto = String(value).trim();
+
+  if (!cleanPhoto) return "";
+
+  if (
+    cleanPhoto.startsWith("http://") ||
+    cleanPhoto.startsWith("https://") ||
+    cleanPhoto.startsWith("data:") ||
+    cleanPhoto.startsWith("/")
+  ) {
+    return cleanPhoto;
+  }
+
+  if (cleanPhoto.startsWith("uploads/")) {
+    return `/${cleanPhoto}`;
+  }
+
+  return `/uploads/profiles/${cleanPhoto}`;
 }
 
-function getDisplayEmployeeCode(item: RecentAttendance) {
-  return getShortId(item.employeeCode || item.id);
+function getDashboardProfilePhoto(item: RecentAttendance) {
+  return normalizeProfilePhotoUrl(
+    item.profilePhoto ||
+      item.profile_photo ||
+      item.profile_photo_url ||
+      item.photo_url ||
+      item.avatar_url ||
+      "",
+  );
+}
+
+function getInitialName(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 function getStatusClass(item: RecentAttendance) {
@@ -95,21 +135,10 @@ function formatMinutes(minutes: number, hasCheckOut = false) {
   if (!hasCheckOut) return "-";
 
   const safeMinutes = Math.max(0, Number(minutes || 0));
-
-  if (safeMinutes <= 0) return "0m";
-
   const hours = Math.floor(safeMinutes / 60);
   const remainingMinutes = safeMinutes % 60;
 
-  if (hours > 0 && remainingMinutes > 0) {
-    return `${hours}j ${remainingMinutes}m`;
-  }
-
-  if (hours > 0) {
-    return `${hours}j`;
-  }
-
-  return `${remainingMinutes}m`;
+  return `${hours}:${String(remainingMinutes).padStart(2, "0")}`;
 }
 
 function getAttendanceKey(item: RecentAttendance, index: number) {
@@ -124,6 +153,131 @@ function getEmployeeSubtitle(item: RecentAttendance) {
   if (item.department) return item.department;
 
   return "-";
+}
+
+function getEmployeeMeta(item: RecentAttendance) {
+  return [item.employeeCode, item.department, item.position]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+function EmployeeProfileAvatar({ item }: { item: RecentAttendance }) {
+  const [imageError, setImageError] = useState(false);
+  const profilePhoto = getDashboardProfilePhoto(item);
+
+  if (profilePhoto && !imageError) {
+    return (
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-[#eaf1ff] ring-1 ring-blue-100 md:h-11 md:w-11">
+        <img
+          src={profilePhoto}
+          alt={`Foto profil ${item.name}`}
+          className="h-full w-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c] ring-1 ring-blue-100 md:h-11 md:w-11">
+      {getInitialName(item.name) || <UserRound size={22} strokeWidth={2.6} />}
+    </div>
+  );
+}
+
+function MobileAttendanceCard({
+  item,
+  index,
+}: {
+  item: RecentAttendance;
+  index: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const employeeMeta = getEmployeeMeta(item) || getEmployeeSubtitle(item);
+
+  return (
+    <div
+      className="dashboard-row-enter border-b border-blue-100 px-4 py-4 last:border-b-0"
+      style={{
+        animationDelay: `${index * 45}ms`,
+      }}
+    >
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 text-left"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        <EmployeeProfileAvatar item={item} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-black text-slate-950">
+            {item.name}
+          </p>
+
+          <p className="mt-1 truncate text-xs font-bold text-slate-500">
+            {employeeMeta}
+          </p>
+        </div>
+
+        <span
+          className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${getStatusClass(
+            item,
+          )}`}
+        >
+          {getStatusLabel(item)}
+        </span>
+
+        <ChevronDown
+          size={22}
+          strokeWidth={3}
+          className={`shrink-0 text-[#123c8c] transition duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-[#f6f8ff] p-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              Check-in
+            </p>
+            <p className="mt-1 text-sm font-black text-slate-800">
+              {formatTime(item.checkInTime)}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              Check-out
+            </p>
+            <p className="mt-1 text-sm font-black text-slate-800">
+              {formatTime(item.checkOutTime)}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              Durasi
+            </p>
+            <p className="mt-1 text-sm font-black text-slate-800">
+              {formatMinutes(item.workMinutes, Boolean(item.checkOutTime))}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              Status
+            </p>
+            <p className="mt-1 text-sm font-black text-slate-800">
+              {getStatusLabel(item)}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 async function readJsonResponse(response: Response) {
@@ -344,8 +498,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-blue-100">
-            <div className="hidden grid-cols-[0.9fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] md:grid">
-              <p>ID</p>
+            <div className="hidden grid-cols-[0.55fr_1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-[#eaf1ff] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#123c8c] md:grid">
+              <p>Profil</p>
               <p>Karyawan</p>
               <p>Check-in</p>
               <p>Check-out</p>
@@ -361,62 +515,52 @@ export default function AdminDashboardPage() {
                 </div>
               ) : data?.recentAttendance.length ? (
                 data.recentAttendance.map((item, index) => (
-                  <div
-                    key={getAttendanceKey(item, index)}
-                    className="dashboard-row-enter grid gap-3 px-5 py-4 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid-cols-[0.9fr_1.4fr_0.8fr_0.8fr_0.8fr_0.8fr] md:items-center"
-                    style={{
-                      animationDelay: `${index * 45}ms`,
-                    }}
-                  >
-                    <div>
-                      <p className="font-black text-[#123c8c]">
-                        {getDisplayEmployeeCode(item)}
-                      </p>
-
-                      <p className="mt-1 text-xs font-semibold text-slate-400 md:hidden">
-                        {getEmployeeSubtitle(item)}
-                      </p>
+                  <div key={getAttendanceKey(item, index)}>
+                    <div className="md:hidden">
+                      <MobileAttendanceCard item={item} index={index} />
                     </div>
 
-                    <div>
-                      <p className="font-bold text-slate-950">{item.name}</p>
-
-                      <p className="mt-1 hidden text-xs font-semibold text-slate-400 md:block">
-                        {getEmployeeSubtitle(item)}
-                      </p>
-                    </div>
-
-                    <p className="text-slate-500">
-                      <span className="font-bold text-slate-700 md:hidden">
-                        Check-in:{" "}
-                      </span>
-                      {formatTime(item.checkInTime)}
-                    </p>
-
-                    <p className="text-slate-500">
-                      <span className="font-bold text-slate-700 md:hidden">
-                        Check-out:{" "}
-                      </span>
-                      {formatTime(item.checkOutTime)}
-                    </p>
-
-                    <p className="font-semibold text-slate-500">
-                      <span className="font-bold text-slate-700 md:hidden">
-                        Durasi:{" "}
-                      </span>
-                      {formatMinutes(
-                        item.workMinutes,
-                        Boolean(item.checkOutTime),
-                      )}
-                    </p>
-
-                    <span
-                      className={`w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
-                        item,
-                      )}`}
+                    <div
+                      className="dashboard-row-enter hidden px-5 py-4 text-sm transition duration-200 hover:bg-[#f8fbff] md:grid md:grid-cols-[0.55fr_1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] md:items-center"
+                      style={{
+                        animationDelay: `${index * 45}ms`,
+                      }}
                     >
-                      {getStatusLabel(item)}
-                    </span>
+                      <EmployeeProfileAvatar item={item} />
+
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-slate-950">
+                          {item.name}
+                        </p>
+
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-400">
+                          {getEmployeeSubtitle(item)}
+                        </p>
+                      </div>
+
+                      <p className="text-slate-500">
+                        {formatTime(item.checkInTime)}
+                      </p>
+
+                      <p className="text-slate-500">
+                        {formatTime(item.checkOutTime)}
+                      </p>
+
+                      <p className="font-semibold text-slate-500">
+                        {formatMinutes(
+                          item.workMinutes,
+                          Boolean(item.checkOutTime),
+                        )}
+                      </p>
+
+                      <span
+                        className={`w-fit rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
+                          item,
+                        )}`}
+                      >
+                        {getStatusLabel(item)}
+                      </span>
+                    </div>
                   </div>
                 ))
               ) : (
