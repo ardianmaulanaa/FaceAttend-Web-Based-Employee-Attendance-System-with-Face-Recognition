@@ -297,8 +297,8 @@ function ProfileAvatar({
   return (
     <div
       className={`home-icon-pop ${sizeClass} flex shrink-0 items-center justify-center rounded-full font-black ${variant === "blue"
-          ? "bg-white/15 text-white ring-4 ring-white/20"
-          : "bg-[#eaf1ff] text-[#123c8c] ring-4 ring-white"
+        ? "bg-white/15 text-white ring-4 ring-white/20"
+        : "bg-[#eaf1ff] text-[#123c8c] ring-4 ring-white"
         }`}
     >
       {user.name ? getInitialName(user.name) : ""}
@@ -457,10 +457,10 @@ function AttendanceButton({
         if (disabled) event.preventDefault();
       }}
       className={`flex h-14 items-center justify-center rounded-2xl text-sm font-black transition md:h-20 md:text-lg ${disabled
-          ? "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 dark:border-[#30363d] dark:bg-[#161b22]/40 dark:text-[#30363d]"
-          : variant === "primary"
-            ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 hover:bg-[#0f3274] active:scale-[0.98] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] dark:shadow-none"
-            : "border border-blue-100 bg-white text-[#123c8c] hover:-translate-y-0.5 hover:bg-[#eaf1ff] active:scale-[0.98] dark:border-[#30363d] dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
+        ? "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 dark:border-[#30363d] dark:bg-[#161b22]/40 dark:text-[#30363d]"
+        : variant === "primary"
+          ? "bg-[#123c8c] text-white shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 hover:bg-[#0f3274] active:scale-[0.98] dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] dark:shadow-none"
+          : "border border-blue-100 bg-white text-[#123c8c] hover:-translate-y-0.5 hover:bg-[#eaf1ff] active:scale-[0.98] dark:border-[#30363d] dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
         }`}
     >
       {label}
@@ -727,7 +727,7 @@ export default function HomePage() {
     >
       <HomeMotionStyles />
       <AppHeader
-        title="Home"
+        title="Beranda"
         subtitle="Dashboard Absensi"
         rightLabel={mainRoleLabel || undefined}
         variant="employee"

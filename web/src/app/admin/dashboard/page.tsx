@@ -285,7 +285,7 @@ export default function AdminDashboardPage() {
     <MobileShell variant="admin">
       <DashboardMotionStyles />
 
-      <AppHeader title="Dashboard Admin" variant="admin" />
+      <AppHeader title="Dashboard" variant="admin" />
 
       <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 pb-28 md:px-10 lg:px-16">
         <div className="dashboard-enter overflow-hidden rounded-3xl border border-blue-100 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-xl shadow-slate-300/30">
