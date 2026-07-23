@@ -25,6 +25,7 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 import { useTheme } from "@/context/ThemeContext";
+import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import Image from "next/image";
 
 const adminSuggestions = [
@@ -44,8 +45,6 @@ const adminSuggestions = [
   { href: "/admin/cuti", label: "Laporan & Approval Cuti", icon: CalendarDays, category: "Operasional", keywords: ["laporan cuti", "persetujuan cuti", "approval cuti", "pengajuan", "izin"] },
   { href: "/admin/profil-karyawan", label: "Profil Karyawan", icon: UserRound, category: "Operasional", keywords: ["profil karyawan", "daftar karyawan", "data karyawan", "edit karyawan", "list user"] },
 ];
-
-const DEFAULT_AVATAR = "/images/creativemu-logo/creativemu.png";
 
 function Highlight({ text, search }: { text: string; search: string }) {
   if (!search.trim()) return <span>{text}</span>;
@@ -67,6 +66,8 @@ function Highlight({ text, search }: { text: string; search: string }) {
 }
 
 function SearchResultsContent() {
+  const companyLogo = useCompanyLogo();
+  const DEFAULT_AVATAR = companyLogo;
   const searchParams = useSearchParams();
   const router = useRouter();
   const { theme } = useTheme();
@@ -215,7 +216,7 @@ function SearchResultsContent() {
                     >
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-blue-50 bg-slate-100">
                         <Image
-                          src={emp.profile_photo_url || DEFAULT_AVATAR}
+                          src={(!emp.profile_photo_url || emp.profile_photo_url.includes("creativemu")) ? companyLogo : emp.profile_photo_url}
                           alt={emp.name}
                           fill
                           sizes="48px"

@@ -17,6 +17,7 @@ import {
 import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
 import BottomNav from "@/components/BottomNav";
+import { useCompanyLogo, useCompanyName } from "@/hooks/useCompanyLogo";
 
 type AdminProfile = {
   id: string;
@@ -39,9 +40,10 @@ type CompanyOffice = {
   radius_meters: number;
 };
 
-const DEFAULT_AVATAR = "/images/creativemu-logo/creativemu.png";
-
 export default function AdminProfilePage() {
+  const companyLogo = useCompanyLogo();
+  const companyName = useCompanyName();
+  const DEFAULT_AVATAR = companyLogo;
   const [activeTab, setActiveTab] = useState<"user" | "company" | "password">("user");
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [office, setOffice] = useState<CompanyOffice | null>(null);
@@ -297,8 +299,11 @@ export default function AdminProfilePage() {
     }
   }
 
-  const avatarSrc = admin?.profile_photo || DEFAULT_AVATAR;
-  const companyLogoSrc = office?.logo_url || companyForm.logo_url || DEFAULT_AVATAR;
+  const isDefaultAvatar = !admin?.profile_photo || admin.profile_photo.includes("creativemu.png");
+  const avatarSrc = isDefaultAvatar ? companyLogo : admin.profile_photo!;
+  const companyLogoSrc = office?.logo_url || companyForm.logo_url || companyLogo;
+  const adminDisplayName = admin?.name ? admin.name.replace(/Creativemu/gi, companyName) : "";
+  const adminDisplayEmail = admin?.email ? admin.email.replace(/creativemu\.co\.id/gi, `${companyName.toLowerCase().replace(/\s+/g, "")}.co.id`).replace(/creativemu\.com/gi, `${companyName.toLowerCase().replace(/\s+/g, "")}.com`) : "";
   const percentage = Math.min(Math.round((totalEmployees / maxEmployeesLimit) * 100), 100);
 
   return (
@@ -332,8 +337,8 @@ export default function AdminProfilePage() {
                     </div>
 
                     <div>
-                      <h2 className="text-xl font-black text-slate-950 dark:text-white">{admin?.name}</h2>
-                      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{admin?.email}</p>
+                      <h2 className="text-xl font-black text-slate-950 dark:text-white">{adminDisplayName || admin?.name}</h2>
+                      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{adminDisplayEmail || admin?.email}</p>
                       
                       <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 px-3.5 py-1 text-xs font-bold text-[#123c8c] dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                         Role: {admin?.role || "Admin"}

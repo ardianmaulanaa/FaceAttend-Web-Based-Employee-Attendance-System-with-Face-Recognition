@@ -17,6 +17,7 @@ import {
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
+import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { AppCard } from "@/components/ui/AppUI";
 
 type AttendanceToday = {
@@ -514,6 +515,7 @@ function AnnouncementList({
 }
 
 export default function HomePage() {
+  const companyLogo = useCompanyLogo();
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [user, setUser] = useState<CurrentUser>(defaultUser);
@@ -523,7 +525,6 @@ export default function HomePage() {
   const [readAnnouncementId, setReadAnnouncementId] = useState<string | null>(
     null,
   );
-
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -544,14 +545,14 @@ export default function HomePage() {
       if (hours === 8 && minutes === 0 && attendanceToday.checkIn === "--:--") {
         new Notification("Peringatan Presensi Masuk (FaceAttend)", {
           body: "Sudah pukul 08:00 WIB! Jangan lupa lakukan check-in presensi masuk Anda hari ini.",
-          icon: "/images/creativemu-logo/creativemu.png"
+          icon: companyLogo,
         });
       }
 
       if (hours === 17 && minutes === 0 && attendanceToday.checkIn !== "--:--" && attendanceToday.checkOut === "--:--") {
         new Notification("Peringatan Presensi Pulang (FaceAttend)", {
           body: "Sudah pukul 17:00 WIB! Jangan lupa lakukan check-out presensi pulang Anda hari ini.",
-          icon: "/images/creativemu-logo/creativemu.png"
+          icon: companyLogo,
         });
       }
     };

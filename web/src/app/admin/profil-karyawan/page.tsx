@@ -21,6 +21,7 @@ import AppHeader from "@/components/AppHeader";
 import MobileShell from "@/components/MobileShell";
 import BottomNav from "@/components/BottomNav";
 import { useSearchParams } from "next/navigation";
+import { useCompanyLogo, useCompanyName } from "@/hooks/useCompanyLogo";
 
 type Employee = {
   id: string;
@@ -47,9 +48,12 @@ type Employee = {
   base_salary?: number | string | null;
 };
 
-const DEFAULT_AVATAR = "/images/creativemu-logo/creativemu.png";
-
 function AdminEmployeeProfilesContent() {
+  const companyLogo = useCompanyLogo();
+  const companyName = useCompanyName();
+  const getPhotoSrc = (photo?: string | null) => (!photo || photo.includes("creativemu")) ? companyLogo : photo;
+  const getEmailDisplay = (email?: string) => email ? email.replace(/creativemu\.co\.id/gi, `${companyName.toLowerCase().replace(/\s+/g, "")}.co.id`).replace(/creativemu\.com/gi, `${companyName.toLowerCase().replace(/\s+/g, "")}.com`) : "";
+  const DEFAULT_AVATAR = companyLogo;
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -170,7 +174,7 @@ function AdminEmployeeProfilesContent() {
                 <div className="flex flex-col items-center text-center">
                   <div className="relative h-32 w-32 overflow-hidden rounded-[2.5rem] border-4 border-blue-50 bg-slate-100 shadow-md">
                     <Image
-                      src={selectedEmployee.profile_photo_url || DEFAULT_AVATAR}
+                      src={getPhotoSrc(selectedEmployee.profile_photo_url)}
                       alt={`Foto ${selectedEmployee.name}`}
                       fill
                       sizes="128px"
@@ -182,7 +186,7 @@ function AdminEmployeeProfilesContent() {
                     {selectedEmployee.name}
                   </h2>
                   <p className="text-sm font-semibold text-slate-500">
-                    {selectedEmployee.email}
+                    {getEmailDisplay(selectedEmployee.email)}
                   </p>
 
                   <div className="mt-4">
@@ -704,7 +708,7 @@ function AdminEmployeeProfilesContent() {
                     <div className="flex items-center gap-4">
                       <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-slate-50 border border-slate-100">
                         <Image
-                          src={emp.profile_photo_url || DEFAULT_AVATAR}
+                          src={getPhotoSrc(emp.profile_photo_url)}
                           alt={emp.name}
                           fill
                           sizes="56px"
@@ -717,7 +721,7 @@ function AdminEmployeeProfilesContent() {
                           {emp.name}
                         </h3>
                         <p className="truncate text-xs font-semibold text-slate-400 mt-0.5">
-                          {emp.email}
+                          {getEmailDisplay(emp.email)}
                         </p>
 
                         <div className="mt-2 flex items-center justify-between">
