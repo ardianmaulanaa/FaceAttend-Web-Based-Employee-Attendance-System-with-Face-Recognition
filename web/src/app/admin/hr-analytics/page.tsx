@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarDays,
   FileDown,
   Loader2,
@@ -142,11 +145,121 @@ export default function HRAnalyticsPage() {
     void loadData();
   }, []);
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (colId: string) => {
+    if (sortColumn === colId) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(colId);
+      // Default to desc for metric counts/sisaKontrak so highest/longest shows first
+      setSortDirection(colId === "name" || colId === "statusPosisi" ? "asc" : "desc");
+    }
+  };
+
   // Filter employees based on selected dropdown
   const filteredEmployees = useMemo(() => {
     if (!selectedEmployeeId) return employees;
     return employees.filter(e => e.id === selectedEmployeeId);
   }, [employees, selectedEmployeeId]);
+
+  const sortedFilteredEmployees = useMemo(() => {
+    const list = [...filteredEmployees];
+
+    const getEmpStats = (emp: Employee) => {
+      const empReports = reports.filter(r => {
+        return String(r.employeeName || "").toLowerCase() === String(emp.name || "").toLowerCase() ||
+               String(r.employeeCode || "").toLowerCase() === String(emp.email || "").toLowerCase();
+      }).filter(r => {
+        const dateStr = toLocalYYYYMMDD(r.date);
+        return dateStr && dateStr >= startDate && dateStr <= endDate;
+      });
+
+      const hadir = empReports.filter(a => {
+        const s = String(a.statusLabel || a.status || "").toLowerCase();
+        return s.includes("hadir") || s.includes("present") || s.includes("on_time") || s === "on_time";
+      }).length;
+
+      const telat = empReports.filter(a => {
+        const s = String(a.statusLabel || a.status || "").toLowerCase();
+        return s.includes("lambat") || s.includes("late");
+      }).length;
+
+      const izin = empReports.filter(a => {
+        const s = String(a.statusLabel || a.status || "").toLowerCase();
+        return s.includes("izin") || s.includes("permission");
+      }).length;
+
+      const sakit = empReports.filter(a => {
+        const s = String(a.statusLabel || a.status || "").toLowerCase();
+        return s.includes("sakit");
+      }).length;
+
+      const cuti = empReports.filter(a => {
+        const s = String(a.statusLabel || a.status || "").toLowerCase();
+        return s.includes("cuti");
+      }).length;
+
+      let remainingDays = -99999;
+      if (emp.contract_end_date && emp.employment_status !== "kartap") {
+        const end = new Date(emp.contract_end_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        remainingDays = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      return { hadir, telat, izin, sakit, cuti, izinSakit: izin + sakit, remainingDays };
+    };
+
+    return list.sort((a, b) => {
+      const statsA = getEmpStats(a);
+      const statsB = getEmpStats(b);
+
+      let valA: number | string = 0;
+      let valB: number | string = 0;
+
+      switch (sortColumn) {
+        case "name":
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case "statusPosisi":
+          valA = (a.employment_status || "").toLowerCase();
+          valB = (b.employment_status || "").toLowerCase();
+          break;
+        case "sisaKontrak":
+          valA = statsA.remainingDays;
+          valB = statsB.remainingDays;
+          break;
+        case "hadir":
+          valA = statsA.hadir;
+          valB = statsB.hadir;
+          break;
+        case "telat":
+          valA = statsA.telat;
+          valB = statsB.telat;
+          break;
+        case "izinSakit":
+          valA = statsA.izinSakit;
+          valB = statsB.izinSakit;
+          break;
+        case "cuti":
+          valA = statsA.cuti;
+          valB = statsB.cuti;
+          break;
+        default:
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredEmployees, reports, startDate, endDate, sortColumn, sortDirection]);
 
   return (
     <MobileShell variant="admin">
@@ -233,35 +346,63 @@ export default function HRAnalyticsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#161b22]">
-                <table className="w-full border-collapse text-xs text-left text-slate-600 dark:text-slate-300">
+                <table className="w-full border-collapse text-xs text-left text-slate-600 dark:text-slate-300 select-none">
                   <thead>
                     <tr className="bg-[#f8fbff] dark:bg-[#0d1117] text-slate-500 dark:text-slate-450 font-black uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                      <th className="px-4 py-3">Nama Karyawan</th>
-                      {columns.map((col) => (
-                        <th
-                          key={col.id}
-                          draggable
-                          onDragStart={() => handleColDragStart(col.id)}
-                          onDragOver={handleColDragOver}
-                          onDrop={() => handleColDrop(col.id)}
-                          className={`px-4 py-3 cursor-move active:cursor-grabbing hover:bg-slate-150 dark:hover:bg-slate-800/80 transition duration-150 select-none whitespace-nowrap ${col.align === "center" ? "text-center" : "text-left"}`}
-                          title="Tarik kolom ini untuk memindah urutannya"
-                        >
-                          <div className="inline-flex items-center gap-1">
-                            <span>{col.label}</span>
-                            <span className="text-[10px] opacity-40">↕</span>
-                          </div>
-                        </th>
-                      ))}
+                      <th
+                        onClick={() => handleSort("name")}
+                        className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition duration-150 whitespace-nowrap"
+                      >
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className={sortColumn === "name" ? "text-[#123c8c] dark:text-blue-400 font-black" : ""}>Nama Karyawan</span>
+                          {sortColumn === "name" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="text-[#123c8c] dark:text-blue-400 stroke-[3]" />
+                            ) : (
+                              <ArrowDown size={13} className="text-[#123c8c] dark:text-blue-400 stroke-[3]" />
+                            )
+                          ) : (
+                            <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                          )}
+                        </div>
+                      </th>
+                      {columns.map((col) => {
+                        const active = sortColumn === col.id;
+                        return (
+                          <th
+                            key={col.id}
+                            draggable
+                            onDragStart={() => handleColDragStart(col.id)}
+                            onDragOver={handleColDragOver}
+                            onDrop={() => handleColDrop(col.id)}
+                            onClick={() => handleSort(col.id)}
+                            className={`px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition duration-150 whitespace-nowrap ${col.align === "center" ? "text-center" : "text-left"}`}
+                            title="Klik untuk urutkan / Tarik untuk memindah kolom"
+                          >
+                            <div className={`inline-flex items-center gap-1.5 ${col.align === "center" ? "justify-center" : ""}`}>
+                              <span className={active ? "text-[#123c8c] dark:text-blue-400 font-black" : ""}>{col.label}</span>
+                              {active ? (
+                                sortDirection === "asc" ? (
+                                  <ArrowUp size={13} className="text-[#123c8c] dark:text-blue-400 stroke-[3]" />
+                                ) : (
+                                  <ArrowDown size={13} className="text-[#123c8c] dark:text-blue-400 stroke-[3]" />
+                                )
+                              ) : (
+                                <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                              )}
+                            </div>
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800 font-semibold">
-                    {filteredEmployees.length === 0 ? (
+                    {sortedFilteredEmployees.length === 0 ? (
                       <tr>
                         <td colSpan={1 + columns.length} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500 font-bold">Tidak ada data karyawan</td>
                       </tr>
                     ) : (
-                      filteredEmployees.map((emp) => {
+                      sortedFilteredEmployees.map((emp) => {
                         // Compute stats dynamically for this employee
                         const empReports = reports.filter(r => {
                           return String(r.employeeName || "").toLowerCase() === String(emp.name || "").toLowerCase() ||

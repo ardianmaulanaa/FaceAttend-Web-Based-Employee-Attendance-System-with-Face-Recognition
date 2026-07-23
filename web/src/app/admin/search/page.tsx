@@ -36,8 +36,8 @@ const adminSuggestions = [
   { href: "/admin/work-schedules", label: "Jam Kerja Schedule", icon: CalendarClock, category: "Master Data", keywords: ["jam kerja", "jadwal kerja", "schedule", "work schedule", "hari kerja"] },
   { href: "/admin/kantor", label: "Kantor & Lokasi", icon: Building2, category: "Master Data", keywords: ["kantor", "lokasi", "gps", "koordinat", "cabang", "alamat", "radius"] },
   { href: "/admin/departments", label: "Divisi / Department", icon: Network, category: "Master Data", keywords: ["divisi", "department", "departemen", "bagian", "struktur"] },
-  { href: "/admin/units", label: "Unit Kerja", icon: Building2, category: "Master Data", keywords: ["unit", "unit kerja", "bagian", "kelompok", "cabang"] },
-  { href: "/admin/positions", label: "Jabatan Pekerjaan", icon: UserRoundCog, category: "Master Data", keywords: ["jabatan", "posisi", "role", "pangkat", "job", "title"] },
+  { href: "/admin/positions", label: "Jabatan Pekerjaan", icon: UserRoundCog, category: "Master Data", keywords: ["jabatan", "role", "pangkat", "job", "title"] },
+  { href: "/admin/units", label: "Posisi Kerja", icon: Building2, category: "Master Data", keywords: ["posisi", "posisi kerja", "unit", "unit kerja", "bagian", "kelompok", "cabang"] },
   
   { href: "/admin/employees", label: "Register Employee", icon: UserPlus, category: "Operasional", keywords: ["register employee", "tambah karyawan", "daftar karyawan baru", "pendaftaran", "buat akun"] },
   { href: "/admin/laporan-kehadiran", label: "Laporan Kehadiran", icon: FileImage, category: "Operasional", keywords: ["laporan kehadiran", "rekap", "excel", "kehadiran", "presensi", "export"] },

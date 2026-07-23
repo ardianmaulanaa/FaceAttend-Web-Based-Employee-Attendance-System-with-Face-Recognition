@@ -120,14 +120,14 @@ const masterDataMenus = [
     icon: Network,
   },
   {
-    href: "/admin/units",
-    label: "Unit",
-    icon: Building2,
-  },
-  {
     href: "/admin/positions",
     label: "Jabatan",
     icon: UserRoundCog,
+  },
+  {
+    href: "/admin/units",
+    label: "Posisi",
+    icon: Building2,
   },
 ];
 
@@ -376,18 +376,18 @@ const adminSuggestions = [
     keywords: ["divisi", "department", "departemen", "bagian", "struktur"],
   },
   {
-    href: "/admin/units",
-    label: "Unit Kerja",
-    icon: Building2,
-    category: "Master Data",
-    keywords: ["unit", "unit kerja", "bagian", "kelompok", "cabang"],
-  },
-  {
     href: "/admin/positions",
     label: "Jabatan Pekerjaan",
     icon: UserRoundCog,
     category: "Master Data",
-    keywords: ["jabatan", "posisi", "role", "pangkat", "job", "title"],
+    keywords: ["jabatan", "role", "pangkat", "job", "title"],
+  },
+  {
+    href: "/admin/units",
+    label: "Posisi Kerja",
+    icon: Building2,
+    category: "Master Data",
+    keywords: ["posisi", "posisi kerja", "unit", "unit kerja", "bagian", "kelompok", "cabang"],
   },
 
   // Operasional
@@ -1682,9 +1682,7 @@ export default function AppHeader({
                   </div>
 
                   <div className="mt-2 space-y-1 border-l-2 border-blue-100 dark:border-slate-800 pl-4">
-                    {masterDataMenuOrder.map((menuIdx) => {
-                      const menu = masterDataMenus[menuIdx];
-                      if (!menu) return null;
+                    {masterDataMenus.map((menu) => {
                       const Icon = menu.icon;
                       const active = isActivePath(pathname, menu.href);
 
@@ -1692,14 +1690,8 @@ export default function AppHeader({
                         <button
                           key={menu.href}
                           type="button"
-                          draggable
-                          onDragStart={() =>
-                            handleMenuDragStart("masterData", menuIdx)
-                          }
-                          onDragOver={handleMenuDragOver}
-                          onDrop={() => handleMenuDrop("masterData", menuIdx)}
                           onClick={() => handleNavigate(menu.href)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition cursor-grab active:cursor-grabbing ${active
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold transition ${active
                             ? "bg-[#eaf1ff] dark:bg-blue-950/40 text-[#123c8c] dark:text-blue-400"
                             : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#123c8c] dark:hover:text-blue-400"
                             }`}

@@ -55,9 +55,7 @@ function isCreativemuEmail(email: string) {
   const normalized = email.trim().toLowerCase();
   return (
     normalized.endsWith("@creativemu.co.id") ||
-    normalized.endsWith("@creativemu.id") ||
-    normalized.endsWith(".co.id") ||
-    normalized.endsWith(".id")
+    normalized.endsWith(".co.id")
   );
 }
 
@@ -616,7 +614,7 @@ export default function LoginPage() {
     if (!isValidEmailFormat(normalizedEmail)) {
       showAlert(
         "Format email salah",
-        "Masukkan email dengan format yang benar, contoh: nama@creativemu.id",
+        "Masukkan email dengan format yang benar, contoh: nama@creativemu.co.id",
       );
       return;
     }
@@ -624,7 +622,7 @@ export default function LoginPage() {
     if (!isCreativemuEmail(normalizedEmail)) {
       showAlert(
         "Email tidak valid",
-        "Login hanya dapat menggunakan domain .co.id atau .id (contoh: nama@creativemu.id atau nama@creativemu.co.id).",
+        "Login hanya dapat menggunakan domain .co.id (contoh: nama@creativemu.co.id).",
       );
       return;
     }
@@ -879,7 +877,7 @@ export default function LoginPage() {
                       inputMode="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      placeholder="nama@creativemu.id"
+                      placeholder="nama@creativemu.co.id"
                       autoComplete="email"
                       disabled={formIsBusy}
                       className="border-blue-100 bg-[#f8fbff] text-slate-700 placeholder:text-slate-400 focus:border-[#123c8c] focus:bg-white focus:ring-blue-100/50 dark:border-blue-100 dark:bg-[#f8fbff] dark:text-slate-700 dark:placeholder:text-slate-400 dark:focus:border-[#123c8c] dark:focus:bg-white dark:focus:ring-blue-100/50"

@@ -196,7 +196,7 @@ const demoUsers: DemoUser[] = [
   {
     id: "EMP-DEMO-001",
     name: "Employee Demo",
-    email: "employee@company.com",
+    email: "employee@creativemu.co.id",
     password: "123456",
     role: "employee",
     employee_category: "magang",
@@ -206,7 +206,7 @@ const demoUsers: DemoUser[] = [
     profile_photo_url: null,
     payout_label: "Payroll Mandiri",
     account_holder_name: "Employee Demo",
-    payout_contact_email: "employee@company.com",
+    payout_contact_email: "employee@creativemu.co.id",
     payout_phone_number: "081234000002",
     account_number: "9876543210",
     expiry_month: "10",

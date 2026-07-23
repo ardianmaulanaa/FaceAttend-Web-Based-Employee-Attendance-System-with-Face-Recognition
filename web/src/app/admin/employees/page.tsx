@@ -11,6 +11,9 @@ import {
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
@@ -267,7 +270,7 @@ function isValidEmail(email: string) {
 
 function isCreativemuEmail(email: string) {
   const normalized = email.toLowerCase();
-  return normalized.endsWith("@creativemu.com") || normalized.endsWith("@creativemu.my.id");
+  return normalized.endsWith("@creativemu.co.id") || normalized.endsWith(".co.id");
 }
 
 function normalizeProfilePhotoUrl(photo?: string | null) {
@@ -513,6 +516,28 @@ export default function AdminEmployeesPage() {
   const [deletingId, setDeletingId] = useState("");
   const [form, setForm] = useState<EmployeeForm>(initialForm);
 
+  type EmployeeSortKey =
+    | "name"
+    | "email"
+    | "office"
+    | "department"
+    | "unit"
+    | "position"
+    | "shift"
+    | "status";
+
+  const [sortColumn, setSortColumn] = useState<EmployeeSortKey>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (key: EmployeeSortKey) => {
+    if (sortColumn === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(key);
+      setSortDirection("asc");
+    }
+  };
+
   const [employeeAlert, setEmployeeAlert] = useState<EmployeeAlert>(null);
   const [isAlertClosing, setIsAlertClosing] = useState(false);
   const alertCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -643,7 +668,7 @@ export default function AdminEmployeesPage() {
   }, [shifts]);
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter((employee) => {
+    const list = employees.filter((employee) => {
       const text = `
         ${employee.id || ""}
         ${employee.name}
@@ -659,7 +684,51 @@ export default function AdminEmployeesPage() {
 
       return text.includes(keyword.toLowerCase());
     });
-  }, [employees, keyword]);
+
+    return list.sort((a, b) => {
+      let valA = "";
+      let valB = "";
+
+      switch (sortColumn) {
+        case "name":
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case "email":
+          valA = a.email.toLowerCase();
+          valB = b.email.toLowerCase();
+          break;
+        case "office":
+          valA = (a.registered_office?.name || "").toLowerCase();
+          valB = (b.registered_office?.name || "").toLowerCase();
+          break;
+        case "department":
+          valA = (a.department?.name || "").toLowerCase();
+          valB = (b.department?.name || "").toLowerCase();
+          break;
+        case "unit":
+          valA = (a.unit?.name || "").toLowerCase();
+          valB = (b.unit?.name || "").toLowerCase();
+          break;
+        case "position":
+          valA = (a.position?.name || "").toLowerCase();
+          valB = (b.position?.name || "").toLowerCase();
+          break;
+        case "shift":
+          valA = (a.shift?.name || "").toLowerCase();
+          valB = (b.shift?.name || "").toLowerCase();
+          break;
+        case "status":
+          valA = a.status.toLowerCase();
+          valB = b.status.toLowerCase();
+          break;
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [employees, keyword, sortColumn, sortDirection]);
 
   const activeEmployees = employees.filter(
     (employee) => employee.status === "active",
@@ -778,7 +847,7 @@ export default function AdminEmployeesPage() {
     if (!isValidEmail(email)) {
       showEmployeeAlert(
         "Format email tidak valid",
-        "Masukkan email yang benar, contohnya employee@creativemu.my.id.",
+        "Masukkan email yang benar, contohnya employee@creativemu.co.id.",
         "warning",
       );
       return;
@@ -787,7 +856,7 @@ export default function AdminEmployeesPage() {
     if (!isCreativemuEmail(email)) {
       showEmployeeAlert(
         "Email harus Creativemu",
-        "Email employee wajib menggunakan domain @creativemu.my.id.",
+        "Email employee wajib menggunakan domain @creativemu.co.id.",
         "warning",
       );
       return;
@@ -1103,16 +1172,41 @@ export default function AdminEmployeesPage() {
 
           <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
             <div className="md:min-w-[1300px]">
-              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid">
-                <p>Karyawan</p>
-                <p>Email</p>
-                <p>Kantor</p>
-                <p>Divisi</p>
-                <p>Unit</p>
-                <p>Jabatan</p>
-                <p>Shift</p>
-                <p>Status</p>
-                <p className="text-center">Aksi</p>
+              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid select-none">
+                {[
+                  { key: "name", label: "Karyawan" },
+                  { key: "email", label: "Email" },
+                  { key: "office", label: "Kantor" },
+                  { key: "department", label: "Divisi" },
+                  { key: "unit", label: "Posisi" },
+                  { key: "position", label: "Jabatan" },
+                  { key: "shift", label: "Shift" },
+                  { key: "status", label: "Status" },
+                ].map((col) => {
+                  const active = sortColumn === col.key;
+                  return (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => handleSort(col.key as EmployeeSortKey)}
+                      className={`flex items-center gap-1.5 font-black transition hover:text-blue-900 cursor-pointer ${
+                        active ? "text-[#123c8c]" : "text-slate-500"
+                      }`}
+                    >
+                      <span>{col.label}</span>
+                      {active ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp size={13} className="text-[#123c8c] stroke-[3]" />
+                        ) : (
+                          <ArrowDown size={13} className="text-[#123c8c] stroke-[3]" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                      )}
+                    </button>
+                  );
+                })}
+                <p className="text-center font-black text-slate-500">Aksi</p>
               </div>
 
               <div className="divide-y divide-blue-50">
@@ -1320,7 +1414,7 @@ export default function AdminEmployeesPage() {
                           email: event.target.value,
                         }))
                       }
-                      placeholder="employee@creativemu.my.id"
+                      placeholder="employee@creativemu.co.id"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
