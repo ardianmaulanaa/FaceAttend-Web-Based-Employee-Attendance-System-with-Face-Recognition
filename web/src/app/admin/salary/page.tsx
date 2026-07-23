@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Coins,
   CheckCircle,
@@ -12,6 +12,9 @@ import {
   Calendar,
   Scale,
   Info,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -117,12 +120,25 @@ function getEffectiveWorkdayWindow(emp: Employee, month: number, year: number) {
   };
 }
 
+type SalarySortKey = "name" | "status" | "startDate" | "salary";
+
 export default function AdminSalaryPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [records, setRecords] = useState<SalaryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortColumn, setSortColumn] = useState<SalarySortKey>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (col: SalarySortKey) => {
+    if (sortColumn === col) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(col);
+      setSortDirection("asc");
+    }
+  };
 
   // Pay Modal State
   const [showPayModal, setShowPayModal] = useState(false);
@@ -329,6 +345,30 @@ export default function AdminSalaryPage() {
         .includes(searchQuery.toLowerCase()),
   );
 
+  const sortedEmployees = useMemo(() => {
+    const list = [...filteredEmployees];
+    list.sort((a, b) => {
+      let comparison = 0;
+      if (sortColumn === "name") {
+        comparison = (a.name || "").localeCompare(b.name || "");
+      } else if (sortColumn === "status") {
+        const statusA = `${a.employment_status || ""} ${a.department?.name || ""}`;
+        const statusB = `${b.employment_status || ""} ${b.department?.name || ""}`;
+        comparison = statusA.localeCompare(statusB);
+      } else if (sortColumn === "startDate") {
+        const dateA = new Date(a.contract_start_date || a.created_at).getTime() || 0;
+        const dateB = new Date(b.contract_start_date || b.created_at).getTime() || 0;
+        comparison = dateA - dateB;
+      } else if (sortColumn === "salary") {
+        const salA = Number(a.base_salary || 2000000);
+        const salB = Number(b.base_salary || 2000000);
+        comparison = salA - salB;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    return list;
+  }, [filteredEmployees, sortColumn, sortDirection]);
+
   return (
     <MobileShell variant="admin">
       <AppHeader
@@ -349,18 +389,43 @@ export default function AdminSalaryPage() {
                 Daftar Karyawan & Penggajian
               </h3>
 
-              <div className="relative rounded-2xl bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-slate-800 md:w-80">
-                <Search
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Cari karyawan..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent py-2.5 pl-11 pr-4 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
-                />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {/* Mobile quick sort selector */}
+                <div className="flex items-center gap-2 md:hidden">
+                  <span className="text-xs font-black text-slate-500 whitespace-nowrap">Urutkan:</span>
+                  <select
+                    value={`${sortColumn}-${sortDirection}`}
+                    onChange={(e) => {
+                      const [col, dir] = e.target.value.split("-") as [SalarySortKey, "asc" | "desc"];
+                      setSortColumn(col);
+                      setSortDirection(dir);
+                    }}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0d1117] py-2.5 px-3 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                  >
+                    <option value="name-asc">Nama Karyawan (A - Z)</option>
+                    <option value="name-desc">Nama Karyawan (Z - A)</option>
+                    <option value="status-asc">Status / Divisi (A - Z)</option>
+                    <option value="status-desc">Status / Divisi (Z - A)</option>
+                    <option value="startDate-asc">Mulai Kerja (Terlama)</option>
+                    <option value="startDate-desc">Mulai Kerja (Terbaru)</option>
+                    <option value="salary-asc">Gaji Pokok (Terendah)</option>
+                    <option value="salary-desc">Gaji Pokok (Tertinggi)</option>
+                  </select>
+                </div>
+
+                <div className="relative rounded-2xl bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-slate-800 md:w-80">
+                  <Search
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Cari karyawan..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent py-2.5 pl-11 pr-4 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                  />
+                </div>
               </div>
             </div>
 
@@ -371,7 +436,7 @@ export default function AdminSalaryPage() {
                   size={36}
                 />
               </div>
-            ) : filteredEmployees.length === 0 ? (
+            ) : sortedEmployees.length === 0 ? (
               <p className="text-center text-sm font-semibold text-slate-500 py-6">
                 Karyawan tidak ditemukan.
               </p>
@@ -379,16 +444,92 @@ export default function AdminSalaryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[650px] border-collapse text-left text-xs text-slate-600 dark:text-slate-300">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-[#0d1117] text-slate-500 dark:text-slate-450 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                      <th className="px-4 py-3 whitespace-nowrap">Nama Karyawan</th>
-                      <th className="px-4 py-3 whitespace-nowrap">Status / Divisi</th>
-                      <th className="px-4 py-3 whitespace-nowrap">Mulai Kerja</th>
-                      <th className="px-4 py-3 whitespace-nowrap">Gaji Pokok</th>
+                    <tr className="bg-slate-50 dark:bg-[#0d1117] text-slate-500 dark:text-slate-400 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSort("name")}
+                          className={`flex items-center gap-1.5 font-black transition hover:text-[#123c8c] dark:hover:text-blue-400 cursor-pointer ${
+                            sortColumn === "name" ? "text-[#123c8c] dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <span>Nama Karyawan</span>
+                          {sortColumn === "name" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="stroke-[3]" />
+                            ) : (
+                              <ArrowDown size={13} className="stroke-[3]" />
+                            )
+                          ) : (
+                            <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSort("status")}
+                          className={`flex items-center gap-1.5 font-black transition hover:text-[#123c8c] dark:hover:text-blue-400 cursor-pointer ${
+                            sortColumn === "status" ? "text-[#123c8c] dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <span>Status / Divisi</span>
+                          {sortColumn === "status" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="stroke-[3]" />
+                            ) : (
+                              <ArrowDown size={13} className="stroke-[3]" />
+                            )
+                          ) : (
+                            <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSort("startDate")}
+                          className={`flex items-center gap-1.5 font-black transition hover:text-[#123c8c] dark:hover:text-blue-400 cursor-pointer ${
+                            sortColumn === "startDate" ? "text-[#123c8c] dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <span>Mulai Kerja</span>
+                          {sortColumn === "startDate" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="stroke-[3]" />
+                            ) : (
+                              <ArrowDown size={13} className="stroke-[3]" />
+                            )
+                          ) : (
+                            <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSort("salary")}
+                          className={`flex items-center gap-1.5 font-black transition hover:text-[#123c8c] dark:hover:text-blue-400 cursor-pointer ${
+                            sortColumn === "salary" ? "text-[#123c8c] dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <span>Gaji Pokok</span>
+                          {sortColumn === "salary" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="stroke-[3]" />
+                            ) : (
+                              <ArrowDown size={13} className="stroke-[3]" />
+                            )
+                          ) : (
+                            <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                          )}
+                        </button>
+                      </th>
                       <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredEmployees.map((emp) => {
+                    {sortedEmployees.map((emp) => {
                       const isInternOrPkl =
                         emp.employment_status === "magang" ||
                         emp.employment_status === "pkl";
