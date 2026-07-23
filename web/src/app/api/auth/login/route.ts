@@ -245,7 +245,7 @@ export async function POST(req: Request) {
       },
     });
 
-    response.cookies.set("faceattend_token", token, {
+    response.cookies.set("presensi_token", token, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

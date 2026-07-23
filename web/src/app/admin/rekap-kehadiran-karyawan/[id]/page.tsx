@@ -33,6 +33,8 @@ type EmployeeRecap = {
   id: string;
   name: string;
   employeeCode?: string | null;
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
   employmentStartDate?: string | null;
   employmentEndDate?: string | null;
   employmentStatus?: string | null;
@@ -125,6 +127,10 @@ function getExcelFileName(employeeName: string, startDate: string, endDate: stri
     .replace(/^-+|-+$/g, "");
 
   return `rekap-kehadiran-${safeName || "karyawan"}-${startDate}-${endDate}.xls`;
+}
+
+function getEmployeePhoto(employee?: EmployeeRecap | null) {
+  return employee?.profile_photo || employee?.profile_photo_url || "";
 }
 
 function RecapDetailMotionStyles() {
@@ -338,6 +344,7 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
       className: "border-sky-100 bg-sky-50 text-sky-700",
     },
   ];
+  const employeePhoto = getEmployeePhoto(employee);
 
   return (
     <MobileShell variant="admin" withBottomPadding={false}>
@@ -371,8 +378,16 @@ export default function AdminEmployeeAttendanceRecapDetailPage() {
             <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
               <div className="bg-[#123c8c] p-8 text-white md:p-12">
                 <div className="flex items-center gap-5">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-white/15">
-                    <UserRound size={32} strokeWidth={2.6} />
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white/15 ring-1 ring-white/20">
+                    {employeePhoto ? (
+                      <img
+                        src={employeePhoto}
+                        alt={employee?.name || "Foto profil karyawan"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <UserRound size={32} strokeWidth={2.6} />
+                    )}
                   </div>
 
                   <div>

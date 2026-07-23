@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FaceAttend",
+  title: "Presensi",
   description: "Sistem Presensi Karyawan Creativemu",
   other: {
     google: "notranslate",

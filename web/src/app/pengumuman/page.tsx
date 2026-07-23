@@ -154,7 +154,7 @@ export default function AnnouncementPage() {
 
       if (latestId) {
         window.localStorage.setItem(
-          "faceattend_read_announcement_id",
+          "presensi_read_announcement_id",
           latestId,
         );
       }
@@ -189,7 +189,7 @@ export default function AnnouncementPage() {
 
               <div className="min-w-0">
                 <p className="announcement-row-enter text-xs font-black uppercase tracking-[0.24em] text-blue-100">
-                  FaceAttend
+                  Presensi
                 </p>
 
                 <h1

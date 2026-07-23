@@ -18,6 +18,8 @@ type Employee = {
   name: string;
   email: string;
   employee_code?: string | null;
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
   status?: string | null;
   employment_status?: string | null;
   department?: {
@@ -96,6 +98,10 @@ function getStatusStyle(status?: string | null) {
   }
 
   return "bg-slate-100 text-slate-600 ring-slate-200";
+}
+
+function getEmployeePhoto(employee: Employee) {
+  return employee.profile_photo || employee.profile_photo_url || "";
 }
 
 function getDateInputValue(date: Date) {
@@ -598,6 +604,7 @@ export default function AdminEmployeeAttendanceRecapPage() {
                   const pendingLeaveCount =
                     pendingLeaveCountByEmployeeId.get(employee.id) || 0;
                   const hasPendingLeave = pendingLeaveCount > 0;
+                  const employeePhoto = getEmployeePhoto(employee);
 
                   return (
                     <Link
@@ -626,13 +633,21 @@ export default function AdminEmployeeAttendanceRecapPage() {
                         </div>
 
                         <div
-                          className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[#123c8c] ring-1 ${
+                          className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-[#123c8c] ring-1 ${
                             hasPendingLeave
                               ? "bg-orange-50 ring-orange-100"
                               : "bg-[#f1f5ff] ring-blue-100"
                           }`}
                         >
-                          <UserRound size={23} strokeWidth={2.6} />
+                          {employeePhoto ? (
+                            <img
+                              src={employeePhoto}
+                              alt={employee.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <UserRound size={23} strokeWidth={2.6} />
+                          )}
 
                           {hasPendingLeave ? (
                             <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black text-white ring-2 ring-white">

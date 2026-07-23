@@ -8,7 +8,20 @@ type AllowedRole = "admin" | "owner";
 
 const ALLOWED_ROLES: AllowedRole[] = ["admin", "owner"];
 const EMPLOYEE_ROLE = "employee";
-const LEAVE_TYPES_COUNTED_AS_CUTI = ["annual_leave", "annual"];
+
+function getLeaveTypeLabel(type?: string | null) {
+  const normalized = String(type || "").trim().toLowerCase();
+
+  if (normalized === "annual" || normalized === "annual_leave") {
+    return "Cuti Tahunan";
+  }
+
+  if (normalized === "permission") return "Izin";
+  if (normalized === "sick") return "Sakit";
+  if (normalized === "other") return "Lainnya";
+
+  return "Cuti";
+}
 
 function mapChartEmployee(user?: {
   id?: string | null;
@@ -82,26 +95,49 @@ function normalizeWorkMode(mode?: string | null) {
   return String(mode || "office").trim().toLowerCase();
 }
 
-function isWfhRecord(record: { is_wfh?: boolean | null; work_mode?: string | null }) {
-  return Boolean(record.is_wfh) || normalizeWorkMode(record.work_mode) === "wfh";
+function isWfhRecord(record: {
+  is_wfh?: boolean | null;
+  is_wfc?: boolean | null;
+  work_mode?: string | null;
+}) {
+  const mode = normalizeWorkMode(record.work_mode);
+
+  return (
+    Boolean(record.is_wfh) ||
+    Boolean(record.is_wfc) ||
+    mode === "wfh" ||
+    mode === "wfc"
+  );
 }
 
 function isVisitRecord(record: {
   is_visit?: boolean | null;
   work_mode?: string | null;
+  visits?: unknown[] | null;
 }) {
   const mode = normalizeWorkMode(record.work_mode);
 
-  return Boolean(record.is_visit) || mode === "visit" || mode === "kunjungan";
+  return (
+    Boolean(record.is_visit) ||
+    Boolean(record.visits?.length) ||
+    mode === "visit" ||
+    mode === "kunjungan"
+  );
 }
 
 function isOfficeRecord(record: {
   check_in_time?: Date | null;
   is_wfh?: boolean | null;
+  is_wfc?: boolean | null;
   is_visit?: boolean | null;
   work_mode?: string | null;
+  visits?: unknown[] | null;
 }) {
-  return Boolean(record.check_in_time) && !isWfhRecord(record) && !isVisitRecord(record);
+  return (
+    Boolean(record.check_in_time) &&
+    !isWfhRecord(record) &&
+    !isVisitRecord(record)
+  );
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -183,6 +219,11 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
+        visits: {
+          select: {
+            id: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -224,9 +265,15 @@ export async function GET(req: NextRequest) {
         check_in_status: true,
         work_mode: true,
         is_wfh: true,
+        is_wfc: true,
         is_visit: true,
         is_over_tolerance: true,
         late_reason: true,
+        visits: {
+          select: {
+            id: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -250,9 +297,6 @@ export async function GET(req: NextRequest) {
     const approvedLeaveThisMonth = await prisma.leaveRequest.findMany({
       where: {
         status: "approved",
-        leave_type: {
-          in: LEAVE_TYPES_COUNTED_AS_CUTI,
-        },
         start_date: {
           lt: nextMonthStart,
         },
@@ -439,6 +483,8 @@ export async function GET(req: NextRequest) {
         .map((leave) => ({
           ...mapChartEmployee(leave.user),
           id: leave.user?.id || leave.user_id,
+          leaveType: leave.leave_type,
+          leaveTypeLabel: getLeaveTypeLabel(leave.leave_type),
         }));
       const leaveUserIds = new Set(leaveEmployees.map((employee) => employee.id));
       const pending = activeEmployees.filter(

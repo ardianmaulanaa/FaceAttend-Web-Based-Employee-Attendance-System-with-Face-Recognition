@@ -291,7 +291,7 @@ function normalizeWorkMode(
 
   if (normalized === "office" || normalized === "kantor") return "office";
   if (normalized === "wfh") return "wfh";
-  if (normalized === "wfc") return "wfc";
+  if (normalized === "wfc") return "wfh";
   if (normalized === "visit" || normalized === "kunjungan") return "visit";
 
   return fallback;
@@ -302,7 +302,6 @@ function formatWorkMode(mode: string | null | undefined) {
 
   if (normalized === "office") return "Kantor";
   if (normalized === "wfh") return "WFH";
-  if (normalized === "wfc") return "WFC";
   if (normalized === "visit") return "Kunjungan";
 
   return mode || "Kantor";

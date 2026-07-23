@@ -29,7 +29,7 @@ import {
 
 type AttendanceAction = "check-in" | "check-out";
 type AlertType = "success" | "error" | "warning";
-type WorkMode = "office" | "wfh" | "wfc" | "visit";
+type WorkMode = "office" | "wfh" | "visit";
 
 type CustomAlert = {
   open: boolean;
@@ -43,6 +43,13 @@ type EarlyCheckoutConfirm = {
   earlyMinutes: number;
   earlyLabel: string;
   endLabel: string;
+};
+
+type EarlyCheckinConfirm = {
+  open: boolean;
+  earlyMinutes: number;
+  earlyLabel: string;
+  startLabel: string;
 };
 
 type VisitForm = {
@@ -71,21 +78,37 @@ type AuthMeResponse = {
 };
 
 type TodayAttendance = {
+  checkIn?: string | null;
   id?: string;
   checkInTime?: string | null;
   check_in_time?: string | null;
+  checkOut?: string | null;
   checkOutTime?: string | null;
   check_out_time?: string | null;
+  workMinutes?: number | null;
+  work_minutes?: number | null;
   workMode?: WorkMode | string | null;
   work_mode?: WorkMode | string | null;
   workModeLabel?: string | null;
 };
+
+type LeaveBlock = {
+  active?: boolean;
+  id?: string;
+  leaveType?: string;
+  leaveTypeLabel?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  message?: string;
+} | null;
 
 type TodayAttendanceResponse = {
   success?: boolean;
   attendance?: TodayAttendance | null;
   todayAttendance?: TodayAttendance | null;
   data?: TodayAttendance | { attendance?: TodayAttendance | null } | null;
+  leaveBlock?: LeaveBlock;
 };
 
 const DEFAULT_SHIFT_START_TIME = "08:00";
@@ -103,6 +126,13 @@ const emptyEarlyCheckoutConfirm: EarlyCheckoutConfirm = {
   earlyMinutes: 0,
   earlyLabel: "",
   endLabel: "",
+};
+
+const emptyEarlyCheckinConfirm: EarlyCheckinConfirm = {
+  open: false,
+  earlyMinutes: 0,
+  earlyLabel: "",
+  startLabel: "",
 };
 
 const emptyVisitForm: VisitForm = {
@@ -204,21 +234,38 @@ function normalizeTodayAttendance(
     return data.data as TodayAttendance;
   }
 
+  if (
+    "checkIn" in data ||
+    "checkInTime" in data ||
+    "checkOut" in data ||
+    "workMinutes" in data
+  ) {
+    return data as TodayAttendance;
+  }
+
   return null;
 }
 
 function hasAttendanceCheckIn(attendance: TodayAttendance | null) {
-  return Boolean(attendance?.checkInTime || attendance?.check_in_time);
+  return Boolean(
+    attendance?.checkIn ||
+      attendance?.checkInTime ||
+      attendance?.check_in_time,
+  );
 }
 
 function hasAttendanceCheckOut(attendance: TodayAttendance | null) {
-  return Boolean(attendance?.checkOutTime || attendance?.check_out_time);
+  return Boolean(
+    attendance?.checkOut ||
+      attendance?.checkOutTime ||
+      attendance?.check_out_time,
+  );
 }
 
 function getAttendanceWorkMode(attendance: TodayAttendance | null): WorkMode {
   const mode = attendance?.workMode || attendance?.work_mode;
 
-  if (mode === "wfh" || mode === "wfc" || mode === "visit") return mode;
+  if (mode === "wfh" || mode === "visit") return mode;
 
   return "office";
 }
@@ -285,6 +332,13 @@ function getLateLimitLabel(user: CurrentUser | null) {
   return minutesToClock(getLateLimitMinutes(user));
 }
 
+function getEarlyCheckinMinutes(user: CurrentUser | null) {
+  const nowMinutes = getJakartaMinutesNow();
+  const startMinutes = timeToMinutes(getShiftStartTime(user?.shift?.name));
+
+  return nowMinutes < startMinutes ? startMinutes - nowMinutes : 0;
+}
+
 function isLateCheckInNow(user: CurrentUser | null) {
   const nowMinutes = getJakartaMinutesNow();
   const lateLimitMinutes = getLateLimitMinutes(user);
@@ -318,9 +372,45 @@ function formatDurationHoursMinutes(totalMinutes: number) {
   return `${hours} jam ${minutes} menit`;
 }
 
+function getAttendanceDateValue(value?: string | null) {
+  if (!value || value === "--:--") return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+}
+
+function getDisplayedWorkMinutes(attendance: TodayAttendance | null) {
+  if (!attendance || !hasAttendanceCheckIn(attendance)) return 0;
+
+  const savedMinutes = Number(
+    attendance.workMinutes ?? attendance.work_minutes ?? 0,
+  );
+
+  if (hasAttendanceCheckOut(attendance)) {
+    return Number.isFinite(savedMinutes) ? Math.max(0, savedMinutes) : 0;
+  }
+
+  const checkInDate = getAttendanceDateValue(
+    attendance.checkInTime || attendance.check_in_time,
+  );
+
+  if (!checkInDate) return Number.isFinite(savedMinutes) ? savedMinutes : 0;
+
+  const elapsedMinutes = Math.floor(
+    (Date.now() - checkInDate.getTime()) / 60_000,
+  );
+
+  return Math.max(
+    Number.isFinite(savedMinutes) ? savedMinutes : 0,
+    elapsedMinutes,
+  );
+}
+
 function getWorkModeLabel(workMode: WorkMode) {
   if (workMode === "wfh") return "WFH";
-  if (workMode === "wfc") return "WFC";
   if (workMode === "visit") return "Kunjungan";
   return "Kantor";
 }
@@ -328,7 +418,6 @@ function getWorkModeLabel(workMode: WorkMode) {
 function getWorkModeDescription(workMode: WorkMode) {
   if (workMode === "office") return "Wajib berada dalam radius kantor.";
   if (workMode === "wfh") return "Bebas lokasi, GPS tetap disimpan.";
-  if (workMode === "wfc") return "Bebas lokasi kerja, GPS tetap disimpan.";
   return "Bebas lokasi, wajib isi data kunjungan.";
 }
 
@@ -605,9 +694,11 @@ function ActionButton({
       variant={primary ? "primary" : "secondary"}
       className={cn(
         "min-h-[4.5rem] rounded-[1.45rem] px-3 shadow-xl transition hover:-translate-y-0.5 active:scale-[0.98] md:min-h-[70px] md:rounded-2xl md:px-5",
-        primary
-          ? "bg-[#123c8c] text-white shadow-blue-900/25"
-          : "border border-blue-200 bg-white text-[#123c8c] shadow-slate-200/70 md:bg-[#f8fbff]",
+        disabled
+          ? "border border-slate-200 bg-slate-200 text-slate-400 shadow-none hover:translate-y-0"
+          : primary
+            ? "bg-[#123c8c] text-white shadow-blue-900/25"
+            : "border border-blue-200 bg-white text-[#123c8c] shadow-slate-200/70 md:bg-[#f8fbff]",
       )}
     >
       <span className="flex w-full items-center justify-center gap-2 md:gap-3">
@@ -617,7 +708,11 @@ function ActionButton({
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-              primary ? "bg-white/15" : "bg-blue-50",
+              disabled
+                ? "bg-slate-300/70"
+                : primary
+                  ? "bg-white/15"
+                  : "bg-blue-50",
             )}
           >
             {icon}
@@ -628,7 +723,11 @@ function ActionButton({
           <span
             className={cn(
               "block text-[9px] font-black uppercase tracking-[0.18em] md:text-[11px] md:tracking-[0.22em]",
-              primary ? "text-blue-100" : "text-slate-400",
+              disabled
+                ? "text-slate-400"
+                : primary
+                  ? "text-blue-100"
+                  : "text-slate-400",
             )}
           >
             {subtitle}
@@ -1137,6 +1236,129 @@ function EarlyCheckoutConfirmModal({
   );
 }
 
+function EarlyCheckinConfirmModal({
+  confirm,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  confirm: EarlyCheckinConfirm;
+  loading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!confirm.open) return null;
+
+  return (
+    <>
+      <style jsx global>{`
+        @keyframes earlyCheckinOverlayIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes earlyCheckinModalIn {
+          from {
+            opacity: 0;
+            transform: translateY(22px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+
+      <div className="fixed inset-0 z-[84] flex items-end justify-center bg-slate-950/45 px-4 pb-4 animate-[earlyCheckinOverlayIn_180ms_ease-out] md:items-center md:pb-0">
+        <AppCard className="relative w-full max-w-md overflow-hidden border-white/80 bg-white p-0 shadow-2xl shadow-slate-950/25 animate-[earlyCheckinModalIn_230ms_ease-out]">
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
+
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#123c8c] ring-1 ring-blue-100">
+                  <Clock3 size={24} strokeWidth={2.7} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+                    Check-in Lebih Awal
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+                    Apakah kamu yakin ingin bekerja lebih awal?
+                  </h2>
+
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                    Jam kerja kamu mulai pukul {confirm.startLabel}. Kamu masih
+                    lebih awal {confirm.earlyLabel} dari jadwal masuk.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 active:scale-95 disabled:opacity-60"
+                aria-label="Tutup popup check-in lebih awal"
+              >
+                <X size={19} strokeWidth={2.7} />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-3xl border border-blue-100 bg-blue-50/70 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c]">
+                Lebih awal
+              </p>
+
+              <p className="mt-1 text-2xl font-black text-[#123456]">
+                {confirm.earlyLabel}
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-[#123c8c]/75">
+                Waktu kerja tetap akan dihitung dari jam check-in yang dikirim.
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <AppButton
+                type="button"
+                variant="secondary"
+                onClick={onCancel}
+                disabled={loading}
+                full
+              >
+                Batal
+              </AppButton>
+
+              <AppButton
+                type="button"
+                disabled={loading}
+                onClick={onConfirm}
+                full
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Memproses
+                  </>
+                ) : (
+                  "Ya, Check-in"
+                )}
+              </AppButton>
+            </div>
+          </div>
+        </AppCard>
+      </div>
+    </>
+  );
+}
+
 function LateReasonModal({
   value,
   loading,
@@ -1295,12 +1517,14 @@ export default function AttendancePage() {
   const startingRef = useRef(false);
   const mountedRef = useRef(false);
   const lastPhotoUrlRef = useRef<string | null>(null);
+  const leaveBlockRef = useRef<LeaveBlock>(null);
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(false);
 
   const [todayAttendance, setTodayAttendance] =
     useState<TodayAttendance | null>(null);
+  const [leaveBlock, setLeaveBlock] = useState<LeaveBlock>(null);
   const [isTodayAttendanceLoading, setIsTodayAttendanceLoading] =
     useState(false);
 
@@ -1324,9 +1548,12 @@ export default function AttendancePage() {
 
   const [lateReason, setLateReason] = useState("");
   const [isLateReasonOpen, setIsLateReasonOpen] = useState(false);
+  const [earlyCheckinConfirm, setEarlyCheckinConfirm] =
+    useState<EarlyCheckinConfirm>(emptyEarlyCheckinConfirm);
   const [earlyCheckoutConfirm, setEarlyCheckoutConfirm] =
     useState<EarlyCheckoutConfirm>(emptyEarlyCheckoutConfirm);
   const [customAlert, setCustomAlert] = useState<CustomAlert>(emptyAlert);
+  const [, setWorkMinuteTick] = useState(0);
 
   const [statusTitle, setStatusTitle] = useState("Waiting for Camera");
   const [statusText, setStatusText] = useState(
@@ -1341,6 +1568,9 @@ export default function AttendancePage() {
   const hasCheckedInToday = hasAttendanceCheckIn(todayAttendance);
   const hasCheckedOutToday = hasAttendanceCheckOut(todayAttendance);
   const lockedWorkMode = getAttendanceWorkMode(todayAttendance);
+  const isLeaveBlocked = Boolean(leaveBlock?.active);
+  const displayedWorkMinutes = getDisplayedWorkMinutes(todayAttendance);
+  const displayedWorkDuration = formatDurationHoursMinutes(displayedWorkMinutes);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -1385,6 +1615,16 @@ export default function AttendancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!hasCheckedInToday || hasCheckedOutToday) return;
+
+    const timer = window.setInterval(() => {
+      setWorkMinuteTick((current) => current + 1);
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
+  }, [hasCheckedInToday, hasCheckedOutToday]);
+
   function safeSetStatus(title: string, text: string) {
     if (!mountedRef.current) return;
     setStatusTitle(title);
@@ -1407,9 +1647,19 @@ export default function AttendancePage() {
   function showLaptopBlockedAlert() {
     showCustomAlert(
       "Presensi hanya lewat HP",
-      "Untuk menjaga validasi kamera dan lokasi, check-in/check-out tidak dapat dilakukan melalui laptop atau desktop. Silakan buka FaceAttend melalui browser HP.",
+      "Untuk menjaga validasi kamera dan lokasi, check-in/check-out tidak dapat dilakukan melalui laptop atau desktop. Silakan buka Presensi melalui browser HP.",
       "warning",
     );
+  }
+
+  function showLeaveBlockedAlert() {
+    const currentLeaveBlock = leaveBlockRef.current || leaveBlock;
+    const message =
+      currentLeaveBlock?.message ||
+      "Kamu sedang dalam periode cuti/sakit/izin. Check-in dan check-out tidak dapat dilakukan.";
+
+    showCustomAlert("Presensi tidak tersedia", message, "warning");
+    safeSetStatus("Presensi Dinonaktifkan", message);
   }
 
   function updateVisitForm<K extends keyof VisitForm>(
@@ -1579,13 +1829,27 @@ export default function AttendancePage() {
 
       if (!response.ok) {
         setTodayAttendance(null);
+        setLeaveBlock(null);
+        leaveBlockRef.current = null;
         return null;
       }
 
       const attendance = normalizeTodayAttendance(data);
+      const currentLeaveBlock = data.leaveBlock || null;
+      leaveBlockRef.current = currentLeaveBlock;
 
       if (mountedRef.current) {
         setTodayAttendance(attendance);
+        setLeaveBlock(currentLeaveBlock);
+
+        if (currentLeaveBlock?.active) {
+          safeSetStatus(
+            "Presensi Dinonaktifkan",
+            currentLeaveBlock.message ||
+              "Kamu sedang dalam periode cuti/sakit/izin.",
+          );
+          return attendance;
+        }
 
         if (hasAttendanceCheckIn(attendance)) {
           const mode = getAttendanceWorkMode(attendance);
@@ -1604,6 +1868,8 @@ export default function AttendancePage() {
       return attendance;
     } catch {
       setTodayAttendance(null);
+      setLeaveBlock(null);
+      leaveBlockRef.current = null;
       return null;
     } finally {
       if (mountedRef.current) {
@@ -1653,7 +1919,7 @@ export default function AttendancePage() {
         if (Date.now() - startTime > 4000) {
           reject(
             new Error(
-              "Element video belum siap. Refresh halaman lalu coba lagi.",
+              "Element video belum siap. Buka ulang halaman lalu coba lagi.",
             ),
           );
           return;
@@ -1875,6 +2141,11 @@ export default function AttendancePage() {
 
     const latestAttendance = await loadTodayAttendance();
 
+    if (leaveBlockRef.current?.active) {
+      showLeaveBlockedAlert();
+      return;
+    }
+
     if (hasAttendanceCheckIn(latestAttendance)) {
       const mode = getAttendanceWorkMode(latestAttendance);
 
@@ -1918,9 +2189,30 @@ export default function AttendancePage() {
     if (!user) {
       showCustomAlert(
         "Data shift belum terbaca",
-        "Refresh halaman lalu coba lagi.",
+        "Buka ulang halaman lalu coba lagi.",
         "warning",
       );
+      return;
+    }
+
+    const earlyMinutes = getEarlyCheckinMinutes(user);
+
+    if (earlyMinutes > 0) {
+      const startLabel = getShiftStartTime(user.shift?.name);
+      const earlyLabel = formatDurationHoursMinutes(earlyMinutes);
+
+      setEarlyCheckinConfirm({
+        open: true,
+        earlyMinutes,
+        earlyLabel,
+        startLabel,
+      });
+
+      safeSetStatus(
+        "Check-in Lebih Awal",
+        `Kamu masih lebih awal ${earlyLabel} dari jam masuk ${startLabel}. Konfirmasi jika tetap ingin check-in.`,
+      );
+
       return;
     }
 
@@ -1937,9 +2229,23 @@ export default function AttendancePage() {
     );
   }
 
+  async function confirmEarlyCheckin() {
+    setEarlyCheckinConfirm(emptyEarlyCheckinConfirm);
+    setLateReason("");
+    setIsLateReasonOpen(false);
+    await handleAttendance("check-in", "");
+  }
+
   async function requestCheckOut() {
     if (isLaptopBlocked) {
       showLaptopBlockedAlert();
+      return;
+    }
+
+    await loadTodayAttendance();
+
+    if (leaveBlockRef.current?.active) {
+      showLeaveBlockedAlert();
       return;
     }
 
@@ -1950,7 +2256,7 @@ export default function AttendancePage() {
     if (!user) {
       showCustomAlert(
         "Data shift belum terbaca",
-        "Refresh halaman lalu coba lagi.",
+        "Buka ulang halaman lalu coba lagi.",
         "warning",
       );
       return;
@@ -2012,6 +2318,11 @@ export default function AttendancePage() {
   async function handleAttendance(action: AttendanceAction, reason = "") {
     if (isLaptopBlocked) {
       showLaptopBlockedAlert();
+      return;
+    }
+
+    if (leaveBlockRef.current?.active) {
+      showLeaveBlockedAlert();
       return;
     }
 
@@ -2204,7 +2515,7 @@ export default function AttendancePage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
-                FaceAttend
+                Presensi
               </p>
 
               <h1 className="mt-1 text-2xl font-black tracking-tight text-[#073456]">
@@ -2384,7 +2695,11 @@ export default function AttendancePage() {
                 subtitle="Masuk"
                 loading={checkInProcessing || isUserLoading}
                 disabled={
-                  loading || cameraStarting || isUserLoading || isLaptopBlocked
+                  loading ||
+                  cameraStarting ||
+                  isUserLoading ||
+                  isLaptopBlocked ||
+                  isLeaveBlocked
                 }
                 primary
                 icon={<LogIn size={22} />}
@@ -2395,11 +2710,20 @@ export default function AttendancePage() {
                 label="Check-out"
                 subtitle="Keluar"
                 loading={checkOutProcessing}
-                disabled={loading || cameraStarting || isLaptopBlocked}
+                disabled={
+                  loading || cameraStarting || isLaptopBlocked || isLeaveBlocked
+                }
                 icon={<LogOut size={22} />}
                 onClick={requestCheckOut}
               />
             </div>
+
+            {isLeaveBlocked ? (
+              <div className="attendance-row-enter mt-3 rounded-2xl border border-slate-200 bg-slate-100 p-4 text-xs font-bold leading-5 text-slate-600">
+                {leaveBlock?.message ||
+                  "Kamu sedang dalam periode cuti/sakit/izin. Check-in dan check-out tidak dapat dilakukan."}
+              </div>
+            ) : null}
 
             <LastPhoto url={lastPhotoUrl} />
           </AppCard>
@@ -2430,7 +2754,7 @@ export default function AttendancePage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <InfoTile
                   title="Jam Kerja"
                   icon={<Clock3 size={22} className="text-[#123c8c]" />}
@@ -2457,6 +2781,22 @@ export default function AttendancePage() {
                       </p>
                     </div>
                   )}
+                </InfoTile>
+
+                <InfoTile
+                  title="Menit Kerja"
+                  icon={<BriefcaseBusiness size={22} className="text-[#123c8c]" />}
+                >
+                  <div className="space-y-1">
+                    <p className="font-black text-[#123456]">
+                      {displayedWorkMinutes} menit
+                    </p>
+                    <p className="font-semibold text-slate-400">
+                      {hasCheckedInToday
+                        ? displayedWorkDuration
+                        : "Mulai dihitung setelah check-in."}
+                    </p>
+                  </div>
                 </InfoTile>
 
                 <InfoTile
@@ -2511,6 +2851,13 @@ export default function AttendancePage() {
             }}
           />
         ) : null}
+
+        <EarlyCheckinConfirmModal
+          confirm={earlyCheckinConfirm}
+          loading={loading}
+          onCancel={() => setEarlyCheckinConfirm(emptyEarlyCheckinConfirm)}
+          onConfirm={confirmEarlyCheckin}
+        />
 
         <EarlyCheckoutConfirmModal
           confirm={earlyCheckoutConfirm}

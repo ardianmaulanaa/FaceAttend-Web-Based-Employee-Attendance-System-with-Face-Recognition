@@ -127,6 +127,7 @@ function createEmptySummary() {
     totalPresensi: 0,
     hadir: 0,
     terlambat: 0,
+    terlambatHari: 0,
     menunggu: 0,
     izin: 0,
     sakit: 0,
@@ -175,6 +176,7 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         employee_code: true,
+        profile_photo: true,
         employment_start_date: true,
         employment_end_date: true,
         base_salary: true,
@@ -281,6 +283,7 @@ export async function GET(req: NextRequest) {
         attendance.status === "LATE"
       ) {
         summary.terlambat += Number(attendance.late_minutes || 0);
+        summary.terlambatHari += 1;
       }
 
       if (hasCheckedIn) {
@@ -362,6 +365,8 @@ export async function GET(req: NextRequest) {
         id: employee.id,
         name: employee.name,
         employeeCode: employee.employee_code,
+        profile_photo: employee.profile_photo,
+        profile_photo_url: employee.profile_photo,
         employmentStartDate: employee.employment_start_date,
         employmentEndDate: employee.employment_end_date,
         employmentStatus: employee.employment_status,

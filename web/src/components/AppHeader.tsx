@@ -23,6 +23,7 @@ import {
   Network,
   PhoneCall,
   Settings,
+  Trophy,
   UserPlus,
   UserRound,
   UserRoundCog,
@@ -44,7 +45,6 @@ type NotificationStats = {
   leave?: number;
   permission?: number;
   wfh?: number;
-  wfc?: number;
   visit?: number;
 };
 
@@ -134,6 +134,11 @@ const operationalMenus = [
     href: "/admin/rekap-kehadiran-karyawan",
     label: "Rekap Kehadiran Karyawan",
     icon: ClipboardList,
+  },
+  {
+    href: "/admin/rank-kehadiran-karyawan",
+    label: "Rank Kehadiran Karyawan",
+    icon: Trophy,
   },
 ];
 
@@ -286,7 +291,7 @@ export default function AppHeader({
         cache: "no-store",
       });
     } finally {
-      window.localStorage.removeItem("faceattend_read_announcement_id");
+      window.localStorage.removeItem("presensi_read_announcement_id");
       window.sessionStorage.clear();
       router.replace("/login");
       router.refresh();

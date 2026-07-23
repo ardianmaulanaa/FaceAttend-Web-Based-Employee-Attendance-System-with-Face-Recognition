@@ -202,7 +202,7 @@ export default function AdminAnnouncementDetailPage() {
             </p>
           </section>
         ) : (
-          <section className="announcement-detail-enter mt-6 min-h-[70vh] overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+          <section className="announcement-detail-enter mt-6 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
             <div className="border-b border-blue-50 bg-[#f8fbff] p-6 md:p-8">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="flex min-w-0 items-start gap-4">
@@ -238,7 +238,7 @@ export default function AdminAnnouncementDetailPage() {
               </div>
             </div>
 
-            <div className="min-h-[360px] space-y-7 p-6 md:p-8">
+            <div className="space-y-5 p-6 md:p-8">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
                   Isi Pengumuman

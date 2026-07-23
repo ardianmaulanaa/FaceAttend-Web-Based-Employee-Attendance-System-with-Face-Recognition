@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
       headers: {
         Accept: "application/json",
         "Accept-Language": "id,en;q=0.8",
-        "User-Agent": "FaceAttend/1.0 Development",
+        "User-Agent": "Presensi/1.0 Development",
       },
       cache: "no-store",
     });

@@ -8,6 +8,7 @@ const EMPLOYEE_PATHS = [
   "/presensi",
   "/history",
   "/profil",
+  "/face-card",
   "/cuti",
   "/notifikasi",
   "/pengumuman",
@@ -68,7 +69,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get("faceattend_token")?.value;
+  const token = req.cookies.get("presensi_token")?.value;
 
   if (!token) {
     if (isAdminApi) {
@@ -105,7 +106,7 @@ export async function proxy(req: NextRequest) {
     }
 
     const response = redirectToLogin(req, pathname);
-    response.cookies.delete("faceattend_token");
+    response.cookies.delete("presensi_token");
 
     return response;
   }
@@ -119,6 +120,7 @@ export const config = {
     "/presensi/:path*",
     "/history/:path*",
     "/profil/:path*",
+    "/face-card/:path*",
     "/cuti/:path*",
     "/notifikasi/:path*",
     "/pengumuman/:path*",

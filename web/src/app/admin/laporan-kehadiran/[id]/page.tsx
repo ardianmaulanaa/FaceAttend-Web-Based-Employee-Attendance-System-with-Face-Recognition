@@ -132,7 +132,7 @@ function normalizeMode(value?: string | null) {
 
   if (normalized === "office" || normalized === "kantor") return "office";
   if (normalized === "wfh") return "wfh";
-  if (normalized === "wfc") return "wfc";
+  if (normalized === "wfc") return "wfh";
   if (normalized === "visit" || normalized === "kunjungan") return "visit";
 
   return normalized;
@@ -143,7 +143,6 @@ function formatModeLabel(value?: string | null) {
 
   if (mode === "office") return "Kantor";
   if (mode === "wfh") return "WFH";
-  if (mode === "wfc") return "WFC";
   if (mode === "visit") return "Kunjungan";
 
   return value || "Kantor";

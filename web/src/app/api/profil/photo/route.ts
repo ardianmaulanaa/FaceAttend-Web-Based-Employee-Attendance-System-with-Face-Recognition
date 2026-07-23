@@ -154,7 +154,7 @@ async function uploadProfilePhoto(
   return new Promise<UploadApiResponse>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "faceattend/profiles",
+        folder: "presensi/profiles",
         public_id: `user-${userId}-${Date.now()}`,
         resource_type: "image",
         overwrite: false,

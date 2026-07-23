@@ -42,6 +42,11 @@ import {
   AppModalMotion,
   AppModalPanel,
 } from "@/components/ui/AppUI";
+import {
+  isValidBankAccountNumber,
+  isValidNik,
+  normalizeDigits,
+} from "@/lib/identity-validation";
 
 type OfficeMiniRelation = {
   id: string;
@@ -299,7 +304,7 @@ function normalizeProfilePhotoUrl(photo?: string | null) {
 }
 
 function normalizeNumericInput(value: string) {
-  return value.replace(/\D/g, "");
+  return normalizeDigits(value);
 }
 
 function getEmployeeProfilePhoto(employee: Employee) {
@@ -765,14 +770,14 @@ export default function AdminEmployeesPage() {
     field: "bank_account_number" | "nik",
     value: string,
   ) {
-    const normalizedValue = normalizeNumericInput(value);
+    const normalizedValue = normalizeNumericInput(value).slice(0, 16);
 
     if (value !== normalizedValue) {
       showEmployeeAlert(
         field === "nik" ? "NIK tidak valid" : "No rekening tidak valid",
         field === "nik"
-          ? "NIK hanya dapat diisi angka."
-          : "No rekening hanya dapat diisi angka.",
+          ? "NIK harus berupa angka dan berjumlah tepat 16 digit."
+          : "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
         "warning",
       );
     }
@@ -853,19 +858,22 @@ export default function AdminEmployeesPage() {
       return;
     }
 
-    if (form.nik && !/^\d+$/.test(form.nik)) {
+    if (form.nik && !isValidNik(form.nik)) {
       showEmployeeAlert(
         "NIK tidak valid",
-        "NIK hanya dapat diisi angka.",
+        "NIK harus berupa angka dan berjumlah tepat 16 digit.",
         "warning",
       );
       return;
     }
 
-    if (form.bank_account_number && !/^\d+$/.test(form.bank_account_number)) {
+    if (
+      form.bank_account_number &&
+      !isValidBankAccountNumber(form.bank_account_number)
+    ) {
       showEmployeeAlert(
         "No rekening tidak valid",
-        "No rekening hanya dapat diisi angka.",
+        "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
         "warning",
       );
       return;
@@ -1525,16 +1533,17 @@ export default function AdminEmployeesPage() {
                       onPaste={(event) => {
                         const pastedText = event.clipboardData.getData("text");
 
-                        if (/\D/.test(pastedText)) {
+                        if (/\D/.test(pastedText) || pastedText.length > 16) {
                           showEmployeeAlert(
                             "NIK tidak valid",
-                            "NIK hanya dapat diisi angka.",
+                            "NIK harus berupa angka dan berjumlah tepat 16 digit.",
                             "warning",
                           );
                         }
                       }}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={16}
                       placeholder="Masukkan NIK"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
@@ -1561,16 +1570,17 @@ export default function AdminEmployeesPage() {
                       onPaste={(event) => {
                         const pastedText = event.clipboardData.getData("text");
 
-                        if (/\D/.test(pastedText)) {
+                        if (/\D/.test(pastedText) || pastedText.length > 16) {
                           showEmployeeAlert(
                             "No rekening tidak valid",
-                            "No rekening hanya dapat diisi angka.",
+                            "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
                             "warning",
                           );
                         }
                       }}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={16}
                       placeholder="Masukkan no rekening"
                       className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
@@ -1930,22 +1940,8 @@ export default function AdminEmployeesPage() {
                 </div>
               </AppFormReveal>
 
-              <AppFormReveal delay={120}>
-                <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
-                  <p className="text-sm font-black text-[#123c8c]">
-                    Catatan Karyawan
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Kantor dipilih terlebih dahulu. Setelah itu sistem hanya
-                    menampilkan Divisi milik kantor tersebut. Jabatan mengikuti
-                    Divisi, Posisi mengikuti Jabatan, sedangkan Shift tetap
-                    global.
-                  </p>
-                </div>
-              </AppFormReveal>
-
               <AppFormReveal
-                delay={140}
+                delay={120}
                 className="mt-2 flex flex-col-reverse gap-3 md:flex-row md:justify-end"
               >
                 <button

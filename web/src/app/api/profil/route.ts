@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/api-auth";
 import { verifyPassword } from "@/lib/auth";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
+import {
+  IDENTITY_VALIDATION,
+  validateDigitRange,
+} from "@/lib/identity-validation";
 
 export const runtime = "nodejs";
 
@@ -340,21 +344,40 @@ async function handleUpdateProfile(userId: string, body: JsonBody) {
     );
   }
 
-  if (bankAccountNumber !== undefined && bankAccountNumber && !/^\d+$/.test(bankAccountNumber)) {
+  const phoneError = validateDigitRange(phone, IDENTITY_VALIDATION.phone);
+
+  if (phoneError) {
     return NextResponse.json(
       {
         success: false,
-        message: "No rekening hanya dapat diisi angka.",
+        message: phoneError,
       },
       { status: 400 }
     );
   }
 
-  if (nik !== undefined && nik && !/^\d+$/.test(nik)) {
+  const bankAccountError = validateDigitRange(
+    bankAccountNumber,
+    IDENTITY_VALIDATION.bankAccount
+  );
+
+  if (bankAccountError) {
     return NextResponse.json(
       {
         success: false,
-        message: "NIK hanya dapat diisi angka.",
+        message: bankAccountError,
+      },
+      { status: 400 }
+    );
+  }
+
+  const nikError = validateDigitRange(nik, IDENTITY_VALIDATION.nik);
+
+  if (nikError) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: nikError,
       },
       { status: 400 }
     );

@@ -311,7 +311,7 @@ function AttendanceReportPrintContent() {
       <section className="print-page">
         <section className="header">
           <div>
-            <p className="eyebrow">FaceAttend Creativemu</p>
+            <p className="eyebrow">Presensi Creativemu</p>
             <h1>Laporan Kehadiran Karyawan</h1>
           </div>
 
@@ -405,7 +405,7 @@ function AttendanceReportPrintContent() {
           </>
         )}
 
-        <div className="footer">Dokumen dibuat otomatis dari FaceAttend.</div>
+        <div className="footer">Dokumen dibuat otomatis dari Presensi.</div>
       </section>
     </main>
   );

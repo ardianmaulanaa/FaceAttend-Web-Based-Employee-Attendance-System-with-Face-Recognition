@@ -186,7 +186,7 @@ async function uploadAnnouncementDocument(
   return new Promise<UploadApiResponse>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "faceattend/announcements",
+        folder: "presensi/announcements",
         public_id: `announcement-${announcementId}-${Date.now()}`,
         resource_type: "raw",
         overwrite: false,

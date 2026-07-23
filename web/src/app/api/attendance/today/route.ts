@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/api-auth";
+import {
+  findActiveLeaveForDate,
+  formatJakartaDate,
+  getJakartaDateOnly,
+  getLeaveTypeLabel,
+} from "@/lib/leave-attendance-guard";
 
 export const runtime = "nodejs";
 
@@ -55,6 +61,29 @@ export async function GET(req: NextRequest) {
   try {
     const { id: userId } = await requireAuth(req);
     const { start, end } = getJakartaDateRange();
+    const today = getJakartaDateOnly();
+
+    const activeLeave = await findActiveLeaveForDate({
+      userId,
+      date: today,
+    });
+
+    const leaveBlock = activeLeave
+      ? {
+          active: true,
+          id: activeLeave.id,
+          leaveType: activeLeave.leave_type,
+          leaveTypeLabel: getLeaveTypeLabel(activeLeave.leave_type),
+          status: activeLeave.status,
+          startDate: activeLeave.start_date.toISOString(),
+          endDate: activeLeave.end_date.toISOString(),
+          message: `Kamu sedang dalam periode ${getLeaveTypeLabel(
+            activeLeave.leave_type,
+          )} pada ${formatJakartaDate(
+            today,
+          )}. Check-in dan check-out tidak dapat dilakukan selama cuti/sakit/izin.`,
+        }
+      : null;
 
     const attendance = await prisma.attendance.findFirst({
       where: {
@@ -83,8 +112,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         checkIn: "--:--",
         checkOut: "--:--",
-        status: "Pending",
-        description: "Belum presensi hari ini",
+        status: leaveBlock ? "Cuti/Izin" : "Pending",
+        description: leaveBlock?.message || "Belum presensi hari ini",
+        leaveBlock,
       });
     }
 
@@ -109,6 +139,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       checkIn,
       checkOut,
+      checkInTime: attendance.check_in_time?.toISOString() || null,
+      checkOutTime: attendance.check_out_time?.toISOString() || null,
       status,
       description,
       checkInStatus: attendance.check_in_status,
@@ -116,6 +148,7 @@ export async function GET(req: NextRequest) {
       lateMinutes: attendance.late_minutes,
       earlyLeaveMinutes: attendance.early_leave_minutes,
       workMinutes: attendance.work_minutes,
+      leaveBlock,
     });
   } catch (error) {
     return NextResponse.json(

@@ -8,6 +8,11 @@ import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
 import {
+  findActiveLeaveForDate,
+  formatJakartaDate,
+  getLeaveTypeLabel,
+} from "@/lib/leave-attendance-guard";
+import {
   getDistanceInMeters,
   isGpsAccuracyAllowed,
   isValidGeofence,
@@ -27,7 +32,7 @@ const ALLOWED_PHOTO_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
-type WorkMode = "office" | "wfh" | "wfc" | "visit";
+type WorkMode = "office" | "wfh" | "visit";
 
 type ParsedAttendanceBody = {
   photoBuffer: Uint8Array<ArrayBuffer> | null;
@@ -114,7 +119,6 @@ function normalizeWorkMode(value: unknown): WorkMode {
     .toLowerCase();
 
   if (mode === "wfh") return "wfh";
-  if (mode === "wfc") return "wfc";
   if (mode === "visit" || mode === "kunjungan") return "visit";
   if (mode === "office" || mode === "wfo" || mode === "kantor") {
     return "office";
@@ -125,7 +129,6 @@ function normalizeWorkMode(value: unknown): WorkMode {
 
 function getWorkModeLabel(workMode: WorkMode) {
   if (workMode === "wfh") return "WFH";
-  if (workMode === "wfc") return "WFC";
   if (workMode === "visit") return "Kunjungan";
   return "Kantor";
 }
@@ -164,7 +167,7 @@ async function uploadCheckInPhoto(
   return new Promise<UploadApiResponse>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "faceattend/attendance/check-in",
+        folder: "presensi/attendance/check-in",
         public_id: `user-${userId}-${Date.now()}`,
         resource_type: "image",
         overwrite: false,
@@ -464,7 +467,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Presensi hanya bisa dilakukan melalui handphone. Silakan buka FaceAttend dari browser HP.",
+            "Presensi hanya bisa dilakukan melalui handphone. Silakan buka Presensi dari browser HP.",
         },
         { status: 403 },
       );
@@ -488,9 +491,8 @@ export async function POST(req: NextRequest) {
     } = await parseAttendanceBody(req);
     const isOfficeMode = workMode === "office";
     const isWfhMode = workMode === "wfh";
-    const isWfcMode = workMode === "wfc";
     const isVisitMode = workMode === "visit";
-    const isFlexibleMode = isWfhMode || isWfcMode || isVisitMode;
+    const isFlexibleMode = isWfhMode || isVisitMode;
 
     if (!photoBuffer) {
       return NextResponse.json(
@@ -723,6 +725,33 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const today = getTodayDateOnly();
 
+    const activeLeave = await findActiveLeaveForDate({
+      userId,
+      date: today,
+    });
+
+    if (activeLeave) {
+      const leaveLabel = getLeaveTypeLabel(activeLeave.leave_type);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Kamu sedang dalam periode ${leaveLabel} pada ${formatJakartaDate(
+            today,
+          )}. Check-in dan check-out tidak dapat dilakukan selama cuti/sakit/izin.`,
+          message: `Kamu sedang dalam periode ${leaveLabel} pada ${formatJakartaDate(
+            today,
+          )}. Check-in dan check-out tidak dapat dilakukan selama cuti/sakit/izin.`,
+          leaveBlock: {
+            id: activeLeave.id,
+            leaveType: activeLeave.leave_type,
+            status: activeLeave.status,
+          },
+        },
+        { status: 400 },
+      );
+    }
+
     const existingAttendance = await prisma.attendance.findFirst({
       where: {
         user_id: userId,
@@ -786,7 +815,7 @@ export async function POST(req: NextRequest) {
 
       work_mode: workMode,
       is_wfh: isWfhMode,
-      is_wfc: isWfcMode,
+      is_wfc: false,
       is_visit: isVisitMode,
 
       check_in_latitude: latitude,
@@ -900,7 +929,7 @@ export async function POST(req: NextRequest) {
       workMode,
       workModeLabel: getWorkModeLabel(workMode),
       isWfh: isWfhMode,
-      isWfc: isWfcMode,
+      isWfc: false,
       isVisit: isVisitMode,
       lateMinutes,
       lateReason: isLate ? lateReason : null,

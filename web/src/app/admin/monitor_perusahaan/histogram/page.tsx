@@ -9,6 +9,7 @@ import MobileShell from "@/components/MobileShell";
 const histogramSegments = [
   { key: "present", label: "Hadir", color: "#16a34a" },
   { key: "late", label: "Terlambat", color: "#f97316" },
+  { key: "wfh", label: "WFH", color: "#f59e0b" },
   { key: "visit", label: "Kunjungan", color: "#14b8a6" },
   { key: "cuti", label: "Cuti", color: "#8b5cf6" },
 ] as const;
@@ -21,6 +22,8 @@ type ChartEmployee = {
   employeeCode?: string | null;
   profilePhoto?: string | null;
   profile_photo?: string | null;
+  leaveType?: string | null;
+  leaveTypeLabel?: string | null;
 };
 
 type DailyChartPoint = {
@@ -28,6 +31,7 @@ type DailyChartPoint = {
   date: string;
   present: number;
   late: number;
+  wfh: number;
   visit: number;
   cuti: number;
   employees?: Partial<Record<SegmentKey, ChartEmployee[]>>;
@@ -207,6 +211,7 @@ function HistogramDetailContent() {
                 ...item,
                 present: toSafeNumber(item?.present),
                 late: toSafeNumber(item?.late),
+                wfh: toSafeNumber(item?.wfh),
                 visit: toSafeNumber(item?.visit),
                 cuti: toSafeNumber(item?.cuti),
                 employees: item?.employees || {},
@@ -369,7 +374,9 @@ function HistogramDetailContent() {
                           {employee.name}
                         </p>
                         <p className="mt-0.5 truncate text-xs font-bold text-slate-500">
-                          {employee.employeeCode
+                          {selectedSegment === "cuti" && employee.leaveTypeLabel
+                            ? employee.leaveTypeLabel
+                            : employee.employeeCode
                             ? `Kode ${employee.employeeCode}`
                             : `Urutan absen #${index + 1}`}
                         </p>

@@ -210,7 +210,7 @@ function MobileHeader() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
-            FaceAttend
+            Presensi
           </p>
 
           <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456]">

@@ -3,6 +3,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/api-auth";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
+import {
+  IDENTITY_VALIDATION,
+  assertDigitRange,
+} from "@/lib/identity-validation";
 
 export const runtime = "nodejs";
 
@@ -158,12 +162,6 @@ function ensureValidEmploymentPeriod(
 ) {
   if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
     throw new Error("Tanggal mulai masa kerja tidak boleh melewati tanggal akhir.");
-  }
-}
-
-function ensureNumericField(value: string | null, label: string) {
-  if (value && !/^\d+$/.test(value)) {
-    throw new Error(`${label} hanya dapat diisi angka.`);
   }
 }
 
@@ -484,8 +482,9 @@ export async function POST(req: NextRequest) {
       return jsonError("Status karyawan tidak valid.");
     }
 
-    ensureNumericField(bankAccountNumber, "No rekening");
-    ensureNumericField(nik, "NIK");
+    assertDigitRange(phone || null, IDENTITY_VALIDATION.phone);
+    assertDigitRange(bankAccountNumber, IDENTITY_VALIDATION.bankAccount);
+    assertDigitRange(nik, IDENTITY_VALIDATION.nik);
     ensureValidEmploymentPeriod(employmentStartDate, employmentEndDate);
 
     await validateEmployeeHierarchy({
@@ -554,6 +553,8 @@ export async function POST(req: NextRequest) {
     if (
       error instanceof Error &&
       (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("harus berupa angka") ||
+        error.message.includes("digit") ||
         error.message.includes("Role akun") ||
         error.message.includes("Tanggal") ||
         error.message.includes("masa kerja"))
@@ -659,8 +660,9 @@ export async function PATCH(req: NextRequest) {
       return jsonError("Status karyawan tidak valid.");
     }
 
-    ensureNumericField(bankAccountNumber, "No rekening");
-    ensureNumericField(nik, "NIK");
+    assertDigitRange(phone || null, IDENTITY_VALIDATION.phone);
+    assertDigitRange(bankAccountNumber, IDENTITY_VALIDATION.bankAccount);
+    assertDigitRange(nik, IDENTITY_VALIDATION.nik);
     ensureValidEmploymentPeriod(employmentStartDate, employmentEndDate);
 
     const existingEmployee = await prisma.user.findUnique({
@@ -780,6 +782,8 @@ export async function PATCH(req: NextRequest) {
     if (
       error instanceof Error &&
       (error.message.includes("hanya dapat diisi angka") ||
+        error.message.includes("harus berupa angka") ||
+        error.message.includes("digit") ||
         error.message.includes("Role akun") ||
         error.message.includes("Tanggal") ||
         error.message.includes("masa kerja"))

@@ -1,22 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   ArrowLeft,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
-  CheckCircle2,
   ChevronRight,
   Clock3,
   Eye,
   EyeOff,
-  CreditCard,
   Image as ImageIcon,
-  IdCard,
   Loader2,
   LockKeyhole,
   LogOut,
@@ -30,8 +26,11 @@ import {
   Upload,
   UserRound,
   X,
+  AlertTriangle,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
+
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
@@ -56,16 +55,13 @@ type ProfileUser = {
   email: string;
   role: string;
   phone: string | null;
+  birth_place?: string | null;
+  birth_date?: string | null;
+  nik?: string | null;
+  bank_account_number?: string | null;
   status: string;
-  employment_status: string | null;
-  employment_start_date: string | null;
-  employment_end_date: string | null;
-  birth_place: string | null;
-  birth_date: string | null;
-  bank_account_number: string | null;
-  nik: string | null;
   profile_photo: string | null;
-  jabatan?: {
+  unit?: {
     id: string;
     name: string;
   } | null;
@@ -104,14 +100,14 @@ type EditProfileForm = {
   phone: string;
   birth_place: string;
   birth_date: string;
-  bank_account_number: string;
   nik: string;
+  bank_account_number: string;
 };
 
 type ProfileView = "menu" | "personal-detail";
 
 type ProfileAlert = {
-  type: "success" | "error" | "warning" | "info";
+  type: "warning" | "success" | "error" | "info";
   title: string;
   message: string;
 } | null;
@@ -127,8 +123,8 @@ const initialEditProfileForm: EditProfileForm = {
   phone: "",
   birth_place: "",
   birth_date: "",
-  bank_account_number: "",
   nik: "",
+  bank_account_number: "",
 };
 
 const dayLabels: Record<string, string> = {
@@ -153,14 +149,14 @@ function getInitials(name: string) {
 
 function formatRole(role: string) {
   const roleMap: Record<string, string> = {
-    owner: "Pemilik",
+    owner: "Owner",
     admin: "Admin",
     cs: "CS",
-    employee: "Karyawan",
-    OWNER: "Pemilik",
+    employee: "Employee",
+    OWNER: "Owner",
     ADMIN: "Admin",
     CS: "CS",
-    EMPLOYEE: "Karyawan",
+    EMPLOYEE: "Employee",
   };
 
   return roleMap[role] || role;
@@ -177,17 +173,6 @@ function formatStatus(status: string) {
   return statusMap[status] || status;
 }
 
-function formatEmploymentPeriod(user: ProfileUser) {
-  const startDate = formatDate(user.employment_start_date);
-  const endDate = formatDate(user.employment_end_date);
-
-  if (startDate === "-" && endDate === "-") return "-";
-  if (startDate === "-") return `Sampai ${endDate}`;
-  if (endDate === "-") return `Mulai ${startDate}`;
-
-  return `${startDate} - ${endDate}`;
-}
-
 function formatDay(day: string) {
   return dayLabels[day] || day;
 }
@@ -196,38 +181,17 @@ function normalizePhoneInput(value: string) {
   return normalizeDigits(value, IDENTITY_VALIDATION.phone.max);
 }
 
-function normalizeNumericInput(value: string) {
-  return normalizeDigits(value);
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatDateInput(value?: string | null) {
-  if (!value) return "";
-
-  return String(value).slice(0, 10);
-}
-
 function getProfileAlertTheme(type: NonNullable<ProfileAlert>["type"]) {
   if (type === "success") {
     return {
-      shell: "from-emerald-50 via-white to-blue-50",
-      iconWrap: "bg-emerald-100 text-emerald-600",
-      badge: "text-emerald-600 bg-white/70",
-      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20",
+      shell:
+        "from-emerald-50 via-white to-blue-50 dark:from-[#0f291e] dark:via-[#161b22] dark:to-[#0d141e] dark:border-[#21262d]",
+      iconWrap:
+        "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
+      badge:
+        "text-emerald-600 bg-white/70 dark:bg-[#30363d] dark:text-emerald-400",
+      button:
+        "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20 dark:bg-emerald-500 dark:hover:bg-emerald-600 dark:text-[#0d1117]",
       icon: CheckCircle2,
       label: "BERHASIL",
     };
@@ -235,10 +199,12 @@ function getProfileAlertTheme(type: NonNullable<ProfileAlert>["type"]) {
 
   if (type === "error") {
     return {
-      shell: "from-red-50 via-white to-blue-50",
-      iconWrap: "bg-red-100 text-red-600",
-      badge: "text-red-600 bg-white/70",
-      button: "bg-red-600 hover:bg-red-700 shadow-red-900/20",
+      shell:
+        "from-red-50 via-white to-blue-50 dark:from-[#2d1918] dark:via-[#161b22] dark:to-[#0f141c] dark:border-[#21262d]",
+      iconWrap: "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400",
+      badge: "text-red-600 bg-white/70 dark:bg-[#30363d] dark:text-red-400",
+      button:
+        "bg-red-600 hover:bg-red-700 shadow-red-900/20 dark:bg-red-500 dark:hover:bg-red-600 dark:text-[#0d1117]",
       icon: AlertTriangle,
       label: "GAGAL",
     };
@@ -246,20 +212,26 @@ function getProfileAlertTheme(type: NonNullable<ProfileAlert>["type"]) {
 
   if (type === "info") {
     return {
-      shell: "from-blue-50 via-white to-blue-50",
-      iconWrap: "bg-blue-100 text-[#123c8c]",
-      badge: "text-[#123c8c] bg-white/70",
-      button: "bg-[#123c8c] hover:bg-[#0f3274] shadow-blue-900/20",
+      shell:
+        "from-blue-50 via-white to-blue-50 dark:from-[#0d1f3d] dark:via-[#161b22] dark:to-[#0d1f3d] dark:border-[#21262d]",
+      iconWrap:
+        "bg-blue-100 text-[#123c8c] dark:bg-blue-950/40 dark:text-[#58a6ff]",
+      badge: "text-[#123c8c] bg-white/70 dark:bg-[#30363d] dark:text-[#58a6ff]",
+      button:
+        "bg-[#123c8c] hover:bg-[#0f3274] shadow-blue-900/20 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]",
       icon: ShieldCheck,
       label: "INFO",
     };
   }
 
   return {
-    shell: "from-orange-50 via-white to-blue-50",
-    iconWrap: "bg-orange-100 text-orange-600",
-    badge: "text-orange-600 bg-white/70",
-    button: "bg-[#526fae] hover:bg-[#46629d] shadow-blue-900/20",
+    shell:
+      "from-orange-50 via-white to-blue-50 dark:from-[#2e1d0f] dark:via-[#161b22] dark:to-[#121d2f] dark:border-[#21262d]",
+    iconWrap:
+      "bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400",
+    badge: "text-orange-600 bg-white/70 dark:bg-[#30363d] dark:text-orange-400",
+    button:
+      "bg-[#526fae] hover:bg-[#46629d] shadow-blue-900/20 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]",
     icon: AlertTriangle,
     label: "PERHATIAN",
   };
@@ -474,21 +446,21 @@ function SectionRow({
     <button
       type="button"
       onClick={onClick}
-      className="profile-row-enter w-full border-b border-slate-100 transition hover:bg-[#f8fbff] active:scale-[0.99]"
+      className="profile-row-enter w-full border-b border-slate-100 dark:border-[#30363d]/50 transition hover:bg-[#f8fbff] dark:hover:bg-[#30363d]/30 active:scale-[0.99]"
       style={{ animationDelay: delay }}
     >
       <div className="flex w-full items-center gap-4 py-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] dark:bg-[#21262d] text-[#123c8c] dark:text-[#58a6ff]">
           <Icon size={24} strokeWidth={2.7} />
         </div>
 
         <div className="min-w-0 flex-1 text-left">
-          <p className="text-base font-black text-slate-950 md:text-lg">
+          <p className="text-base font-black text-slate-950 dark:text-white md:text-lg">
             {title}
           </p>
 
           {subtitle ? (
-            <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400">
+            <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400 dark:text-slate-500">
               {subtitle}
             </p>
           ) : null}
@@ -497,7 +469,7 @@ function SectionRow({
         <ChevronRight
           size={24}
           strokeWidth={2.8}
-          className="shrink-0 text-[#123c8c]"
+          className="shrink-0 text-[#123c8c] dark:text-[#58a6ff]"
         />
       </div>
     </button>
@@ -519,19 +491,21 @@ function DetailItem({
 }: DetailItemProps) {
   return (
     <div
-      className="profile-row-enter rounded-3xl border border-blue-100 bg-white p-5 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 md:p-6"
+      className="profile-row-enter rounded-3xl border border-blue-100 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-5 shadow-sm shadow-slate-200/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/40 md:p-6"
       style={{ animationDelay: delay }}
     >
       <div className="flex items-start gap-4">
         {Icon ? (
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] dark:bg-[#21262d] text-[#123c8c] dark:text-[#58a6ff]">
             <Icon size={22} strokeWidth={2.7} />
           </div>
         ) : null}
 
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-400">{label}</p>
-          <p className="mt-2 break-words text-lg font-black leading-7 text-[#123456]">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-400 dark:text-slate-500">
+            {label}
+          </p>
+          <p className="mt-2 break-words text-lg font-black leading-7 text-[#123456] dark:text-[#c9d1d9]">
             {value || "-"}
           </p>
         </div>
@@ -665,15 +639,14 @@ export default function ProfilePage() {
     field: "bank_account_number" | "nik",
     value: string,
   ) {
-    const maxLength = field === "nik" ? 16 : 16;
-    const normalizedValue = normalizeNumericInput(value).slice(0, maxLength);
+    const normalizedValue = normalizeDigits(value, 16);
 
     if (value !== normalizedValue) {
       showProfileAlert(
-        field === "nik" ? "NIK tidak valid" : "No rekening tidak valid",
+        field === "nik" ? "NIK tidak valid" : "Nomor Rekening tidak valid",
         field === "nik"
           ? "NIK harus berupa angka dan berjumlah tepat 16 digit."
-          : "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
+          : "Nomor rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
         "warning",
       );
     }
@@ -721,9 +694,11 @@ export default function ProfilePage() {
       name: user.name || "",
       phone: user.phone || "",
       birth_place: user.birth_place || "",
-      birth_date: formatDateInput(user.birth_date),
-      bank_account_number: user.bank_account_number || "",
+      birth_date: user.birth_date
+        ? String(user.birth_date).substring(0, 10)
+        : "",
       nik: user.nik || "",
+      bank_account_number: user.bank_account_number || "",
     });
 
     setIsEditProfileModalOpen(true);
@@ -739,13 +714,24 @@ export default function ProfilePage() {
 
     const name = editProfileForm.name.trim();
     const phone = editProfileForm.phone.trim();
-    const bankAccountNumber = editProfileForm.bank_account_number.trim();
+    const birth_place = editProfileForm.birth_place.trim();
+    const birth_date = editProfileForm.birth_date.trim();
     const nik = editProfileForm.nik.trim();
+    const bank_account_number = editProfileForm.bank_account_number.trim();
 
     if (!name) {
       showProfileAlert(
         "Nama wajib diisi",
         "Nama lengkap tidak boleh kosong.",
+        "warning",
+      );
+      return;
+    }
+
+    if (name.split(/\s+/).filter(Boolean).length < 2) {
+      showProfileAlert(
+        "Nama tidak lengkap",
+        "Nama lengkap harus terdiri dari minimal 2 kata.",
         "warning",
       );
       return;
@@ -778,10 +764,10 @@ export default function ProfilePage() {
       return;
     }
 
-    if (bankAccountNumber && !isValidBankAccountNumber(bankAccountNumber)) {
+    if (bank_account_number && !isValidBankAccountNumber(bank_account_number)) {
       showProfileAlert(
-        "No rekening tidak valid",
-        "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
+        "Nomor Rekening tidak valid",
+        "Nomor rekening harus berupa angka dengan panjang antara 10 sampai 16 digit.",
         "warning",
       );
       return;
@@ -790,7 +776,7 @@ export default function ProfilePage() {
     try {
       setIsUpdatingProfile(true);
 
-      const response = await fetch("/api/profil", {
+      const response = await fetch("/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -798,10 +784,10 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name,
           phone,
-          birth_place: editProfileForm.birth_place.trim(),
-          birth_date: editProfileForm.birth_date,
-          bank_account_number: bankAccountNumber,
+          birth_place,
+          birth_date: birth_date || null,
           nik,
+          bank_account_number,
         }),
       });
 
@@ -822,19 +808,18 @@ export default function ProfilePage() {
               ...currentUser,
               name: data.user?.name || name,
               phone: data.user?.phone || phone || null,
-              birth_place:
-                data.user?.birth_place ?? editProfileForm.birth_place.trim(),
-              birth_date: data.user?.birth_date ?? editProfileForm.birth_date,
+              birth_place: data.user?.birth_place || birth_place || null,
+              birth_date: data.user?.birth_date || birth_date || null,
+              nik: data.user?.nik || nik || null,
               bank_account_number:
-                data.user?.bank_account_number ?? bankAccountNumber,
-              nik: data.user?.nik ?? nik,
+                data.user?.bank_account_number || bank_account_number || null,
             }
           : currentUser,
       );
 
       showProfileAlert(
         "Profil berhasil diperbarui",
-        "Data profil berhasil disimpan.",
+        "Nama dan nomor telepon berhasil disimpan.",
         "success",
       );
       closeEditProfileModal();
@@ -907,7 +892,7 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("photo", file);
 
-      const response = await fetch("/api/profil/photo", {
+      const response = await fetch("/api/profile/photo", {
         method: "POST",
         body: formData,
       });
@@ -992,7 +977,7 @@ export default function ProfilePage() {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       showProfileAlert(
         "Konfirmasi password tidak sama",
-        "Password baru dan konfirmasi password harus sama.",
+        "Password baru and konfirmasi password harus sama.",
         "warning",
       );
       return;
@@ -1001,7 +986,7 @@ export default function ProfilePage() {
     try {
       setIsChangingPassword(true);
 
-      const response = await fetch("/api/profil/change-password", {
+      const response = await fetch("/api/profile/change-password", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -1048,12 +1033,9 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const initials = user?.name ? getInitials(user.name) : "";
-
-  const subtitleInfo = useMemo(() => {
-    if (!user) return "";
-
-    return [].filter(Boolean).join(" • ");
+  const initials = useMemo(() => {
+    if (!user?.name) return "";
+    return getInitials(user.name);
   }, [user]);
 
   const workSchedule = useMemo(() => {
@@ -1087,44 +1069,14 @@ export default function ProfilePage() {
         icon: BadgeCheck,
       },
       {
-        label: "Status Kepegawaian",
-        value: user.employment_status || "-",
-        icon: BadgeCheck,
-      },
-      {
-        label: "Masa Kerja",
-        value: formatEmploymentPeriod(user),
-        icon: CalendarDays,
-      },
-      {
         label: "Role Akun",
         value: formatRole(user.role),
         icon: ShieldCheck,
       },
       {
-        label: "Tempat Lahir",
-        value: user.birth_place || "-",
-        icon: MapPin,
-      },
-      {
-        label: "Tanggal Lahir",
-        value: formatDate(user.birth_date),
-        icon: CalendarDays,
-      },
-      {
-        label: "NIK",
-        value: user.nik || "-",
-        icon: IdCard,
-      },
-      {
-        label: "No Rekening",
-        value: user.bank_account_number || "-",
-        icon: CreditCard,
-      },
-      {
-        label: "Kantor Terdaftar",
-        value: user.registered_office?.name || "-",
-        icon: MapPin,
+        label: "Unit Kerja",
+        value: user.unit?.name || "-",
+        icon: Building2,
       },
       {
         label: "Divisi",
@@ -1133,11 +1085,6 @@ export default function ProfilePage() {
       },
       {
         label: "Jabatan",
-        value: user.jabatan?.name || "-",
-        icon: Building2,
-      },
-      {
-        label: "Posisi",
         value: user.position?.name || "-",
         icon: BriefcaseBusiness,
       },
@@ -1150,6 +1097,11 @@ export default function ProfilePage() {
         label: "Jam Kerja",
         value: workSchedule || "-",
         icon: Clock3,
+      },
+      {
+        label: "Kantor Terdaftar",
+        value: user.registered_office?.name || "-",
+        icon: MapPin,
       },
       {
         label: "Alamat Kantor",
@@ -1171,14 +1123,19 @@ export default function ProfilePage() {
       <div className="hidden md:block">
         <AppHeader
           title={
-            activeView === "personal-detail" ? "Detail Personal" : "Profil"
+            activeView === "personal-detail" ? "Detail Personal" : "Profile"
+          }
+          subtitle={
+            activeView === "personal-detail"
+              ? "Informasi lengkap data karyawan"
+              : "Pengaturan akun dan data pribadi"
           }
           rightLabel={headerRightLabel}
           variant="employee"
         />
       </div>
 
-      <main className="min-h-dvh bg-white pb-28 text-slate-950 md:bg-gradient-to-br md:from-[#f6f8ff] md:via-white md:to-[#eef4ff]">
+      <main className="w-full max-w-full text-slate-950 pb-28">
         {loading ? (
           <section className="profile-enter mx-auto max-w-5xl px-5 pt-8 md:px-10">
             <div className="flex items-center gap-3 rounded-3xl border border-blue-100 bg-[#f8fbff] p-5 text-sm font-bold text-slate-500">
@@ -1200,12 +1157,12 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveView("menu")}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#123456] transition hover:bg-[#f8fbff] active:scale-[0.96]"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white dark:bg-[#21262d] text-[#123456] dark:text-[#58a6ff] transition hover:bg-[#f8fbff] dark:hover:bg-[#30363d] active:scale-[0.96]"
               >
                 <ArrowLeft size={25} strokeWidth={2.8} />
               </button>
 
-              <h1 className="text-xl font-black text-[#123456]">
+              <h1 className="text-xl font-black text-[#123456] dark:text-white">
                 Detail Personal
               </h1>
             </div>
@@ -1214,7 +1171,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveView("menu")}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#123456] shadow-sm shadow-slate-200 transition hover:-translate-y-0.5 hover:bg-[#f8fbff] active:scale-[0.96]"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white dark:bg-[#21262d] text-[#123456] dark:text-[#58a6ff] shadow-sm shadow-slate-200 dark:shadow-none transition hover:-translate-y-0.5 hover:bg-[#f8fbff] dark:hover:bg-[#30363d] active:scale-[0.96]"
               >
                 <ArrowLeft size={25} strokeWidth={2.8} />
               </button>
@@ -1224,7 +1181,7 @@ export default function ProfilePage() {
                   Data Pribadi
                 </p>
 
-                <h1 className="mt-1 text-3xl font-black text-[#123456]">
+                <h1 className="mt-1 text-3xl font-black text-[#123456] dark:text-white">
                   Detail Personal
                 </h1>
               </div>
@@ -1236,15 +1193,9 @@ export default function ProfilePage() {
             >
               <ProfileAvatar user={user} initials={initials} size="md" />
 
-              <h2 className="mt-5 text-center text-2xl font-black text-[#123456] md:text-3xl">
+              <h2 className="mt-5 text-center text-2xl font-black text-[#123456] dark:text-white md:text-3xl">
                 {user.name}
               </h2>
-
-              {user.position?.name ? (
-                <p className="mt-2 text-center text-base font-semibold text-slate-400">
-                  {user.position.name}
-                </p>
-              ) : null}
 
               <button
                 type="button"
@@ -1278,7 +1229,7 @@ export default function ProfilePage() {
 
                 <div className="min-w-0">
                   <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
-                    Profil
+                    Profile
                   </p>
 
                   <h1 className="mt-1 text-3xl font-black tracking-tight text-[#123456] md:text-4xl">
@@ -1288,30 +1239,18 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/face-card")}
-              className="profile-row-enter mt-6 flex w-full items-center gap-5 rounded-[2rem] bg-white text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/50 active:scale-[0.99] md:border md:border-blue-100 md:p-6 md:shadow-xl md:shadow-slate-200/50"
+            <div
+              className="profile-row-enter mt-6 flex items-center gap-5 rounded-[2rem] bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/50 md:border md:border-blue-100 md:p-6 md:shadow-xl md:shadow-slate-200/50"
               style={{ animationDelay: "60ms" }}
             >
               <ProfileAvatar user={user} initials={initials} size="sm" />
 
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <h2 className="truncate text-xl font-black text-[#123456] md:text-3xl">
                   {user.name}
                 </h2>
-
-                <p className="mt-1 truncate text-base font-semibold text-slate-400 md:text-lg">
-                  {subtitleInfo || formatRole(user.role)}
-                </p>
               </div>
-
-              <ChevronRight
-                size={26}
-                strokeWidth={2.8}
-                className="shrink-0 text-[#123c8c]"
-              />
-            </button>
+            </div>
 
             <div
               className="profile-row-enter mt-12 md:mt-10"
@@ -1321,7 +1260,7 @@ export default function ProfilePage() {
                 Data Pribadi
               </h3>
 
-              <div className="mt-5 overflow-hidden rounded-[1.8rem] bg-white md:border md:border-blue-100 md:p-2 md:shadow-xl md:shadow-slate-200/50">
+              <div className="mt-5 overflow-hidden rounded-[1.8rem] bg-white dark:bg-[#161b22] md:border md:border-blue-100 dark:md:border-[#21262d] md:p-2 md:shadow-xl md:shadow-slate-200/50">
                 <SectionRow
                   icon={UserRound}
                   title="Info Pribadi"
@@ -1331,7 +1270,7 @@ export default function ProfilePage() {
                 />
 
                 <label
-                  className={`profile-row-enter block w-full border-b border-slate-100 transition hover:bg-[#f8fbff] active:scale-[0.99] ${
+                  className={`profile-row-enter block w-full border-b border-slate-100 dark:border-[#30363d]/50 transition hover:bg-[#f8fbff] dark:hover:bg-[#30363d]/30 active:scale-[0.99] ${
                     isUploadingPhoto
                       ? "cursor-not-allowed opacity-60"
                       : "cursor-pointer"
@@ -1339,7 +1278,7 @@ export default function ProfilePage() {
                   style={{ animationDelay: "160ms" }}
                 >
                   <div className="flex w-full items-center gap-4 py-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] text-[#123c8c]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef5ff] dark:bg-[#21262d] text-[#123c8c] dark:text-[#58a6ff]">
                       {isUploadingPhoto ? (
                         <Loader2 size={23} className="animate-spin" />
                       ) : (
@@ -1348,11 +1287,11 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="text-base font-black text-slate-950 md:text-lg">
+                      <p className="text-base font-black text-slate-950 dark:text-white md:text-lg">
                         Foto Data Pribadi
                       </p>
 
-                      <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400">
+                      <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-400 dark:text-slate-500">
                         {isUploadingPhoto
                           ? "Mengupload foto..."
                           : "Ubah foto profil akun"}
@@ -1362,7 +1301,7 @@ export default function ProfilePage() {
                     <Upload
                       size={24}
                       strokeWidth={2.8}
-                      className="shrink-0 text-[#123c8c]"
+                      className="shrink-0 text-[#123c8c] dark:text-[#58a6ff]"
                     />
                   </div>
 
@@ -1416,7 +1355,7 @@ export default function ProfilePage() {
         )}
 
         {isEditProfileModalOpen ? (
-          <div className="profile-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 md:items-center md:pb-0">
+          <div className="profile-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
             <div className="profile-modal-panel max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -1507,20 +1446,11 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div
-                  className="profile-row-enter"
-                  style={{ animationDelay: "80ms" }}
-                >
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Tempat Lahir
-                  </label>
-
-                  <div className="relative">
-                    <MapPin
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Tempat Lahir
+                    </label>
                     <input
                       value={editProfileForm.birth_place}
                       onChange={(event) =>
@@ -1529,26 +1459,15 @@ export default function ProfilePage() {
                           birth_place: event.target.value,
                         }))
                       }
-                      placeholder="Contoh: Jakarta"
-                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      placeholder="Kota Lahir"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
-                </div>
 
-                <div
-                  className="profile-row-enter"
-                  style={{ animationDelay: "120ms" }}
-                >
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    Tanggal Lahir
-                  </label>
-
-                  <div className="relative">
-                    <CalendarDays
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Tanggal Lahir
+                    </label>
                     <input
                       type="date"
                       value={editProfileForm.birth_date}
@@ -1558,25 +1477,16 @@ export default function ProfilePage() {
                           birth_date: event.target.value,
                         }))
                       }
-                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
                 </div>
 
-                <div
-                  className="profile-row-enter"
-                  style={{ animationDelay: "160ms" }}
-                >
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    NIK
-                  </label>
-
-                  <div className="relative">
-                    <IdCard
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      NIK (16 Digit)
+                    </label>
                     <input
                       value={editProfileForm.nik}
                       onChange={(event) =>
@@ -1598,27 +1508,16 @@ export default function ProfilePage() {
                       }}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      placeholder="Contoh: 3201010101010001"
                       maxLength={16}
-                      placeholder="Masukkan NIK"
-                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
-                </div>
 
-                <div
-                  className="profile-row-enter"
-                  style={{ animationDelay: "200ms" }}
-                >
-                  <label className="mb-2 block text-sm font-black text-slate-700">
-                    No Rekening
-                  </label>
-
-                  <div className="relative">
-                    <CreditCard
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
+                  <div className="profile-row-enter">
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      Nomor Rekening
+                    </label>
                     <input
                       value={editProfileForm.bank_account_number}
                       onChange={(event) =>
@@ -1632,33 +1531,32 @@ export default function ProfilePage() {
 
                         if (/\D/.test(pastedText) || pastedText.length > 16) {
                           showProfileAlert(
-                            "No rekening tidak valid",
-                            "No rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
+                            "Nomor Rekening tidak valid",
+                            "Nomor rekening harus berupa angka dengan panjang 10 sampai 16 digit.",
                             "warning",
                           );
                         }
                       }}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      placeholder="Masukkan nomor rekening"
                       maxLength={16}
-                      placeholder="Masukkan no rekening"
-                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      className="profile-field w-full rounded-2xl border border-blue-100 bg-[#f8fbff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
                 </div>
 
                 <div
                   className="profile-row-enter rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 text-xs font-semibold leading-6 text-slate-500"
-                  style={{ animationDelay: "240ms" }}
+                  style={{ animationDelay: "80ms" }}
                 >
-                  Email, status akun, status kepegawaian, masa kerja, role,
-                  kantor, divisi, jabatan, posisi, dan shift terdaftar hanya
-                  dapat diubah oleh admin.
+                  Email, status, role, unit, divisi, jabatan, shift, dan kantor
+                  terdaftar hanya dapat diubah oleh admin/owner.
                 </div>
 
                 <div
                   className="profile-row-enter flex flex-col-reverse gap-3 pt-2 md:flex-row md:justify-end"
-                  style={{ animationDelay: "280ms" }}
+                  style={{ animationDelay: "120ms" }}
                 >
                   <button
                     type="button"
@@ -1692,7 +1590,7 @@ export default function ProfilePage() {
         ) : null}
 
         {isPasswordModalOpen ? (
-          <div className="profile-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 md:items-center md:pb-0">
+          <div className="profile-modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
             <div className="profile-modal-panel max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -1807,13 +1705,16 @@ export default function ProfilePage() {
             }`}
           >
             <div
-              className={`overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-br ${profileAlertTheme.shell} shadow-2xl shadow-slate-900/20 backdrop-blur-xl transition-all duration-300 ease-out ${
+              className={`overflow-hidden rounded-[2rem] border border-white/70 dark:border-[#21262d] bg-gradient-to-br ${profileAlertTheme.shell} shadow-2xl shadow-slate-900/20 backdrop-blur-xl transition-all duration-300 ease-out ${
                 isProfileAlertClosing
                   ? "translate-y-2 opacity-0"
                   : "translate-y-0 opacity-100"
               }`}
             >
               <div className="relative p-5">
+                <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-orange-200/30 blur-3xl" />
+                <div className="absolute -right-12 -bottom-12 h-40 w-40 rounded-full bg-blue-300/30 blur-3xl" />
+
                 <div className="relative flex items-start gap-4">
                   <div
                     className={`profile-avatar-pop flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${profileAlertTheme.iconWrap} shadow-lg shadow-slate-300/40`}
@@ -1828,11 +1729,11 @@ export default function ProfilePage() {
                       {profileAlertTheme.label}
                     </div>
 
-                    <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950">
+                    <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950 dark:text-white">
                       {profileAlert.title}
                     </h3>
 
-                    <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+                    <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-400">
                       {profileAlert.message}
                     </p>
                   </div>
@@ -1840,14 +1741,14 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={closeProfileAlert}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-800 active:scale-[0.96]"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-800 dark:bg-slate-800/70 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200 active:scale-[0.96]"
                   >
                     <X size={22} strokeWidth={2.8} />
                   </button>
                 </div>
               </div>
 
-              <div className="border-t border-white/60 bg-white/70 p-4">
+              <div className="border-t border-white/60 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/90 p-4">
                 <button
                   type="button"
                   onClick={closeProfileAlert}

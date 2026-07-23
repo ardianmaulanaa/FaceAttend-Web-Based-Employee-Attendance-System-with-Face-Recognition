@@ -200,7 +200,7 @@ export default function EmployeeAnnouncementDetailPage() {
               </p>
             </section>
           ) : (
-            <section className="employee-announcement-detail-enter mt-6 min-h-[70vh] overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+            <section className="employee-announcement-detail-enter mt-6 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
               <div className="border-b border-blue-50 bg-[#f8fbff] p-6 md:p-8">
                 <div className="flex min-w-0 items-start gap-4">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#123c8c]">
@@ -223,7 +223,7 @@ export default function EmployeeAnnouncementDetailPage() {
                 </div>
               </div>
 
-              <div className="min-h-[360px] space-y-7 p-6 md:p-8">
+              <div className="space-y-5 p-6 md:p-8">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
                     Isi Pengumuman

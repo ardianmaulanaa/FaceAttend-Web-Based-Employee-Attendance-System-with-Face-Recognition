@@ -5,7 +5,7 @@ import { requireOwner } from "@/lib/api-auth";
 export const runtime = "nodejs";
 
 type AllowedRole = "admin" | "owner";
-type NotificationType = "sick" | "leave" | "permission" | "wfh" | "wfc" | "visit";
+type NotificationType = "sick" | "leave" | "permission" | "wfh" | "visit";
 
 const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
 
@@ -88,7 +88,7 @@ function normalizeAdminNotificationType(
 ): NotificationType | null {
   const text = `${type} ${title} ${message}`.toLowerCase();
 
-  if (text.includes("wfc")) return "wfc";
+  if (text.includes("wfc")) return "wfh";
   if (text.includes("wfh")) return "wfh";
   if (text.includes("visit") || text.includes("kunjungan")) return "visit";
 
@@ -166,7 +166,6 @@ function getStats(
     leave: notifications.filter((item) => item.type === "leave").length,
     permission: notifications.filter((item) => item.type === "permission").length,
     wfh: notifications.filter((item) => item.type === "wfh").length,
-    wfc: notifications.filter((item) => item.type === "wfc").length,
     visit: notifications.filter((item) => item.type === "visit").length,
   };
 }
@@ -280,9 +279,7 @@ export async function GET(req: NextRequest) {
             item.title ||
             (type === "visit"
               ? "Karyawan Melakukan Kunjungan"
-              : type === "wfc"
-                ? "Karyawan Melakukan WFC"
-                : "Karyawan Melakukan WFH"),
+              : "Karyawan Melakukan WFH"),
           message: item.message || "-",
           employeeName: item.user?.name || "Karyawan",
           employeeEmail: item.user?.email || "-",

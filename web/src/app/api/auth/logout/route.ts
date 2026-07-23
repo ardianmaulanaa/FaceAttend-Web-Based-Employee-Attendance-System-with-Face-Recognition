@@ -6,7 +6,7 @@ export async function POST() {
     message: "Logout berhasil.",
   });
 
-  response.cookies.set("faceattend_token", "", {
+  response.cookies.set("presensi_token", "", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

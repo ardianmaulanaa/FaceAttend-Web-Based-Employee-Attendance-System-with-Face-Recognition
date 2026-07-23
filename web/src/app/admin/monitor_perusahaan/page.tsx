@@ -14,6 +14,7 @@ import MobileShell from "@/components/MobileShell";
 const histogramSegments = [
   { key: "present", label: "Hadir", color: "#1d9bf0" },
   { key: "late", label: "Terlambat", color: "#1d9bf0" },
+  { key: "wfh", label: "WFH", color: "#1d9bf0" },
   { key: "visit", label: "Kunjungan", color: "#1d9bf0" },
   { key: "cuti", label: "Cuti", color: "#1d9bf0" },
 ] as const;
@@ -67,6 +68,11 @@ type DailyChartPoint = {
 type ChartEmployee = {
   id: string;
   name: string;
+  employeeCode?: string | null;
+  profilePhoto?: string | null;
+  profile_photo?: string | null;
+  leaveType?: string | null;
+  leaveTypeLabel?: string | null;
 };
 
 type AlertItem = {
@@ -475,7 +481,10 @@ function AttendancePieChart({
     toSafeNumber(summary.office) || toSafeNumber(summary.present),
     0,
   );
-  const remaining = Math.max(totalEmployees - office - wfh - visit - cuti, 0);
+  const remaining = Math.max(
+    totalEmployees - office - wfh - visit - cuti,
+    0,
+  );
   const base = Math.max(totalEmployees, 1);
   const items = [
     { label: "Hadir Kantor", value: office, color: "#8b5cf6" },

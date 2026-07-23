@@ -20,7 +20,7 @@ export type DbAuthUser = {
 };
 
 export function getAuthToken(req: NextRequest) {
-  return req.cookies.get("faceattend_token")?.value || "";
+  return req.cookies.get("presensi_token")?.value || "";
 }
 
 async function getTokenUser(req: NextRequest) {

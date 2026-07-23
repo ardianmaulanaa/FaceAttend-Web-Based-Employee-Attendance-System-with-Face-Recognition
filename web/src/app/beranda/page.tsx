@@ -55,7 +55,7 @@ type Announcement = {
   createdAt?: string;
 };
 
-const READ_ANNOUNCEMENT_KEY = "faceattend_read_announcement_id";
+const READ_ANNOUNCEMENT_KEY = "presensi_read_announcement_id";
 const WHATSAPP_LINK = "https://wa.me/6281234567890";
 
 const defaultUser: CurrentUser = {
@@ -650,7 +650,7 @@ export default function HomePage() {
 
                   <div className="min-w-0">
                     <p className="home-text-reveal text-[10px] font-black uppercase tracking-[0.24em] text-[#123c8c]">
-                      FaceAttend
+                      Presensi
                     </p>
 
                     <h1

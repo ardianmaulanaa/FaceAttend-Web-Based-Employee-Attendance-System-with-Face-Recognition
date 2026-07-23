@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/api-auth";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-errors";
+import {
+  findAttendanceInDateRange,
+  formatJakartaDate,
+} from "@/lib/leave-attendance-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -339,6 +343,20 @@ export async function POST(req: NextRequest) {
       return jsonError("Total hari pengajuan tidak valid.");
     }
 
+    const attendanceConflict = await findAttendanceInDateRange({
+      userId: currentUser.id,
+      startDate,
+      endDate,
+    });
+
+    if (attendanceConflict) {
+      return jsonError(
+        `Kamu sudah absen di kantor pada ${formatJakartaDate(
+          attendanceConflict.attendance_date,
+        )}, tidak dapat mengajukan cuti/sakit/izin pada tanggal tersebut.`,
+      );
+    }
+
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
         user_id: currentUser.id,
@@ -426,6 +444,37 @@ export async function PATCH(req: NextRequest) {
 
     if (!status || !allowedStatuses.includes(status)) {
       return jsonError("Status pengajuan tidak valid.");
+    }
+
+    if (status === "approved") {
+      const existingRequest = await prisma.leaveRequest.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          user_id: true,
+          start_date: true,
+          end_date: true,
+        },
+      });
+
+      if (!existingRequest) {
+        return jsonError("Data pengajuan tidak ditemukan.", 404);
+      }
+
+      const attendanceConflict = await findAttendanceInDateRange({
+        userId: existingRequest.user_id,
+        startDate: existingRequest.start_date,
+        endDate: existingRequest.end_date,
+      });
+
+      if (attendanceConflict) {
+        return jsonError(
+          `Pengajuan tidak bisa disetujui karena karyawan sudah absen di kantor pada ${formatJakartaDate(
+            attendanceConflict.attendance_date,
+          )}.`,
+        );
+      }
     }
 
     const leaveRequest = await prisma.leaveRequest.update({

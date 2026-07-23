@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
-  BriefcaseBusiness,
   CalendarClock,
   CheckCircle2,
   Clock3,
@@ -26,7 +25,6 @@ type NotificationType =
   | "leave"
   | "permission"
   | "wfh"
-  | "wfc"
   | "visit";
 
 type NotificationItem = {
@@ -55,7 +53,6 @@ type NotificationStats = {
   leave: number;
   permission: number;
   wfh: number;
-  wfc: number;
   visit: number;
 };
 
@@ -74,7 +71,6 @@ const emptyStats: NotificationStats = {
   leave: 0,
   permission: 0,
   wfh: 0,
-  wfc: 0,
   visit: 0,
 };
 
@@ -84,7 +80,6 @@ const typeOptions = [
   { value: "leave", label: "Cuti" },
   { value: "permission", label: "Izin" },
   { value: "wfh", label: "WFH" },
-  { value: "wfc", label: "WFC" },
   { value: "visit", label: "Kunjungan" },
 ];
 
@@ -102,7 +97,6 @@ function getTypeLabel(type: NotificationType) {
   if (type === "leave") return "Cuti";
   if (type === "permission") return "Izin";
   if (type === "wfh") return "WFH";
-  if (type === "wfc") return "WFC";
   if (type === "visit") return "Kunjungan";
 
   return type;
@@ -113,7 +107,6 @@ function getTypeIcon(type: NotificationType) {
   if (type === "leave") return CalendarClock;
   if (type === "permission") return FileClock;
   if (type === "wfh") return Home;
-  if (type === "wfc") return BriefcaseBusiness;
   if (type === "visit") return MapPin;
 
   return Bell;
@@ -128,7 +121,6 @@ function getTypeClass(type: NotificationType) {
   if (type === "wfh") {
     return "bg-emerald-50 text-emerald-700 border-emerald-100";
   }
-  if (type === "wfc") return "bg-purple-50 text-purple-700 border-purple-100";
   if (type === "visit") {
     return "bg-orange-50 text-orange-700 border-orange-100";
   }
@@ -372,8 +364,8 @@ export default function AdminNotificationsPage() {
       description: "Dari CutiPengajuan",
     },
     {
-      label: "WFH / WFC / Kunjungan",
-      value: stats.wfh + stats.wfc + stats.visit,
+      label: "WFH / Kunjungan",
+      value: stats.wfh + stats.visit,
       icon: MapPin,
       description: "Dari AdminNotification",
     },

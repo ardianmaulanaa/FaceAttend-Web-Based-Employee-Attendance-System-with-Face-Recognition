@@ -228,7 +228,7 @@ function formatWorkMode(mode: string | null) {
 
   if (normalized === "office") return "Kantor";
   if (normalized === "wfh") return "WFH";
-  if (normalized === "wfc") return "WFC";
+  if (normalized === "wfc") return "WFH";
   if (normalized === "visit") return "Kunjungan";
   if (normalized === "kunjungan") return "Kunjungan";
 

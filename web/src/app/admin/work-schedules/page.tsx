@@ -468,11 +468,7 @@ export default function WorkSchedulesPage() {
 
       await loadWorkSchedules();
 
-      setSuccessMessage(
-        selectedRow.shift_status === "inactive"
-          ? "Jadwal kerja berhasil disimpan. Catatan: shift ini sedang nonaktif."
-          : "Jadwal kerja berhasil disimpan ke database.",
-      );
+      setSuccessMessage("Jadwal telah di update");
     } catch (error) {
       console.error("SAVE_WORK_SCHEDULES_ERROR:", error);
 
@@ -491,6 +487,13 @@ export default function WorkSchedulesPage() {
       <WorkScheduleMotionStyles />
 
       <AppHeader title="Daftar Jam Kerja" variant="admin" />
+
+      {successMessage ? (
+        <div className="fixed right-4 top-[5.25rem] z-[120] flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-emerald-700 shadow-2xl shadow-slate-900/15 md:right-7 md:top-[5.5rem]">
+          <CheckCircle2 size={18} />
+          {successMessage}
+        </div>
+      ) : null}
 
       <section className="mx-auto max-w-6xl space-y-5 px-5 py-6 pb-28 md:px-10 lg:px-16">
         <div className="work-schedule-enter overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-xl shadow-slate-300/30">
@@ -554,13 +557,6 @@ export default function WorkSchedulesPage() {
             {errorMessage ? (
               <div className="work-schedule-row-enter rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-black text-red-700">
                 {errorMessage}
-              </div>
-            ) : null}
-
-            {successMessage ? (
-              <div className="work-schedule-row-enter flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-700">
-                <CheckCircle2 size={18} />
-                {successMessage}
               </div>
             ) : null}
 

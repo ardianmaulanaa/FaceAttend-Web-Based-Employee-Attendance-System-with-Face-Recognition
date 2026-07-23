@@ -370,6 +370,28 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const reason = searchParams.get("reason");
+
+    if (reason === "inactive") {
+      setShowIntro(false);
+      showAlert(
+        "Akun dinonaktifkan",
+        "Akun kamu sudah dinonaktifkan, silakan hubungi admin untuk mengaktifkan kembali.",
+      );
+      return;
+    }
+
+    if (reason === "expired") {
+      setShowIntro(false);
+      showAlert(
+        "Sesi berakhir",
+        "Silakan login kembali untuk melanjutkan.",
+      );
+    }
+  }, []);
+
+  useEffect(() => {
     const restoreDarkMode = document.documentElement.classList.contains("dark");
     document.documentElement.classList.remove("dark");
 
@@ -689,7 +711,7 @@ export default function LoginPage() {
                 animationDelay: "280ms",
               }}
             >
-              © 2026 FaceAttend for Creativemu
+              © 2026 Presensi for Creativemu
             </div>
           </div>
 
@@ -782,7 +804,7 @@ export default function LoginPage() {
               animationDelay: "300ms",
             }}
           >
-            © 2026 FaceAttend for Creativemu
+            © 2026 Presensi for Creativemu
           </div>
         </div>
 

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/api-auth";
+import {
+  findAttendanceInDateRange,
+  formatJakartaDate,
+} from "@/lib/leave-attendance-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -418,12 +422,30 @@ export async function PATCH(req: NextRequest) {
         id: true,
         user_id: true,
         leave_type: true,
+        start_date: true,
+        end_date: true,
         status: true,
       },
     });
 
     if (!existingRequest) {
       return jsonError("Pengajuan tidak ditemukan.", 404);
+    }
+
+    if (status === "approved") {
+      const attendanceConflict = await findAttendanceInDateRange({
+        userId: existingRequest.user_id,
+        startDate: existingRequest.start_date,
+        endDate: existingRequest.end_date,
+      });
+
+      if (attendanceConflict) {
+        return jsonError(
+          `Pengajuan tidak bisa disetujui karena karyawan sudah absen di kantor pada ${formatJakartaDate(
+            attendanceConflict.attendance_date,
+          )}.`,
+        );
+      }
     }
 
     const finalAdminNote = adminNote || getDefaultAdminNote(status);

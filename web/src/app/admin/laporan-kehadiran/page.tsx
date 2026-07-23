@@ -613,7 +613,7 @@ export default function AdminAttendanceReportPage() {
                   {groupedReports.map((group, groupIndex) => (
                     <section
                       key={group.dateLabel}
-                      className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-[#f8fbff] p-4 md:p-5"
+                      className="attendance-report-row-enter rounded-[2rem] border border-blue-100 bg-white p-4 md:p-5"
                       style={{
                         animationDelay: `${groupIndex * 70}ms`,
                       }}
@@ -685,14 +685,14 @@ export default function AdminAttendanceReportPage() {
                               </div>
 
                               <div className="hidden grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:grid md:w-[260px]">
-                                <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+                                <div className="rounded-2xl border border-blue-50 bg-white px-4 py-3">
                                   <p className="text-slate-400">Masuk</p>
                                   <p className="mt-1 font-black text-slate-800">
                                     {item.checkIn}
                                   </p>
                                 </div>
 
-                                <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+                                <div className="rounded-2xl border border-blue-50 bg-white px-4 py-3">
                                   <p className="text-slate-400">Keluar</p>
                                   <p className="mt-1 font-black text-slate-800">
                                     {item.checkOut}
