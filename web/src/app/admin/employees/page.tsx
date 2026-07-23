@@ -1146,6 +1146,28 @@ export default function AdminEmployeesPage() {
             </div>
 
             <div className="flex flex-col gap-3 md:flex-row">
+              {/* Mobile quick sort selector */}
+              <div className="flex items-center gap-2 md:hidden">
+                <span className="text-xs font-black text-slate-500 whitespace-nowrap">Urutkan:</span>
+                <select
+                  value={`${sortColumn}-${sortDirection}`}
+                  onChange={(e) => {
+                    const [col, dir] = e.target.value.split("-") as [EmployeeSortKey, "asc" | "desc"];
+                    setSortColumn(col);
+                    setSortDirection(dir);
+                  }}
+                  className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-xs font-bold text-slate-700 outline-none"
+                >
+                  <option value="name-asc">Abjad Karyawan (A - Z)</option>
+                  <option value="name-desc">Abjad Karyawan (Z - A)</option>
+                  <option value="office-asc">Kantor (A - Z)</option>
+                  <option value="department-asc">Divisi (A - Z)</option>
+                  <option value="unit-asc">Posisi (A - Z)</option>
+                  <option value="position-asc">Jabatan (A - Z)</option>
+                  <option value="status-asc">Status (A - Z)</option>
+                </select>
+              </div>
+
               <div className="relative w-full md:w-[330px]">
                 <Search
                   size={18}

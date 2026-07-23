@@ -345,8 +345,36 @@ export default function HRAnalyticsPage() {
                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Memuat data analitik...</span>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#161b22]">
-                <table className="w-full border-collapse text-xs text-left text-slate-600 dark:text-slate-300 select-none">
+              <div>
+                {/* Mobile quick sort dropdown */}
+                <div className="mb-4 flex items-center gap-2 md:hidden">
+                  <span className="text-xs font-black text-slate-500 dark:text-slate-400 whitespace-nowrap">Urutkan:</span>
+                  <select
+                    value={`${sortColumn}-${sortDirection}`}
+                    onChange={(e) => {
+                      const parts = e.target.value.split("-");
+                      const dir = parts.pop() as "asc" | "desc";
+                      const col = parts.join("-");
+                      setSortColumn(col);
+                      setSortDirection(dir);
+                    }}
+                    className="w-full rounded-2xl border border-blue-100 dark:border-slate-800 bg-[#f8fbff] dark:bg-[#0d1117] py-2.5 px-3 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                  >
+                    <option value="name-asc">Nama Karyawan (A - Z)</option>
+                    <option value="name-desc">Nama Karyawan (Z - A)</option>
+                    <option value="telat-desc">Telat Terbanyak</option>
+                    <option value="telat-asc">Telat Tersedikit</option>
+                    <option value="hadir-desc">Hadir Terbanyak</option>
+                    <option value="hadir-asc">Hadir Tersedikit</option>
+                    <option value="sisaKontrak-desc">Sisa Kontrak Terlama</option>
+                    <option value="sisaKontrak-asc">Sisa Kontrak Tercepat</option>
+                    <option value="cuti-desc">Cuti Terbanyak</option>
+                    <option value="izinSakit-desc">Izin/Sakit Terbanyak</option>
+                  </select>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#161b22]">
+                  <table className="w-full border-collapse text-xs text-left text-slate-600 dark:text-slate-300 select-none">
                   <thead>
                     <tr className="bg-[#f8fbff] dark:bg-[#0d1117] text-slate-500 dark:text-slate-450 font-black uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
                       <th
@@ -519,6 +547,7 @@ export default function HRAnalyticsPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
               </div>
             )}
           </div>
