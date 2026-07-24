@@ -1,23 +1,31 @@
 "use client";
 
 import {
-  ChangeEvent,
   FormEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
-  Camera,
-  CameraOff,
-  CreditCard,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Edit,
+  Info,
+  KeyRound,
   Mail,
-  Pencil,
-  Phone,
+  MapPin,
+  Network,
   Plus,
   RefreshCw,
   Search,
@@ -30,67 +38,215 @@ import {
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
+import {
+  AppAnimatedActionButton,
+  AppFormReveal,
+  AppModalMotion,
+  AppModalPanel,
+} from "@/components/ui/AppUI";
+
+function getShortEmployeeId(id: string) {
+  if (!id) return "";
+  return id.substring(0, 8).toUpperCase();
+}
+
+type RelationItem = {
+  id: string;
+  name: string;
+} | null;
+type OfficeMiniRelation = {
+  id: string;
+  name: string;
+  address?: string | null;
+  status?: string;
+} | null;
+
+type DepartmentRelation = {
+  id: string;
+  name: string;
+  office_id?: string | null;
+  office?: OfficeMiniRelation;
+} | null;
+
+type UnitRelation = {
+  id: string;
+  name: string;
+  department_id?: string | null;
+  department?: DepartmentRelation;
+} | null;
+
+type PositionRelation = {
+  id: string;
+  name: string;
+  unit_id?: string | null;
+  unit?: UnitRelation;
+} | null;
+
+type DepartmentOption = {
+  id: string;
+  name: string;
+  office_id: string | null;
+  status: string;
+  office?: {
+    id: string;
+    name: string;
+    address?: string | null;
+    status?: string;
+  } | null;
+};
+
+type UnitOption = {
+  id: string;
+  name: string;
+  department_id: string | null;
+  status: string;
+  department?: {
+    id: string;
+    name: string;
+    office_id?: string | null;
+    office?: {
+      id: string;
+      name: string;
+      address?: string | null;
+      status?: string;
+    } | null;
+  } | null;
+};
+
+type PositionOption = {
+  id: string;
+  name: string;
+  unit_id: string | null;
+  status: string;
+  unit?: {
+    id: string;
+    name: string;
+    department_id?: string | null;
+    department?: {
+      id: string;
+      name: string;
+      office_id?: string | null;
+      office?: {
+        id: string;
+        name: string;
+        address?: string | null;
+        status?: string;
+      } | null;
+    } | null;
+  } | null;
+};
+
+type ShiftOption = {
+  id: string;
+  name: string;
+  status: string;
+  tolerance_minutes: number;
+};
+
+type OfficeOption = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  status: string;
+};
+
+type ShiftRelation = {
+  id: string;
+  name: string;
+  tolerance_minutes?: number;
+  status?: string;
+} | null;
+
+type OfficeRelation = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude?: number;
+  longitude?: number;
+  radius_meters?: number;
+  status?: string;
+} | null;
 
 type Employee = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "employee";
-  employee_category?: "magang" | "tetap";
-  department: string | null;
-  position: string | null;
+  role: string;
+  unit: UnitRelation;
+  department: DepartmentRelation;
+  position: PositionRelation;
+  shift: ShiftRelation;
+  registered_office: OfficeRelation;
   phone: string | null;
-  profile_photo_url?: string | null;
-  payroll_methods?: PayrollMethodForm[];
-  payroll_status?: "paid" | "unpaid";
   status: "active" | "inactive";
   created_at: string;
-};
 
-type PayrollMethodForm = {
-  bankName: string;
-  cardType: string;
-  accountNumber: string;
-  accountHolderName: string;
-  expiryMonth: string;
-  expiryYear: string;
+  profile_photo?: string | null;
+  profile_photo_url?: string | null;
+  photo_url?: string | null;
+  avatar_url?: string | null;
+  birth_place?: string | null;
+  birth_date?: string | null;
+  bank_account_number?: string | null;
+  nik?: string | null;
+  employment_status?: "kartap" | "kontrak" | "magang" | "pkl" | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  uploaded_document_url?: string | null;
+  base_salary?: number | string | null;
 };
 
 type EmployeeForm = {
   name: string;
   email: string;
-  department: string;
-  position: string;
-  phone: string;
-  employeeCategory: "magang" | "tetap";
-  payrollStatus: "paid" | "unpaid";
+  department_id: string;
+  unit_id: string;
+  position_id: string;
+  shift_id: string;
+  registered_office_id: string;
+  temporaryPassword: string;
+  confirmTemporaryPassword: string;
   status: "active" | "inactive";
-  profilePhotoUrl: string;
-  payrollMethods: PayrollMethodForm[];
+  birth_place: string;
+  birth_date: string;
+  bank_account_number: string;
+  nik: string;
+  employment_status: "kartap" | "kontrak" | "magang" | "pkl" | "";
+  contract_start_date: string;
+  contract_end_date: string;
+  uploaded_document_url: string;
+  base_salary: string;
 };
 
-function createEmptyPayrollMethod(): PayrollMethodForm {
-  return {
-    bankName: "",
-    cardType: "Debit",
-    accountNumber: "",
-    accountHolderName: "",
-    expiryMonth: "",
-    expiryYear: "",
-  };
-}
+type EmployeeAlert = {
+  type: "warning" | "success" | "error" | "info";
+  title: string;
+  message: string;
+} | null;
 
 const initialForm: EmployeeForm = {
   name: "",
   email: "",
-  department: "",
-  position: "",
-  phone: "",
-  employeeCategory: "tetap",
-  payrollStatus: "unpaid",
+  department_id: "",
+  unit_id: "",
+  position_id: "",
+  shift_id: "shift-1",
+  registered_office_id: "",
+  temporaryPassword: "",
+  confirmTemporaryPassword: "",
   status: "active",
-  profilePhotoUrl: "",
-  payrollMethods: [createEmptyPayrollMethod()],
+  birth_place: "",
+  birth_date: "",
+  bank_account_number: "",
+  nik: "",
+  employment_status: "",
+  contract_start_date: "",
+  contract_end_date: "",
+  uploaded_document_url: "",
+  base_salary: "",
 };
 
 function getInitialName(name: string) {
@@ -103,392 +259,659 @@ function getInitialName(name: string) {
     .toUpperCase();
 }
 
+
 function formatStatus(status: "active" | "inactive") {
   return status === "active" ? "Active" : "Inactive";
 }
 
-function formatEmployeeCategory(value?: "magang" | "tetap") {
-  return value === "magang" ? "Magang" : "Karyawan Tetap";
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function formatPayrollStatus(value?: "paid" | "unpaid") {
-  return value === "paid" ? "Sudah Digaji" : "Belum Digaji";
+function isCreativemuEmail(email: string) {
+  const normalized = email.toLowerCase();
+  return normalized.endsWith("@creativemu.co.id") || normalized.endsWith(".co.id");
+}
+
+function normalizeProfilePhotoUrl(photo?: string | null) {
+  if (!photo) return "";
+
+  const cleanPhoto = photo.trim();
+
+  if (!cleanPhoto) return "";
+
+  if (
+    cleanPhoto.startsWith("http://") ||
+    cleanPhoto.startsWith("https://") ||
+    cleanPhoto.startsWith("data:") ||
+    cleanPhoto.startsWith("/")
+  ) {
+    return cleanPhoto;
+  }
+
+  if (cleanPhoto.startsWith("uploads/")) {
+    return `/${cleanPhoto}`;
+  }
+
+  return `/uploads/profiles/${cleanPhoto}`;
+}
+
+function getEmployeeProfilePhoto(employee: Employee) {
+  return normalizeProfilePhotoUrl(
+    employee.profile_photo ||
+      employee.profile_photo_url ||
+      employee.photo_url ||
+      employee.avatar_url ||
+      "",
+  );
+}
+
+function EmployeeAvatar({ employee }: { employee: Employee }) {
+  const [imageError, setImageError] = useState(false);
+  const profilePhoto = getEmployeeProfilePhoto(employee);
+
+  if (profilePhoto && !imageError) {
+    return (
+      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl bg-[#eaf1ff] ring-1 ring-blue-100">
+        <img
+          src={profilePhoto}
+          alt={`Foto profil ${employee.name}`}
+          className="h-full w-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
+      {getInitialName(employee.name)}
+    </div>
+  );
+}
+
+function getRelationName(
+  item:
+    | UnitRelation
+    | DepartmentRelation
+    | PositionRelation
+    | ShiftRelation
+    | OfficeRelation,
+) {
+  return item?.name || "-";
+}
+
+function getDepartmentOfficeId(
+  department?: DepartmentOption | DepartmentRelation,
+) {
+  return department?.office_id || department?.office?.id || "";
+}
+
+function getUnitDepartmentId(unit?: UnitOption | UnitRelation) {
+  return unit?.department_id || unit?.department?.id || "";
+}
+
+function getUnitOfficeId(unit?: UnitOption | UnitRelation) {
+  return unit?.department?.office_id || unit?.department?.office?.id || "";
+}
+
+function getPositionUnitId(position?: PositionOption | PositionRelation) {
+  return position?.unit_id || position?.unit?.id || "";
+}
+
+function getPositionDepartmentId(position?: PositionOption | PositionRelation) {
+  return position?.unit?.department_id || position?.unit?.department?.id || "";
+}
+
+function getPositionOfficeId(position?: PositionOption | PositionRelation) {
+  return (
+    position?.unit?.department?.office_id ||
+    position?.unit?.department?.office?.id ||
+    ""
+  );
+}
+
+function getAlertTheme(type: NonNullable<EmployeeAlert>["type"]) {
+  if (type === "success") {
+    return {
+      shell: "from-emerald-50 via-white to-blue-50 dark:from-[#0f291e] dark:via-[#161b22] dark:to-[#0d141e] dark:border-[#21262d]",
+      iconWrap: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
+      badge: "text-emerald-600 bg-white/70 dark:bg-[#30363d] dark:text-emerald-400",
+      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20 dark:bg-emerald-500 dark:hover:bg-emerald-600 dark:text-[#0d1117]",
+      icon: CheckCircle2,
+      label: "BERHASIL",
+    };
+  }
+
+  if (type === "error") {
+    return {
+      shell: "from-red-50 via-white to-blue-50 dark:from-[#2d1918] dark:via-[#161b22] dark:to-[#0f141c] dark:border-[#21262d]",
+      iconWrap: "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400",
+      badge: "text-red-600 bg-white/70 dark:bg-[#30363d] dark:text-red-400",
+      button: "bg-red-600 hover:bg-red-700 shadow-red-900/20 dark:bg-red-500 dark:hover:bg-red-600 dark:text-[#0d1117]",
+      icon: AlertTriangle,
+      label: "GAGAL",
+    };
+  }
+
+  if (type === "info") {
+    return {
+      shell: "from-blue-50 via-white to-blue-50 dark:from-[#0d1f3d] dark:via-[#161b22] dark:to-[#0d1f3d] dark:border-[#21262d]",
+      iconWrap: "bg-blue-100 text-[#123c8c] dark:bg-blue-950/40 dark:text-[#58a6ff]",
+      badge: "text-[#123c8c] bg-white/70 dark:bg-[#30363d] dark:text-[#58a6ff]",
+      button: "bg-[#123c8c] hover:bg-[#0f3274] shadow-blue-900/20 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]",
+      icon: Info,
+      label: "INFO",
+    };
+  }
+
+  return {
+    shell: "from-orange-50 via-white to-blue-50 dark:from-[#2e1d0f] dark:via-[#161b22] dark:to-[#121d2f] dark:border-[#21262d]",
+    iconWrap: "bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400",
+    badge: "text-orange-600 bg-white/70 dark:bg-[#30363d] dark:text-orange-400",
+    button: "bg-[#526fae] hover:bg-[#46629d] shadow-blue-900/20 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]",
+    icon: AlertTriangle,
+    label: "PERHATIAN",
+  };
+}
+
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Response API bukan JSON.");
+  }
+}
+
+function EmployeeMotionStyles() {
+  return (
+    <style>{`
+      @keyframes employeeEnter {
+        0% {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes employeeRowEnter {
+        0% {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes employeeAlertEnter {
+        0% {
+          opacity: 0;
+          transform: translateX(20px) scale(0.98);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+
+      .employee-enter {
+        animation: employeeEnter 320ms ease-out both;
+      }
+
+      .employee-row-enter {
+        opacity: 0;
+        animation: employeeRowEnter 300ms ease-out both;
+      }
+
+      .employee-alert-enter {
+        animation: employeeAlertEnter 260ms ease-out both;
+      }
+
+      .employee-field {
+        transition:
+          border-color 180ms ease,
+          background-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .employee-enter,
+        .employee-row-enter,
+        .employee-alert-enter {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      }
+    `}</style>
+  );
 }
 
 export default function AdminEmployeesPage() {
+  const router = useRouter();
+
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [units, setUnits] = useState<UnitOption[]>([]);
+  const [positions, setPositions] = useState<PositionOption[]>([]);
+  const [shifts, setShifts] = useState<ShiftOption[]>([]);
+  const [offices, setOffices] = useState<OfficeOption[]>([]);
+
+  const [keyword, setKeyword] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingEmployeeId, setDeletingEmployeeId] = useState<string | null>(
-    null,
-  );
-  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(
-    null,
-  );
+  const [deletingId, setDeletingId] = useState("");
   const [form, setForm] = useState<EmployeeForm>(initialForm);
 
-  const [filterCategory, setFilterCategory] = useState<
-    "all" | "magang" | "tetap"
-  >("all");
-  const [filterName, setFilterName] = useState("");
-  const [filterPosition, setFilterPosition] = useState("");
-  const [filterDivision, setFilterDivision] = useState("");
-  const [filterPhone, setFilterPhone] = useState("");
+  type EmployeeSortKey =
+    | "name"
+    | "email"
+    | "office"
+    | "department"
+    | "unit"
+    | "position"
+    | "shift"
+    | "status";
 
-  const [cameraFacingMode, setCameraFacingMode] = useState<
-    "user" | "environment"
-  >("user");
-  const [isCameraOn, setIsCameraOn] = useState(false);
-  const [cameraError, setCameraError] = useState("");
+  const [sortColumn, setSortColumn] = useState<EmployeeSortKey>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const handleSort = (key: EmployeeSortKey) => {
+    if (sortColumn === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(key);
+      setSortDirection("asc");
+    }
+  };
 
-  async function loadEmployees() {
+  const [employeeAlert, setEmployeeAlert] = useState<EmployeeAlert>(null);
+  const [isAlertClosing, setIsAlertClosing] = useState(false);
+  const alertCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const showEmployeeAlert = useCallback(
+    (
+      title: string,
+      message: string,
+      type: "warning" | "success" | "error" | "info" = "warning",
+    ) => {
+      if (alertCloseTimeoutRef.current) {
+        clearTimeout(alertCloseTimeoutRef.current);
+      }
+
+      setIsAlertClosing(false);
+
+      setEmployeeAlert({
+        type,
+        title,
+        message,
+      });
+    },
+    [],
+  );
+
+  const closeEmployeeAlert = useCallback(() => {
+    setIsAlertClosing(true);
+
+    alertCloseTimeoutRef.current = setTimeout(() => {
+      setEmployeeAlert(null);
+      setIsAlertClosing(false);
+    }, 240);
+  }, []);
+
+  const loadEmployees = useCallback(async () => {
     try {
+      setIsLoading(true);
+
       const response = await fetch("/api/employees", {
         method: "GET",
         cache: "no-store",
       });
 
-      const result = await response.json();
+      const result = await readJsonResponse(response);
 
       if (!response.ok) {
-        alert(result.message || "Gagal mengambil data karyawan.");
+        showEmployeeAlert(
+          "Gagal mengambil data employee",
+          result.message || "Gagal mengambil data karyawan.",
+          "error",
+        );
         return;
       }
 
-      setEmployees(result.data || []);
-    } catch {
-      alert("Terjadi kesalahan saat mengambil data karyawan.");
+      setEmployees(result.employees || result.data || []);
+      setDepartments(result.departments || []);
+      setUnits(result.units || []);
+      setPositions(result.positions || []);
+      setShifts(result.shifts || []);
+      setOffices(result.offices || result.officeLocations || []);
+    } catch (error) {
+      console.error("LOAD_EMPLOYEES_ERROR:", error);
+
+      showEmployeeAlert(
+        "Terjadi kesalahan",
+        "Terjadi kesalahan saat mengambil data karyawan.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [showEmployeeAlert]);
 
   useEffect(() => {
     void loadEmployees();
-  }, []);
+  }, [loadEmployees]);
 
   useEffect(() => {
     return () => {
-      stopCamera();
+      if (alertCloseTimeoutRef.current) {
+        clearTimeout(alertCloseTimeoutRef.current);
+      }
     };
   }, []);
 
-  const filteredEmployees = useMemo(() => {
-    return employees.filter((employee) => {
-      const category = employee.employee_category || "tetap";
+  const activeOffices = useMemo(() => {
+    return offices.filter((office) => office.status === "active");
+  }, [offices]);
 
-      if (filterCategory !== "all" && category !== filterCategory) {
-        return false;
-      }
+  const filteredDepartments = useMemo(() => {
+    if (!form.registered_office_id) return [];
 
-      if (
-        filterName &&
-        !employee.name.toLowerCase().includes(filterName.toLowerCase())
-      ) {
-        return false;
-      }
+    return departments.filter((department) => {
+      const officeId = getDepartmentOfficeId(department);
 
-      if (
-        filterPosition &&
-        !(employee.position || "")
-          .toLowerCase()
-          .includes(filterPosition.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (
-        filterDivision &&
-        !(employee.department || "")
-          .toLowerCase()
-          .includes(filterDivision.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (
-        filterPhone &&
-        !(employee.phone || "")
-          .toLowerCase()
-          .includes(filterPhone.toLowerCase())
-      ) {
-        return false;
-      }
-
-      return true;
+      return (
+        department.status === "active" && officeId === form.registered_office_id
+      );
     });
-  }, [
-    employees,
-    filterCategory,
-    filterDivision,
-    filterName,
-    filterPhone,
-    filterPosition,
-  ]);
+  }, [departments, form.registered_office_id]);
+
+  const filteredUnits = useMemo(() => {
+    if (!form.department_id) return [];
+
+    return units.filter((unit) => {
+      return (
+        unit.status === "active" &&
+        getUnitDepartmentId(unit) === form.department_id
+      );
+    });
+  }, [units, form.department_id]);
+
+  const filteredPositions = useMemo(() => {
+    if (!form.department_id) return [];
+
+    return positions.filter((position) => {
+      return (
+        position.status === "active" &&
+        getPositionDepartmentId(position) === form.department_id
+      );
+    });
+  }, [positions, form.department_id]);
+
+  const activeShifts = useMemo(() => {
+    return shifts.filter((shift) => shift.status === "active");
+  }, [shifts]);
+
+  const filteredEmployees = useMemo(() => {
+    const list = employees.filter((employee) => {
+      const text = `
+        ${employee.id || ""}
+        ${employee.name}
+        ${employee.email}
+        ${employee.registered_office?.name || ""}
+        ${employee.registered_office?.address || ""}
+        ${employee.department?.name || ""}
+        ${employee.unit?.name || ""}
+        ${employee.position?.name || ""}
+        ${employee.shift?.name || ""}
+        ${employee.status}
+      `.toLowerCase();
+
+      return text.includes(keyword.toLowerCase());
+    });
+
+    return list.sort((a, b) => {
+      let valA = "";
+      let valB = "";
+
+      switch (sortColumn) {
+        case "name":
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case "email":
+          valA = a.email.toLowerCase();
+          valB = b.email.toLowerCase();
+          break;
+        case "office":
+          valA = (a.registered_office?.name || "").toLowerCase();
+          valB = (b.registered_office?.name || "").toLowerCase();
+          break;
+        case "department":
+          valA = (a.department?.name || "").toLowerCase();
+          valB = (b.department?.name || "").toLowerCase();
+          break;
+        case "unit":
+          valA = (a.unit?.name || "").toLowerCase();
+          valB = (b.unit?.name || "").toLowerCase();
+          break;
+        case "position":
+          valA = (a.position?.name || "").toLowerCase();
+          valB = (b.position?.name || "").toLowerCase();
+          break;
+        case "shift":
+          valA = (a.shift?.name || "").toLowerCase();
+          valB = (b.shift?.name || "").toLowerCase();
+          break;
+        case "status":
+          valA = a.status.toLowerCase();
+          valB = b.status.toLowerCase();
+          break;
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [employees, keyword, sortColumn, sortDirection]);
 
   const activeEmployees = employees.filter(
     (employee) => employee.status === "active",
   ).length;
 
-  const internEmployees = employees.filter(
-    (employee) => employee.employee_category === "magang",
+  const inactiveEmployees = employees.filter(
+    (employee) => employee.status === "inactive",
   ).length;
-
-  const paidEmployees = employees.filter(
-    (employee) => employee.payroll_status === "paid",
-  ).length;
-
-  function stopCamera() {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    setIsCameraOn(false);
-  }
-
-  async function startCamera() {
-    try {
-      setCameraError("");
-      stopCamera();
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: cameraFacingMode,
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
-      setIsCameraOn(true);
-    } catch {
-      setCameraError("Kamera tidak dapat diakses. Periksa izin browser.");
-      setIsCameraOn(false);
-    }
-  }
-
-  async function toggleCamera() {
-    if (isCameraOn) {
-      stopCamera();
-      return;
-    }
-
-    await startCamera();
-  }
-
-  async function switchCamera() {
-    setCameraFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-
-    if (isCameraOn) {
-      await startCamera();
-    }
-  }
-
-  function captureFromCamera() {
-    if (!videoRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    const context = canvas.getContext("2d");
-    if (!context) return;
-
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-
-    setForm((prev) => ({
-      ...prev,
-      profilePhotoUrl: dataUrl,
-    }));
-
-    stopCamera();
-  }
-
-  function retakePhoto() {
-    setForm((prev) => ({
-      ...prev,
-      profilePhotoUrl: "",
-    }));
-  }
-
-  function handleProfilePhotoUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((prev) => ({
-        ...prev,
-        profilePhotoUrl: String(reader.result || ""),
-      }));
-      stopCamera();
-    };
-    reader.readAsDataURL(file);
-  }
 
   function openRegisterModal() {
-    stopCamera();
+    setEditingEmployee(null);
     setForm(initialForm);
-    setEditingEmployeeId(null);
-    setCameraError("");
     setIsModalOpen(true);
   }
 
   function openEditModal(employee: Employee) {
-    stopCamera();
-    const methods =
-      employee.payroll_methods && employee.payroll_methods.length > 0
-        ? employee.payroll_methods.map((method) => ({
-            bankName: method.bankName || "",
-            cardType: method.cardType || "Debit",
-            accountNumber: method.accountNumber || "",
-            accountHolderName: method.accountHolderName || "",
-            expiryMonth: method.expiryMonth || "",
-            expiryYear: method.expiryYear || "",
-          }))
-        : [createEmptyPayrollMethod()];
+    const officeId =
+      employee.registered_office?.id ||
+      employee.department?.office_id ||
+      employee.department?.office?.id ||
+      getPositionOfficeId(employee.position) ||
+      getUnitOfficeId(employee.unit) ||
+      "";
 
+    const departmentId =
+      employee.department?.id ||
+      employee.unit?.department_id ||
+      employee.unit?.department?.id ||
+      getPositionDepartmentId(employee.position) ||
+      "";
+
+    const unitId =
+      employee.unit?.id ||
+      employee.position?.unit_id ||
+      employee.position?.unit?.id ||
+      "";
+
+    const positionId = employee.position?.id || "";
+
+    setEditingEmployee(employee);
     setForm({
       name: employee.name,
       email: employee.email,
-      department: employee.department || "",
-      position: employee.position || "",
-      phone: employee.phone || "",
-      employeeCategory: employee.employee_category || "tetap",
-      payrollStatus: employee.payroll_status || "unpaid",
+      registered_office_id: officeId,
+      department_id: departmentId,
+      unit_id: unitId,
+      position_id: positionId,
+      shift_id: employee.shift?.id || "",
+      temporaryPassword: "",
+      confirmTemporaryPassword: "",
       status: employee.status,
-      profilePhotoUrl: employee.profile_photo_url || "",
-      payrollMethods: methods,
+      birth_place: employee.birth_place || "",
+      birth_date: employee.birth_date ? new Date(employee.birth_date).toISOString().substring(0, 10) : "",
+      bank_account_number: employee.bank_account_number || "",
+      nik: employee.nik || "",
+      employment_status: (employee.employment_status as any) || "",
+      contract_start_date: employee.contract_start_date ? new Date(employee.contract_start_date).toISOString().substring(0, 10) : "",
+      contract_end_date: employee.contract_end_date ? new Date(employee.contract_end_date).toISOString().substring(0, 10) : "",
+      uploaded_document_url: employee.uploaded_document_url || "",
+      base_salary: employee.base_salary ? String(employee.base_salary) : "",
     });
-    setEditingEmployeeId(employee.id);
-    setCameraError("");
     setIsModalOpen(true);
   }
 
-  function addPayrollMethod() {
-    setForm((prev) => ({
-      ...prev,
-      payrollMethods: [...prev.payrollMethods, createEmptyPayrollMethod()],
-    }));
-  }
-
-  function removePayrollMethod(index: number) {
-    setForm((prev) => {
-      const nextMethods = prev.payrollMethods.filter((_, idx) => idx !== index);
-
-      return {
-        ...prev,
-        payrollMethods:
-          nextMethods.length > 0 ? nextMethods : [createEmptyPayrollMethod()],
-      };
-    });
-  }
-
-  function updatePayrollMethod(
-    index: number,
-    field: keyof PayrollMethodForm,
-    value: string,
-  ) {
-    setForm((prev) => ({
-      ...prev,
-      payrollMethods: prev.payrollMethods.map((method, idx) =>
-        idx === index ? { ...method, [field]: value } : method,
-      ),
-    }));
-  }
-
   function closeRegisterModal() {
-    stopCamera();
     setIsModalOpen(false);
-    setEditingEmployeeId(null);
-    setCameraError("");
+    setEditingEmployee(null);
     setForm(initialForm);
-  }
-
-  async function handleDeleteEmployee(employee: Employee) {
-    const shouldDelete = window.confirm(
-      `Hapus karyawan ${employee.name}? Aksi ini tidak bisa dibatalkan.`,
-    );
-
-    if (!shouldDelete) return;
-
-    try {
-      setDeletingEmployeeId(employee.id);
-
-      const response = await fetch("/api/employees", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: employee.id }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        alert(result.message || "Gagal menghapus karyawan.");
-        return;
-      }
-
-      alert("Karyawan berhasil dihapus.");
-      await loadEmployees();
-    } catch {
-      alert("Terjadi kesalahan saat menghapus karyawan.");
-    } finally {
-      setDeletingEmployeeId(null);
-    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!form.name || !form.email || !form.department || !form.position) {
-      alert("Nama, email, jabatan, dan divisi wajib diisi.");
+    const isEditing = Boolean(editingEmployee);
+    const email = form.email.trim().toLowerCase();
+    const nameTrimmed = form.name.trim();
+
+    if (/\d/.test(nameTrimmed)) {
+      showEmployeeAlert(
+        "Nama tidak valid",
+        "Nama lengkap tidak boleh mengandung angka.",
+        "warning"
+      );
       return;
     }
 
-    const payrollMethods = form.payrollMethods
-      .map((method) => ({
-        bankName: method.bankName.trim(),
-        cardType: method.cardType.trim() || "Debit",
-        accountNumber: method.accountNumber.trim(),
-        accountHolderName: method.accountHolderName.trim(),
-        expiryMonth: method.expiryMonth.trim(),
-        expiryYear: method.expiryYear.trim(),
-      }))
-      .filter(
-        (method) =>
-          method.bankName ||
-          method.accountNumber ||
-          method.accountHolderName ||
-          method.expiryMonth ||
-          method.expiryYear,
+    if (nameTrimmed.split(/\s+/).filter(Boolean).length < 2) {
+      showEmployeeAlert(
+        "Nama tidak lengkap",
+        "Nama lengkap harus terdiri dari minimal 2 kata.",
+        "warning"
       );
+      return;
+    }
 
-    const hasInvalidPayrollMethod = payrollMethods.some(
-      (method) =>
-        !method.bankName || !method.accountNumber || !method.accountHolderName,
-    );
+    const temporaryPassword = form.temporaryPassword.trim();
+    const confirmTemporaryPassword = form.confirmTemporaryPassword.trim();
 
-    if (hasInvalidPayrollMethod) {
-      alert(
-        "Lengkapi data rekening: Nama bank, nomor rekening, dan nama pemilik wajib diisi.",
+    if (
+      !nameTrimmed ||
+      !email ||
+      !form.registered_office_id ||
+      !form.department_id ||
+      !form.unit_id ||
+      !form.position_id ||
+      !form.shift_id
+    ) {
+      showEmployeeAlert(
+        "Data belum lengkap",
+        "Nama, email, kantor, divisi, unit, jabatan, dan shift wajib diisi.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      showEmployeeAlert(
+        "Format email tidak valid",
+        "Masukkan email yang benar, contohnya employee@creativemu.co.id.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isCreativemuEmail(email)) {
+      showEmployeeAlert(
+        "Email harus Creativemu",
+        "Email employee wajib menggunakan domain @creativemu.co.id.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isEditing && (!temporaryPassword || !confirmTemporaryPassword)) {
+      showEmployeeAlert(
+        "Data belum lengkap",
+        "Password dan konfirmasi password wajib diisi untuk employee baru.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isEditing && temporaryPassword.length < 8) {
+      showEmployeeAlert(
+        "Password terlalu pendek",
+        "Password minimal 8 karakter agar akun employee lebih aman.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!isEditing && temporaryPassword !== confirmTemporaryPassword) {
+      showEmployeeAlert(
+        "Konfirmasi password tidak sama",
+        "Password dan konfirmasi password harus sama sebelum employee dibuat.",
+        "warning",
+      );
+      return;
+    }
+
+    if (form.nik && (!/^\d+$/.test(form.nik) || form.nik.length !== 12)) {
+      showEmployeeAlert(
+        "NIK tidak valid",
+        "NIK harus berupa angka dan berjumlah tepat 12 digit.",
+        "warning"
+      );
+      return;
+    }
+
+    if (form.bank_account_number && (!/^\d+$/.test(form.bank_account_number) || form.bank_account_number.length < 11 || form.bank_account_number.length > 13)) {
+      showEmployeeAlert(
+        "Nomor Rekening tidak valid",
+        "Nomor rekening harus berupa angka dengan panjang antara 11 sampai 13 digit.",
+        "warning"
+      );
+      return;
+    }
+
+    if (form.base_salary && (isNaN(Number(form.base_salary)) || Number(form.base_salary) < 0)) {
+      showEmployeeAlert(
+        "Gaji tidak valid",
+        "Gaji harus berupa angka positif.",
+        "warning"
       );
       return;
     }
@@ -497,104 +920,164 @@ export default function AdminEmployeesPage() {
       setIsSaving(true);
 
       const response = await fetch("/api/employees", {
-        method: editingEmployeeId ? "PUT" : "POST",
+        method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: editingEmployeeId,
-          name: form.name,
-          email: form.email,
-          department: form.department,
-          position: form.position,
-          phone: form.phone,
-          role: "employee",
-          employeeCategory: form.employeeCategory,
-          profilePhotoUrl: form.profilePhotoUrl,
-          payrollStatus: form.payrollStatus,
-          payrollMethods,
+          id: editingEmployee?.id,
+          name: form.name.trim(),
+          email,
+          temporaryPassword: isEditing
+            ? form.temporaryPassword
+            : temporaryPassword,
+          registered_office_id: form.registered_office_id,
+          department_id: form.department_id,
+          unit_id: form.unit_id,
+          position_id: form.position_id,
+          shift_id: form.shift_id,
           status: form.status,
+          birth_place: form.birth_place,
+          birth_date: form.birth_date || null,
+          bank_account_number: form.bank_account_number,
+          nik: form.nik,
+          employment_status: form.employment_status,
+          contract_start_date: form.contract_start_date || null,
+          contract_end_date: form.contract_end_date || null,
+          uploaded_document_url: form.uploaded_document_url,
+          base_salary: form.base_salary ? Number(form.base_salary) : null,
         }),
       });
 
-      const result = await response.json();
+      const result = await readJsonResponse(response);
 
       if (!response.ok) {
-        alert(result.message || "Gagal menyimpan karyawan.");
+        showEmployeeAlert(
+          "Gagal menyimpan employee",
+          result.message ||
+            (isEditing
+              ? "Gagal memperbarui karyawan."
+              : "Gagal menambahkan karyawan."),
+          "error",
+        );
         return;
       }
 
-      alert(
-        editingEmployeeId
-          ? "Employee berhasil diperbarui."
-          : "Employee berhasil dibuat.",
-      );
-
       closeRegisterModal();
       await loadEmployees();
-    } catch {
-      alert("Terjadi kesalahan saat menyimpan karyawan.");
+
+      showEmployeeAlert(
+        isEditing ? "Employee diperbarui" : "Employee berhasil dibuat",
+        isEditing
+          ? "Data employee berhasil diperbarui dan sudah tersimpan di database."
+          : "Akun employee baru berhasil dibuat dan siap digunakan untuk login.",
+        "success",
+      );
+    } catch (error) {
+      console.error("SAVE_EMPLOYEE_ERROR:", error);
+
+      showEmployeeAlert(
+        "Terjadi kesalahan",
+        "Terjadi kesalahan saat menyimpan karyawan.",
+        "error",
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
+  async function handleDeleteEmployee(employee: Employee) {
+    const confirmDelete = window.customConfirm
+      ? await window.customConfirm(`Yakin ingin menghapus employee "${employee.name}"? Data yang dihapus tidak bisa dikembalikan.`)
+      : window.confirm(`Yakin ingin menghapus employee "${employee.name}"? Data yang dihapus tidak bisa dikembalikan.`);
+
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(employee.id);
+
+      const response = await fetch(`/api/employees?id=${employee.id}`, {
+        method: "DELETE",
+      });
+
+      const result = await readJsonResponse(response);
+
+      if (!response.ok) {
+        showEmployeeAlert(
+          "Gagal menghapus employee",
+          result.message || "Gagal menghapus employee.",
+          "error",
+        );
+        return;
+      }
+
+      await loadEmployees();
+
+      showEmployeeAlert(
+        "Employee berhasil dihapus",
+        "Data employee berhasil dihapus dari database.",
+        "success",
+      );
+    } catch (error) {
+      console.error("DELETE_EMPLOYEE_ERROR:", error);
+
+      showEmployeeAlert(
+        "Terjadi kesalahan",
+        "Terjadi kesalahan saat menghapus employee.",
+        "error",
+      );
+    } finally {
+      setDeletingId("");
+    }
+  }
+
+  const alertTheme = employeeAlert ? getAlertTheme(employeeAlert.type) : null;
+  const AlertIcon = alertTheme?.icon || AlertTriangle;
+
   return (
     <MobileShell variant="admin">
-      <AppHeader
-        title="Employees"
-        subtitle="Kelola data karyawan, foto wajah, dan status payroll"
-        variant="admin"
-      />
+      <EmployeeMotionStyles />
+
+      <AppHeader title="Kelola Karyawan" variant="admin" />
 
       <main className="mx-auto max-w-7xl px-5 py-6 pb-28 md:px-10 lg:px-16">
-        <section className="relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-6 text-white shadow-2xl shadow-blue-900/25 md:p-8">
+        <section
+          style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}
+          className="employee-enter relative overflow-hidden rounded-[1.8rem] bg-[#123c8c] text-white shadow-2xl shadow-blue-900/25"
+        >
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -bottom-24 left-16 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
 
-          <div className="relative z-10 flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+          <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-blue-100">
                 <ShieldCheck size={15} />
-                Employee Management
+                Manajemen Karyawan
               </div>
 
-              <h2 className="mt-5 text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
                 Data Karyawan
               </h2>
-
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-100">
-                Foto wajah ditampilkan supaya list tidak kosong, payroll hanya
-                menampilkan status digaji tanpa detail rekening.
-              </p>
             </div>
 
-            <button
+            <AppAnimatedActionButton
+              icon={<Plus size={20} strokeWidth={3} />}
+              title="Tambah Karyawan"
+              loadingTitle="Membuka..."
               onClick={openRegisterModal}
-              className="group inline-flex w-full items-center justify-center gap-4 rounded-[1.8rem] bg-white px-6 py-5 text-[#123c8c] shadow-2xl shadow-blue-950/20 ring-1 ring-white/70 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-50 hover:shadow-blue-950/30 active:scale-[0.97] md:w-auto"
-            >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.4rem] bg-[#eaf1ff] transition-all duration-300 group-hover:rotate-90 group-hover:bg-[#123c8c] group-hover:text-white">
-                <Plus size={27} strokeWidth={3} />
-              </span>
-
-              <span className="text-left">
-                <span className="block text-xl font-black leading-none tracking-tight">
-                  Tambah Karyawan
-                </span>
-                <span className="mt-2 block text-sm font-bold text-slate-400">
-                  Kelola wajah dan status payroll
-                </span>
-              </span>
-            </button>
+            />
           </div>
         </section>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-          <div className="rounded-[1.7rem] border border-blue-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30">
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          <div
+            className="employee-row-enter rounded-[1.7rem] border border-blue-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            style={{ animationDelay: "70ms" }}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-slate-500">
-                  Total Employee
+                  Total Karyawan
                 </p>
                 <h3 className="mt-2 text-3xl font-black text-slate-950">
                   {employees.length}
@@ -607,11 +1090,14 @@ export default function AdminEmployeesPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.7rem] border border-emerald-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30">
+          <div
+            className="employee-row-enter rounded-[1.7rem] border border-emerald-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            style={{ animationDelay: "110ms" }}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-slate-500">
-                  Active Account
+                  Akun Aktif
                 </p>
                 <h3 className="mt-2 text-3xl font-black text-slate-950">
                   {activeEmployees}
@@ -624,246 +1110,274 @@ export default function AdminEmployeesPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.7rem] border border-amber-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30">
+          <div
+            className="employee-row-enter rounded-[1.7rem] border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-300/30"
+            style={{ animationDelay: "150ms" }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-500">Total Magang</p>
+                <p className="text-sm font-bold text-slate-500">
+                  Akun Nonaktif
+                </p>
                 <h3 className="mt-2 text-3xl font-black text-slate-950">
-                  {internEmployees}
+                  {inactiveEmployees}
                 </h3>
               </div>
 
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                 <UserRound size={25} strokeWidth={2.7} />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.7rem] border border-cyan-100 bg-white/90 p-5 shadow-xl shadow-slate-300/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-500">Sudah Digaji</p>
-                <h3 className="mt-2 text-3xl font-black text-slate-950">
-                  {paidEmployees}
-                </h3>
-              </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
-                <BadgeCheck size={25} strokeWidth={2.7} />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
-          <div className="flex flex-col gap-4">
+        <section
+          className="employee-enter mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl"
+          style={{ animationDelay: "120ms" }}
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-950">
-                Employee List
+                Daftar Karyawan
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Filter data berdasarkan tipe karyawan, nama, jabatan, divisi,
-                dan nomor telepon.
+                Total {employees.length} karyawan terdaftar
               </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-5">
-              <select
-                value={filterCategory}
-                onChange={(event) =>
-                  setFilterCategory(
-                    event.target.value as "all" | "magang" | "tetap",
-                  )
-                }
-                className="rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-              >
-                <option value="all">Semua Tipe</option>
-                <option value="magang">Magang</option>
-                <option value="tetap">Karyawan Tetap</option>
-              </select>
+            <div className="flex flex-col gap-3 md:flex-row">
+              {/* Mobile quick sort selector */}
+              <div className="flex items-center gap-2 md:hidden">
+                <span className="text-xs font-black text-slate-500 whitespace-nowrap">Urutkan:</span>
+                <select
+                  value={`${sortColumn}-${sortDirection}`}
+                  onChange={(e) => {
+                    const [col, dir] = e.target.value.split("-") as [EmployeeSortKey, "asc" | "desc"];
+                    setSortColumn(col);
+                    setSortDirection(dir);
+                  }}
+                  className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-xs font-bold text-slate-700 outline-none"
+                >
+                  <option value="name-asc">Abjad Karyawan (A - Z)</option>
+                  <option value="name-desc">Abjad Karyawan (Z - A)</option>
+                  <option value="office-asc">Kantor (A - Z)</option>
+                  <option value="department-asc">Divisi (A - Z)</option>
+                  <option value="unit-asc">Posisi (A - Z)</option>
+                  <option value="position-asc">Jabatan (A - Z)</option>
+                  <option value="status-asc">Status (A - Z)</option>
+                </select>
+              </div>
 
-              <div className="relative">
+              <div className="relative w-full md:w-[330px]">
                 <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
                 <input
-                  value={filterName}
-                  onChange={(event) => setFilterName(event.target.value)}
-                  placeholder="Nama"
-                  className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="Cari nama atau NIK..."
+                  className="employee-field w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
-              <input
-                value={filterPosition}
-                onChange={(event) => setFilterPosition(event.target.value)}
-                placeholder="Jabatan"
-                className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-              />
-
-              <input
-                value={filterDivision}
-                onChange={(event) => setFilterDivision(event.target.value)}
-                placeholder="Divisi"
-                className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-              />
-
-              <input
-                value={filterPhone}
-                onChange={(event) => setFilterPhone(event.target.value)}
-                placeholder="Nomor Telepon"
-                className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-              />
+              <button
+                type="button"
+                onClick={loadEmployees}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#123c8c] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.98]"
+              >
+                <RefreshCw size={18} />
+                Muat Ulang
+              </button>
             </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-3xl border border-blue-100">
-            <div className="hidden grid-cols-[1.2fr_1fr_0.95fr_0.8fr_0.9fr_0.9fr] bg-[#f6f8ff] px-5 py-4 text-xs font-black uppercase tracking-[0.16em] text-[#123c8c] md:grid">
-              <p>Foto / Nama</p>
-              <p>Jabatan - Divisi</p>
-              <p>No Telepon</p>
-              <p>Tipe Karyawan</p>
-              <p>Payroll</p>
-              <p>Status</p>
-            </div>
-
-            <div className="divide-y divide-blue-50">
-              {isLoading && (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-black text-slate-700">
-                    Loading employee data...
-                  </p>
-                </div>
-              )}
-
-              {!isLoading &&
-                filteredEmployees.map((employee) => (
-                  <div
-                    key={employee.id}
-                    className="grid gap-4 px-5 py-5 transition hover:bg-[#f8fbff] md:grid-cols-[1.2fr_1fr_0.95fr_0.8fr_0.9fr_0.9fr] md:items-center"
-                  >
-                    <div className="flex items-center gap-3">
-                      {employee.profile_photo_url ? (
-                        <img
-                          src={employee.profile_photo_url}
-                          alt={`Foto ${employee.name}`}
-                          className="h-12 w-12 rounded-2xl border border-blue-100 object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf1ff] text-sm font-black text-[#123c8c]">
-                          {getInitialName(employee.name)}
-                        </div>
-                      )}
-
-                      <div>
-                        <p className="text-sm font-black text-slate-950">
-                          {employee.name}
-                        </p>
-                        <p className="mt-1 text-xs font-bold text-slate-400">
-                          {employee.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">
-                        {employee.position || "-"}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">
-                        {employee.department || "-"}
-                      </p>
-                    </div>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {employee.phone || "-"}
-                    </p>
-
-                    <p className="text-sm font-semibold text-slate-600">
-                      {formatEmployeeCategory(employee.employee_category)}
-                    </p>
-
-                    <span
-                      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${
-                        employee.payroll_status === "paid"
-                          ? "bg-cyan-50 text-cyan-700"
-                          : "bg-amber-50 text-amber-700"
+          <div className="mt-5 overflow-x-auto rounded-3xl border border-blue-100 bg-white">
+            <div className="md:min-w-[1300px]">
+              <div className="hidden grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] items-center bg-[#f6f8ff] px-5 py-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#123c8c] md:grid select-none">
+                {[
+                  { key: "name", label: "Karyawan" },
+                  { key: "email", label: "Email" },
+                  { key: "office", label: "Kantor" },
+                  { key: "department", label: "Divisi" },
+                  { key: "unit", label: "Posisi" },
+                  { key: "position", label: "Jabatan" },
+                  { key: "shift", label: "Shift" },
+                  { key: "status", label: "Status" },
+                ].map((col) => {
+                  const active = sortColumn === col.key;
+                  return (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => handleSort(col.key as EmployeeSortKey)}
+                      className={`flex items-center gap-1.5 font-black transition hover:text-blue-900 cursor-pointer ${
+                        active ? "text-[#123c8c]" : "text-slate-500"
                       }`}
                     >
-                      {formatPayrollStatus(employee.payroll_status)}
-                    </span>
+                      <span>{col.label}</span>
+                      {active ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp size={13} className="text-[#123c8c] stroke-[3]" />
+                        ) : (
+                          <ArrowDown size={13} className="text-[#123c8c] stroke-[3]" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-30 hover:opacity-100" />
+                      )}
+                    </button>
+                  );
+                })}
+                <p className="text-center font-black text-slate-500">Aksi</p>
+              </div>
 
-                    <div>
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                          employee.status === "active"
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {formatStatus(employee.status)}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(employee)}
-                        aria-label={`Edit ${employee.name}`}
-                        title="Edit"
-                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-[#f6f8ff] text-[#123c8c]"
-                      >
-                        <Pencil size={14} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEmployee(employee)}
-                        disabled={deletingEmployeeId === employee.id}
-                        aria-label={`Hapus ${employee.name}`}
-                        title="Hapus"
-                        className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-700 disabled:opacity-50"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+              <div className="divide-y divide-blue-50">
+                {isLoading && (
+                  <div className="employee-row-enter px-5 py-10 text-center">
+                    <p className="font-black text-slate-700">
+                      Loading employee data...
+                    </p>
                   </div>
-                ))}
+                )}
 
-              {!isLoading && filteredEmployees.length === 0 && (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-black text-slate-700">
-                    Data tidak ditemukan
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Ubah kombinasi filter untuk melihat data.
-                  </p>
-                </div>
-              )}
+                {!isLoading &&
+                  filteredEmployees.map((employee, index) => (
+                    <div
+                      key={employee.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        router.push(`/admin/employees/${employee.id}`)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          router.push(`/admin/employees/${employee.id}`);
+                        }
+                      }}
+                      className="employee-row-enter grid cursor-pointer gap-4 px-5 py-4 transition duration-200 hover:bg-[#f8fbff] active:bg-[#eef4ff] md:min-h-[86px] md:grid-cols-[1.15fr_minmax(180px,1fr)_0.9fr_0.75fr_0.8fr_0.95fr_0.7fr_0.65fr_minmax(140px,1.2fr)] md:items-center md:gap-3"
+                      style={{
+                        animationDelay: `${index * 45}ms`,
+                      }}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <EmployeeAvatar employee={employee} />
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-slate-950">
+                            {employee.name}
+                          </p>
+                          <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+                            ID: {getShortEmployeeId(employee.id)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {employee.email}
+                      </p>
+
+                      <div className="min-w-0 text-sm font-semibold text-slate-600">
+                        <p className="truncate">
+                          {getRelationName(employee.registered_office)}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+                          {employee.registered_office?.address || "-"}
+                        </p>
+                      </div>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.department)}
+                      </p>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.unit)}
+                      </p>
+
+                      <p className="min-w-0 line-clamp-2 text-sm font-semibold leading-5 text-slate-600">
+                        {getRelationName(employee.position)}
+                      </p>
+
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        {getRelationName(employee.shift)}
+                      </p>
+
+                      <div className="flex md:justify-start">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                            employee.status === "active"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {formatStatus(employee.status)}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2 whitespace-nowrap md:flex md:items-center md:justify-center md:gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditModal(employee);
+                          }}
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-[#123c8c] px-4 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#0f3274] active:scale-[0.97] md:h-10 md:rounded-xl md:border md:border-blue-100 md:bg-white md:px-3 md:py-0 md:text-[#123c8c] md:shadow-none md:hover:bg-[#eaf1ff]"
+                        >
+                          <Edit size={15} />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteEmployee(employee);
+                          }}
+                          disabled={deletingId === employee.id}
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-red-100 bg-red-50 px-4 text-xs font-black text-red-600 transition hover:bg-red-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:rounded-xl md:px-3 md:py-0"
+                        >
+                          <Trash2 size={15} />
+                          {deletingId === employee.id ? "..." : "Hapus"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                {!isLoading && filteredEmployees.length === 0 && (
+                  <div className="employee-row-enter px-5 py-10 text-center">
+                    <p className="font-black text-slate-700">
+                      Data tidak ditemukan
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Coba gunakan keyword pencarian lain.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
       </main>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/50 px-4 pb-4 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl shadow-slate-950/30 md:p-7">
+        <AppModalMotion>
+          <AppModalPanel>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-[#eaf1ff] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
                   <Plus size={15} strokeWidth={3} />
-                  {editingEmployeeId ? "Edit Employee" : "Register Employee"}
+                  {editingEmployee ? "Edit Data Karyawan" : "Tambah Karyawan Baru"}
                 </div>
 
                 <h2 className="mt-4 text-2xl font-black text-slate-950">
-                  {editingEmployeeId ? "Edit Karyawan" : "Tambah Karyawan Baru"}
+                  {editingEmployee
+                    ? "Update Data Karyawan"
+                    : "Tambah Karyawan Baru"}
                 </h2>
-
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Aktifkan kamera untuk foto wajah, gunakan switch camera,
-                  on/off camera, retake bila perlu, lalu lengkapi data rekening.
-                </p>
               </div>
 
               <button
+                type="button"
                 onClick={closeRegisterModal}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
               >
@@ -871,255 +1385,422 @@ export default function AdminEmployeesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
-              <div className="grid gap-4 md:grid-cols-[0.95fr_1.05fr]">
-                <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
-                  <p className="text-sm font-black text-[#123c8c]">
-                    Foto Wajah
-                  </p>
-
-                  <div className="mt-3 overflow-hidden rounded-2xl border border-blue-100 bg-black/90">
-                    {form.profilePhotoUrl ? (
-                      <img
-                        src={form.profilePhotoUrl}
-                        alt="Foto wajah"
-                        className="h-48 w-full object-cover"
-                      />
-                    ) : (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="h-48 w-full object-cover"
-                      />
-                    )}
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={toggleCamera}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c]"
-                    >
-                      {isCameraOn ? (
-                        <CameraOff size={14} />
-                      ) : (
-                        <Camera size={14} />
-                      )}
-                      {isCameraOn ? "Off Cam" : "On Cam"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={switchCamera}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c]"
-                    >
-                      <RefreshCw size={14} />
-                      Switch Cam
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={captureFromCamera}
-                      disabled={!isCameraOn}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c] disabled:opacity-40"
-                    >
-                      <Camera size={14} />
-                      Capture
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={retakePhoto}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c]"
-                    >
-                      <RefreshCw size={14} />
-                      Retake
-                    </button>
-                  </div>
-
-                  <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-black text-[#123c8c]">
-                    <Plus size={14} />
-                    Upload Manual
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfilePhotoUpload}
-                      className="hidden"
-                    />
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="mt-6 grid gap-4"
+            >
+              <AppFormReveal delay={20}>
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Full Name
                   </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <UserRound
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={form.name}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          name: event.target.value,
+                        }))
+                      }
+                      placeholder="Nama karyawan"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </AppFormReveal>
 
-                  {cameraError && (
-                    <p className="mt-2 text-xs font-bold text-rose-600">
-                      {cameraError}
-                    </p>
-                  )}
+              <AppFormReveal delay={40}>
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Email
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <Mail
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="text"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={form.email}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          email: event.target.value,
+                        }))
+                      }
+                      placeholder="employee@creativemu.co.id"
+                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </AppFormReveal>
+
+              <AppFormReveal delay={60} className="grid gap-4 md:grid-cols-5">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Kantor
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <MapPin
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.registered_office_id}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          registered_office_id: event.target.value,
+                          department_id: "",
+                          unit_id: "",
+                          position_id: "",
+                        }))
+                      }
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    >
+                      <option value="">Pilih Kantor</option>
+                      {activeOffices.map((office) => (
+                        <option key={office.id} value={office.id}>
+                          {office.name} - {office.address || "Tanpa alamat"}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Nama
-                    </label>
-                    <div className="relative">
-                      <UserRound
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        value={form.name}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            name: event.target.value,
-                          }))
-                        }
-                        placeholder="Nama karyawan"
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <Mail
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        type="email"
-                        value={form.email}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            email: event.target.value,
-                          }))
-                        }
-                        placeholder="employee@creativemu.com"
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Divisi
-                    </label>
-                    <div className="relative">
-                      <Building2
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        value={form.department}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            department: event.target.value,
-                          }))
-                        }
-                        placeholder="Digital Marketing"
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Jabatan
-                    </label>
-                    <div className="relative">
-                      <BriefcaseBusiness
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        value={form.position}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            position: event.target.value,
-                          }))
-                        }
-                        placeholder="Web Developer"
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Nomor Telepon
-                    </label>
-                    <div className="relative">
-                      <Phone
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        value={form.phone}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            phone: event.target.value,
-                          }))
-                        }
-                        placeholder="08xxxxxxxxxx"
-                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-black text-slate-700">
-                      Tipe Karyawan
-                    </label>
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Divisi
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <Network
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                     <select
-                      value={form.employeeCategory}
+                      value={form.department_id}
                       onChange={(event) =>
                         setForm((prev) => ({
                           ...prev,
-                          employeeCategory: event.target.value as
-                            | "magang"
-                            | "tetap",
+                          department_id: event.target.value,
+                          unit_id: "",
+                          position_id: "",
                         }))
                       }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                      disabled={!form.registered_office_id}
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
+                      <option value="">
+                        {form.registered_office_id
+                          ? "Pilih Divisi"
+                          : "Pilih Kantor dulu"}
+                      </option>
+                      {filteredDepartments.map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Jabatan
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <BriefcaseBusiness
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.position_id}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        const posObj = positions.find((p) => p.id === val);
+                        setForm((prev) => ({
+                          ...prev,
+                          position_id: val,
+                          unit_id: posObj?.unit_id || "",
+                        }));
+                      }}
+                      disabled={!form.department_id}
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">
+                        {form.department_id ? "Pilih Jabatan" : "Pilih Divisi dulu"}
+                      </option>
+                      {filteredPositions.map((position) => (
+                        <option key={position.id} value={position.id}>
+                          {position.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Posisi
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <Building2
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <select
+                      value={form.unit_id}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          unit_id: event.target.value,
+                        }))
+                      }
+                      disabled={!form.department_id}
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">
+                        {form.department_id
+                          ? "Pilih Posisi"
+                          : "Pilih Divisi dulu"}
+                      </option>
+                      {filteredUnits.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Shift Posisi
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
+                    <select
+                      value={form.employment_status}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          employment_status: event.target.value as any,
+                        }))
+                      }
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-4 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    >
+                      <option value="">Pilih Shift Posisi</option>
+                      <option value="kartap">Karyawan Tetap (Kartap)</option>
+                      <option value="kontrak">Kontrak</option>
                       <option value="magang">Magang</option>
-                      <option value="tetap">Karyawan Tetap</option>
+                      <option value="pkl">PKL</option>
                     </select>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
+                </div>
+              </AppFormReveal>
 
+              {form.registered_office_id && filteredDepartments.length === 0 ? (
+                <AppFormReveal delay={80}>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                    <p className="text-sm font-black text-amber-700">
+                      Divisi belum tersedia untuk kantor ini
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-700/80">
+                      Tambahkan Divisi terlebih dahulu dan hubungkan ke kantor
+                      yang dipilih.
+                    </p>
+                  </div>
+                </AppFormReveal>
+              ) : null}
+
+              {form.department_id && filteredUnits.length === 0 ? (
+                <AppFormReveal delay={80}>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                    <p className="text-sm font-black text-amber-700">
+                      Posisi belum tersedia untuk divisi ini
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-700/80">
+                      Tambahkan Posisi terlebih dahulu pada divisi yang dipilih.
+                    </p>
+                  </div>
+                </AppFormReveal>
+              ) : null}
+
+              {form.unit_id && filteredPositions.length === 0 ? (
+                <AppFormReveal delay={80}>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                    <p className="text-sm font-black text-amber-700">
+                      Jabatan belum tersedia untuk posisi ini
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-700/80">
+                      Tambahkan Jabatan terlebih dahulu pada posisi yang dipilih.
+                    </p>
+                  </div>
+                </AppFormReveal>
+              ) : null}
+
+
+
+
+
+                  <AppFormReveal delay={85} className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Tanggal Mulai {form.employment_status === "kartap" ? "Kerja" : "Magang / Kontrak / PKL"}
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="date"
+                          value={form.contract_start_date}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              contract_start_date: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+
+                    {form.employment_status && form.employment_status !== "kartap" && (
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">
+                          Tanggal Selesai Magang / Kontrak / PKL
+                        </label>
+                        <div className="app-field-smooth relative rounded-2xl">
+                          <input
+                            type="date"
+                            value={form.contract_end_date}
+                            onChange={(event) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                contract_end_date: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-sm font-black text-slate-700">
+                        Upload SK / Surat Kerja / Surat Kontrak
+                      </label>
+                      <div className="app-field-smooth relative rounded-2xl">
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  uploaded_document_url: reader.result as string,
+                                }));
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-2.5 px-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                        {form.uploaded_document_url && (
+                          <p className="mt-1 text-xs text-emerald-600 font-bold">
+                            ✓ File berhasil diproses
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </AppFormReveal>
+
+              <AppFormReveal delay={100} className="grid gap-4 md:grid-cols-2">
+                {!editingEmployee ? (
                   <div>
                     <label className="mb-2 block text-sm font-black text-slate-700">
-                      Status Payroll
+                      Password
                     </label>
-                    <select
-                      value={form.payrollStatus}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          payrollStatus: event.target.value as
-                            | "paid"
-                            | "unpaid",
-                        }))
-                      }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                    >
-                      <option value="unpaid">Belum Digaji</option>
-                      <option value="paid">Sudah Digaji</option>
-                    </select>
+                    <div className="app-field-smooth relative rounded-2xl">
+                      <KeyRound
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                      <input
+                        type="password"
+                        value={form.temporaryPassword}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            temporaryPassword: event.target.value,
+                          }))
+                        }
+                        placeholder="Minimal 8 karakter"
+                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
                   </div>
+                ) : null}
 
+                {!editingEmployee ? (
                   <div>
                     <label className="mb-2 block text-sm font-black text-slate-700">
-                      Status Akun
+                      Konfirmasi Password
                     </label>
+                    <div className="app-field-smooth relative rounded-2xl">
+                      <KeyRound
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                      <input
+                        type="password"
+                        value={form.confirmTemporaryPassword}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            confirmTemporaryPassword: event.target.value,
+                          }))
+                        }
+                        placeholder="Ulangi password"
+                        className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    Status
+                  </label>
+                  <div className="app-field-smooth relative rounded-2xl">
                     <select
                       value={form.status}
                       onChange={(event) =>
@@ -1128,155 +1809,37 @@ export default function AdminEmployeesPage() {
                           status: event.target.value as "active" | "inactive",
                         }))
                       }
-                      className="w-full rounded-2xl border border-blue-100 bg-[#f6f8ff] px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
+                      className="w-full appearance-none rounded-2xl border border-blue-100 bg-[#f6f8ff] py-3 pl-4 pr-10 text-sm font-bold text-slate-700 outline-none transition focus:border-[#123c8c] focus:bg-white focus:ring-4 focus:ring-blue-100"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                     </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="inline-flex items-center gap-2 text-sm font-black text-[#123c8c]">
-                            <CreditCard size={16} />
-                            Data Rekening
-                          </p>
-                          <p className="mt-1 text-xs font-semibold text-slate-500">
-                            Isi seperti kartu bank pada umumnya. Bisa tambah,
-                            edit, atau hapus kartu.
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={addPayrollMethod}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-black text-[#123c8c]"
-                        >
-                          <Plus size={14} />
-                          Tambah Kartu
-                        </button>
-                      </div>
-
-                      <div className="mt-3 space-y-3">
-                        {form.payrollMethods.map((method, index) => (
-                          <div
-                            key={`payroll-method-${index}`}
-                            className="rounded-2xl border border-blue-100 bg-white p-3"
-                          >
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#123c8c]">
-                                Kartu {index + 1}
-                              </p>
-
-                              <button
-                                type="button"
-                                onClick={() => removePayrollMethod(index)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-600"
-                              >
-                                <Trash2 size={12} />
-                                Hapus
-                              </button>
-                            </div>
-
-                            <div className="mt-2 grid gap-2 md:grid-cols-2">
-                              <input
-                                value={method.bankName}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "bankName",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="Nama Bank (BCA, BNI, Mandiri)"
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              />
-
-                              <select
-                                value={method.cardType}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "cardType",
-                                    event.target.value,
-                                  )
-                                }
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              >
-                                <option value="Debit">Debit</option>
-                                <option value="Visa">Visa</option>
-                                <option value="Mastercard">Mastercard</option>
-                                <option value="GPN">GPN</option>
-                              </select>
-
-                              <input
-                                value={method.accountNumber}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "accountNumber",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="Nomor Rekening"
-                                inputMode="numeric"
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              />
-
-                              <input
-                                value={method.accountHolderName}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "accountHolderName",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="Nama Pemilik Rekening"
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              />
-
-                              <input
-                                value={method.expiryMonth}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "expiryMonth",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="Bulan Exp (MM)"
-                                maxLength={2}
-                                inputMode="numeric"
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              />
-
-                              <input
-                                value={method.expiryYear}
-                                onChange={(event) =>
-                                  updatePayrollMethod(
-                                    index,
-                                    "expiryYear",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="Tahun Exp (YY)"
-                                maxLength={2}
-                                inputMode="numeric"
-                                className="w-full rounded-xl border border-blue-100 bg-[#f6f8ff] px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#123c8c] focus:bg-white"
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                   </div>
                 </div>
-              </div>
+              </AppFormReveal>
 
-              <div className="mt-2 flex flex-col-reverse gap-3 md:flex-row md:justify-end">
+              <AppFormReveal delay={120}>
+                <div className="rounded-2xl border border-blue-100 bg-[#f6f8ff] p-4">
+                  <p className="text-sm font-black text-[#123c8c]">
+                    Catatan Employee
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Kantor dipilih terlebih dahulu. Setelah itu sistem hanya
+                    menampilkan Divisi milik kantor tersebut. Unit mengikuti
+                    Divisi, Jabatan mengikuti Unit, sedangkan Shift tetap
+                    global.
+                  </p>
+                </div>
+              </AppFormReveal>
+
+              <AppFormReveal
+                delay={140}
+                className="mt-2 flex flex-col-reverse gap-3 md:flex-row md:justify-end"
+              >
                 <button
                   type="button"
                   onClick={closeRegisterModal}
@@ -1292,15 +1855,80 @@ export default function AdminEmployeesPage() {
                 >
                   {isSaving
                     ? "Saving..."
-                    : editingEmployeeId
+                    : editingEmployee
                       ? "Update Employee"
                       : "Save Employee"}
                 </button>
-              </div>
+              </AppFormReveal>
             </form>
+          </AppModalPanel>
+        </AppModalMotion>
+      )}
+
+      {employeeAlert && alertTheme ? (
+        <div
+          className={`employee-alert-enter fixed right-4 top-4 z-[9999] w-[calc(100vw-2rem)] max-w-md transition-all duration-300 ease-out md:right-7 md:top-7 ${
+            isAlertClosing
+              ? "translate-x-8 scale-95 opacity-0"
+              : "translate-x-0 scale-100 opacity-100"
+          }`}
+        >
+          <div
+            className={`overflow-hidden rounded-[2rem] border border-white/70 dark:border-[#21262d] bg-gradient-to-br ${alertTheme.shell} shadow-2xl shadow-slate-900/20 backdrop-blur-xl transition-all duration-300 ease-out ${
+              isAlertClosing
+                ? "translate-y-2 opacity-0"
+                : "translate-y-0 opacity-100"
+            }`}
+          >
+            <div className="relative p-5">
+              <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-orange-200/30 blur-3xl" />
+              <div className="absolute -right-12 -bottom-12 h-40 w-40 rounded-full bg-blue-300/30 blur-3xl" />
+
+              <div className="relative flex items-start gap-4">
+                <div
+                  className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${alertTheme.iconWrap} shadow-lg shadow-slate-300/40`}
+                >
+                  <AlertIcon size={32} strokeWidth={3} />
+                </div>
+
+                <div className="min-w-0 flex-1 pt-1">
+                  <div
+                    className={`inline-flex rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] ${alertTheme.badge}`}
+                  >
+                    {alertTheme.label}
+                  </div>
+
+                  <h3 className="mt-3 text-2xl font-black leading-tight text-slate-950 dark:text-white">
+                    {employeeAlert.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-400">
+                    {employeeAlert.message}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeEmployeeAlert}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-800 dark:bg-slate-800/70 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200 active:scale-[0.96]"
+                >
+                  <X size={22} strokeWidth={2.8} />
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-white/60 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/90 p-4">
+              <button
+                type="button"
+                onClick={closeEmployeeAlert}
+                className={`w-full rounded-2xl px-6 py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] ${alertTheme.button}`}
+              >
+                Mengerti
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <BottomNav variant="admin" />
     </MobileShell>

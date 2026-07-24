@@ -1,201 +1,1104 @@
 "use client";
 
-import { CalendarDays, Clock3, MapPin } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
+import {
+  CalendarDays,
+  ChevronRight,
+  Clock3,
+  History,
+  Loader2,
+  Search,
+  TimerReset,
+  Eye,
+  Printer,
+} from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
-import { useAppData } from "@/context/AppDataContext";
+import {
+  AppBadge,
+  AppButton,
+  AppCard,
+  AppEmptyState,
+  AppLoadingState,
+  AppSelect,
+} from "@/components/ui/AppUI";
 
-export default function HistoryPage() {
-  const { authUser, state } = useAppData();
+type AttendanceRecord = {
+  id: string;
+  date: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
+  lateMinutes: number;
+  earlyLeaveMinutes: number;
+  workMinutes: number;
+};
 
-  const histories = useMemo(() => {
-    if (!authUser) return [];
-    return state.attendance.filter((item) => item.employeeId === authUser.id);
-  }, [authUser, state.attendance]);
+function getStatusStyle(status: string) {
+  const normalized = String(status || "").toLowerCase();
 
+  if (
+    normalized === "present" ||
+    normalized === "hadir" ||
+    normalized.includes("masuk kerja")
+  ) {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  }
+
+  if (
+    normalized === "late" ||
+    normalized === "terlambat" ||
+    normalized.includes("cuti") ||
+    normalized.includes("sakit") ||
+    normalized.includes("izin") ||
+    normalized.includes("tidak")
+  ) {
+    return "bg-red-50 text-red-700 ring-red-100";
+  }
+
+  return "bg-slate-100 text-slate-600 ring-slate-200";
+}
+
+const months = [
+  { value: 1, label: "Januari" },
+  { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mei" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "Agustus" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Desember" },
+];
+
+const years = [2024, 2025, 2026, 2027];
+
+function formatDateLabel(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+  const weekday = new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(
+    parsedDate,
+  );
+  const day = new Intl.DateTimeFormat("id-ID", { day: "2-digit" }).format(
+    parsedDate,
+  );
+  const month = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(
+    parsedDate,
+  );
+
+  return `${weekday}, ${day} ${month}`;
+}
+
+function formatShortDate(date: string) {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatWorkDuration(minutes: number) {
+  if (!minutes || minutes <= 0) return "-";
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours}j ${remainingMinutes}m`;
+  }
+
+  if (hours > 0) return `${hours}j`;
+
+  return `${remainingMinutes}m`;
+}
+
+function getStatusVariant(
+  status: string,
+): "green" | "yellow" | "red" | "gray" | "blue" {
+  const value = status.toLowerCase();
+
+  if (
+    value.includes("terlambat") ||
+    value.includes("cuti") ||
+    value.includes("sakit") ||
+    value.includes("izin") ||
+    value.includes("tidak")
+  ) {
+    return "red";
+  }
+
+  if (value.includes("pulang cepat")) return "yellow";
+
+  return "green";
+}
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function HistoryMotionStyles() {
   return (
-    <MobileShell variant="employee">
-      <AppHeader
-        title="History"
-        subtitle="Riwayat absensi karyawan"
-        rightLabel={authUser?.id || "EMP"}
-      />
+    <style>{`
+      @keyframes historyEnter {
+        0% {
+          opacity: 0;
+          transform: translateY(14px);
+        }
 
-      <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 md:px-10 lg:px-16">
-        <div className="rounded-3xl bg-[#123c8c] p-6 text-white shadow-xl shadow-blue-900/20 md:p-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-              <CalendarDays size={26} strokeWidth={2.6} />
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes historyRowEnter {
+        0% {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes historyIconPop {
+        0% {
+          opacity: 0;
+          transform: scale(0.92) translateY(8px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      @keyframes historyFloatGlow {
+        0%,
+        100% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+
+        50% {
+          transform: translate3d(12px, -10px, 0) scale(1.04);
+        }
+      }
+
+      .history-enter {
+        animation: historyEnter 340ms ease-out both;
+      }
+
+      .history-row-enter {
+        opacity: 0;
+        animation: historyRowEnter 300ms ease-out both;
+      }
+
+      .history-icon-pop {
+        animation: historyIconPop 280ms ease-out both;
+      }
+
+      .history-float-glow {
+        animation: historyFloatGlow 6s ease-in-out infinite;
+      }
+
+      .history-field {
+        transition:
+          border-color 180ms ease,
+          background-color 180ms ease,
+          box-shadow 180ms ease,
+          transform 180ms ease;
+      }
+
+      .history-field:focus-within {
+        transform: translateY(-1px);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .history-enter,
+        .history-row-enter,
+        .history-icon-pop,
+        .history-float-glow {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+
+        .history-field:focus-within {
+          transform: none !important;
+        }
+      }
+    `}</style>
+  );
+}
+
+function HeroBadge({
+  children,
+  delay = "0ms",
+}: {
+  children: ReactNode;
+  delay?: string;
+}) {
+  return (
+    <span
+      className="history-row-enter rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20"
+      style={{ animationDelay: delay }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MobileHeader() {
+  return (
+    <section className="history-enter mx-auto max-w-7xl px-5 pt-7 pb-5 md:hidden">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-[#123c8c]">
+            FaceAttend
+          </p>
+
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073456] dark:text-white">
+            Laporan Presensi
+          </h1>
+        </div>
+
+        <div className="history-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#123c8c] text-white ring-1 ring-[#123c8c]">
+          <History size={24} strokeWidth={2.6} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DesktopHero({
+  monthLabel,
+  year,
+  total,
+  sort,
+}: {
+  monthLabel: string;
+  year: number;
+  total: number;
+  sort: "desc" | "asc";
+}) {
+  return (
+    <section className="mx-auto hidden max-w-7xl px-10 pt-8 md:block lg:px-16">
+      <div className="history-enter relative overflow-hidden rounded-[2.2rem] bg-[#123c8c] p-8 text-white shadow-2xl shadow-blue-900/25">
+        <div className="history-float-glow absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
+        <div className="history-float-glow absolute bottom-[-7rem] right-24 h-60 w-60 rounded-full bg-blue-300/10" />
+
+        <div className="relative z-10 flex items-center justify-between gap-8">
+          <div className="flex items-center gap-5">
+            <div className="history-icon-pop flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.6rem] bg-white/15 text-white ring-1 ring-white/20">
+              <History size={38} strokeWidth={2.5} />
             </div>
 
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-100">
-                Attendance Log
-              </p>
-              <h2 className="mt-1 text-3xl font-black tracking-tight md:text-4xl">
-                Riwayat Kehadiran
-              </h2>
+              <h1 className="text-4xl font-black tracking-tight">
+                Riwayat Presensi
+              </h1>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <HeroBadge delay="80ms">
+                  {monthLabel} {year}
+                </HeroBadge>
+                <HeroBadge delay="120ms">{total} Data</HeroBadge>
+                <HeroBadge delay="160ms">
+                  {sort === "desc" ? "Terbaru" : "Terlama"}
+                </HeroBadge>
+              </div>
             </div>
           </div>
 
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-blue-100">
-            Pantau riwayat check-in dan check-out yang sudah tercatat pada
-            sistem absensi, termasuk bukti foto dan GPS.
+          <div className="history-icon-pop flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/80 ring-1 ring-white/20">
+            <CalendarDays size={28} strokeWidth={2.4} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  large = false,
+  delay = "0ms",
+}: {
+  label: string;
+  value: ReactNode;
+  large?: boolean;
+  delay?: string;
+}) {
+  return (
+    <div className="history-row-enter" style={{ animationDelay: delay }}>
+      <AppCard
+        padding="sm"
+        className="rounded-3xl bg-[#f8fbff] shadow-none transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-slate-200/60"
+      >
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+          {label}
+        </p>
+
+        <p
+          className={cn(
+            "mt-2 font-black text-slate-950",
+            large ? "truncate text-lg md:text-2xl" : "text-2xl",
+          )}
+        >
+          {value}
+        </p>
+      </AppCard>
+    </div>
+  );
+}
+
+function FilterCard({
+  month,
+  year,
+  sort,
+  monthLabel,
+  isLoading,
+  onMonthChange,
+  onYearChange,
+  onSortChange,
+  onApply,
+}: {
+  month: number;
+  year: number;
+  sort: "desc" | "asc";
+  monthLabel: string;
+  isLoading: boolean;
+  onMonthChange: (value: number) => void;
+  onYearChange: (value: number) => void;
+  onSortChange: (value: "desc" | "asc") => void;
+  onApply: () => void;
+}) {
+  return (
+    <AppCard
+      padding="md"
+      className="history-enter rounded-[1.8rem] shadow-none md:p-6"
+    >
+      <div className="flex items-center gap-4">
+        <div className="history-icon-pop flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+          <CalendarDays size={24} strokeWidth={2.6} />
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#123c8c]">
+            Filter Riwayat
+          </p>
+
+          <h2 className="mt-1 text-base font-black text-slate-950 md:text-lg">
+            {monthLabel} {year}
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="history-field">
+          <AppSelect
+            value={month}
+            onChange={(event) => onMonthChange(Number(event.target.value))}
+            className="!mt-0 h-13 md:h-14"
+          >
+            {months.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </AppSelect>
+        </div>
+
+        <div className="history-field">
+          <AppSelect
+            value={year}
+            onChange={(event) => onYearChange(Number(event.target.value))}
+            className="!mt-0 h-13 md:h-14"
+          >
+            {years.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </AppSelect>
+        </div>
+
+        <div className="history-field">
+          <AppSelect
+            value={sort}
+            onChange={(event) =>
+              onSortChange(event.target.value as "desc" | "asc")
+            }
+            className="!mt-0 h-13 md:h-14"
+          >
+            <option value="desc">Terbaru</option>
+            <option value="asc">Terlama</option>
+          </AppSelect>
+        </div>
+
+        <AppButton
+          type="button"
+          onClick={onApply}
+          disabled={isLoading}
+          className="h-13 md:h-14"
+          leftIcon={
+            isLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Search size={18} />
+            )
+          }
+        >
+          Terapkan
+        </AppButton>
+      </div>
+    </AppCard>
+  );
+}
+
+function AttendanceRecordCard({
+  item,
+  delay = "0ms",
+}: {
+  item: AttendanceRecord;
+  delay?: string;
+}) {
+  const formattedDate = formatDateLabel(item.date);
+  const statusStyle = getStatusStyle(item.status);
+
+  return (
+    <Link
+      key={item.id}
+      href={`/history/${item.id}`}
+      className="history-row-enter group block rounded-[1.6rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-[#161b22] px-4 py-4 shadow-sm shadow-slate-200/60 transition duration-200 hover:-translate-y-0.5 hover:border-[#123c8c]/30 hover:bg-[#fbfdff] dark:hover:bg-[#1c212a] hover:shadow-xl hover:shadow-slate-300/40 active:scale-[0.99] md:px-5"
+      style={{
+        animationDelay: delay,
+      }}
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Left: Date Info */}
+        <div className="flex min-w-0 items-center gap-3 md:w-[260px]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf1ff] text-[#123c8c]">
+            <CalendarDays size={22} strokeWidth={2.6} />
+          </div>
+
+          <div className="min-w-0">
+            <h4 className="truncate text-base font-black text-slate-950">
+              {formattedDate}
+            </h4>
+
+            <p className="mt-1 truncate text-xs font-bold text-slate-400">
+              ID: {item.id}
+            </p>
+          </div>
+        </div>
+
+        {/* Middle: Check-in / Check-out Times */}
+        <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 md:w-[260px]">
+          <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+            <p className="text-slate-400">Masuk</p>
+            <p className="mt-1 font-black text-slate-800">{item.checkIn}</p>
+          </div>
+
+          <div className="rounded-2xl bg-[#f8fbff] px-4 py-3">
+            <p className="text-slate-400">Keluar</p>
+            <p className="mt-1 font-black text-slate-800">{item.checkOut}</p>
+          </div>
+        </div>
+
+        {/* Right: Duration and Status Badge */}
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-[#123c8c]">
+            {formatWorkDuration(item.workMinutes)}
+          </span>
+
+          <span
+            className={`rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusStyle}`}
+          >
+            {item.status}
+          </span>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-start md:w-[220px] md:justify-end">
+          <span className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-[#123c8c] transition group-hover:bg-[#eaf1ff]">
+            <Eye size={15} />
+            Lihat detail
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function CalendarView({
+  records,
+  month,
+  year,
+}: {
+  records: AttendanceRecord[];
+  month: number;
+  year: number;
+}) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDayIndexRaw = new Date(year, month - 1, 1).getDay();
+  const firstDayIndex = firstDayIndexRaw === 0 ? 6 : firstDayIndexRaw - 1;
+
+  const weekdays = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+  const calendarDays = [];
+  for (let i = 0; i < firstDayIndex; i++) {
+    calendarDays.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarDays.push(d);
+  }
+
+  return (
+    <div className="rounded-[2rem] border border-blue-50 bg-[#f8fbff] p-4 md:p-6 shadow-sm">
+      <div className="grid grid-cols-7 gap-2 mb-4 text-center">
+        {weekdays.map((day) => (
+          <div
+            key={day}
+            className="text-xs font-black text-slate-400 py-1 uppercase tracking-wider"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-2 md:gap-3">
+        {calendarDays.map((day, idx) => {
+          if (day === null) {
+            return (
+              <div
+                key={`empty-${idx}`}
+                className="aspect-square bg-transparent"
+              />
+            );
+          }
+
+          const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const record = records.find((r) => r.date === dateKey);
+
+          let bgClass =
+            "bg-white text-slate-700 hover:bg-slate-50 border border-slate-100";
+          let statusLabel = "";
+
+          if (record) {
+            const status = String(record.status || "").toLowerCase();
+            if (status.includes("hadir") || status === "present") {
+              bgClass =
+                "bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/10";
+              statusLabel = "Hadir";
+            } else if (status.includes("terlambat") || status === "late") {
+              bgClass =
+                "bg-orange-500 text-white hover:bg-orange-600 shadow-md shadow-orange-500/10";
+              statusLabel = "Telat";
+            } else if (
+              status.includes("cuti") ||
+              status.includes("sakit") ||
+              status.includes("izin")
+            ) {
+              bgClass =
+                "bg-purple-500 text-white hover:bg-purple-600 shadow-md shadow-purple-500/10";
+              statusLabel = "Cuti/Izin";
+            } else {
+              bgClass =
+                "bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/10";
+              statusLabel = "Absen";
+            }
+          }
+
+          const content = (
+            <div className="flex flex-col h-full justify-between p-2">
+              <span className="text-sm font-black">{day}</span>
+              {record && (
+                <span className="hidden sm:inline text-[9px] font-black uppercase tracking-wider opacity-90 truncate">
+                  {statusLabel || record.checkIn}
+                </span>
+              )}
+            </div>
+          );
+
+          if (record) {
+            return (
+              <Link
+                key={dateKey}
+                href={`/history/${record.id}`}
+                className={`aspect-square rounded-2xl transition cursor-pointer select-none ${bgClass}`}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <div
+              key={dateKey}
+              className={`aspect-square rounded-2xl transition ${bgClass}`}
+            >
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HistoryContent({
+  isLoading,
+  records,
+  monthLabel,
+  year,
+}: {
+  isLoading: boolean;
+  records: AttendanceRecord[];
+  monthLabel: string;
+  year: number;
+}) {
+  if (isLoading) {
+    return (
+      <div className="history-row-enter">
+        <AppLoadingState text="Memuat riwayat absensi..." />
+      </div>
+    );
+  }
+
+  if (!records.length) {
+    return (
+      <div className="history-row-enter">
+        <AppEmptyState
+          icon={<CalendarDays size={28} strokeWidth={2.6} />}
+          title="Belum ada data absensi"
+          description={`Data absensi untuk periode ${monthLabel} ${year} belum tersedia.`}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {records.map((item, index) => (
+        <AttendanceRecordCard
+          key={item.id}
+          item={item}
+          delay={`${index * 45}ms`}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function HistoryPage() {
+  const today = new Date();
+
+  const [month, setMonth] = useState(today.getMonth() + 1);
+  const [year, setYear] = useState(today.getFullYear());
+  const [sort, setSort] = useState<"desc" | "asc">("desc");
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/profile", { cache: "no-store" });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setProfile(data.user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void fetchProfile();
+  }, []);
+
+  const currentMonthLabel = useMemo(
+    () => months.find((item) => item.value === month)?.label || "",
+    [month],
+  );
+
+  async function getHistory() {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(
+        `/api/attendance/history?month=${month}&year=${year}&sort=${sort}`,
+        { method: "GET", cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        setRecords([]);
+        return;
+      }
+
+      const data = await response.json();
+
+      setRecords(data.records || []);
+    } catch (error) {
+      console.error("Gagal mengambil history:", error);
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const countStats = useMemo(() => {
+    const hadir = records.filter((a) => {
+      const s = String(a.status || "").toLowerCase();
+      return (
+        s.includes("hadir") ||
+        s.includes("present") ||
+        s.includes("on_time") ||
+        s === "on_time"
+      );
+    }).length;
+
+    const telat = records.filter((a) => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("lambat") || s.includes("late");
+    }).length;
+
+    const cuti = records.filter((a) => {
+      const s = String(a.status || "").toLowerCase();
+      return s.includes("cuti");
+    }).length;
+
+    const izinSakit = records.filter((a) => {
+      const s = String(a.status || "").toLowerCase();
+      return (
+        s.includes("sakit") || s.includes("izin") || s.includes("permission")
+      );
+    }).length;
+
+    return { hadir, telat, cuti, izinSakit };
+  }, [records]);
+
+  useEffect(() => {
+    void getHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month, year, sort]);
+
+  return (
+    <MobileShell variant="employee" withBottomPadding={false}>
+      <HistoryMotionStyles />
+
+      <div className="print:hidden">
+        <div className="hidden md:block">
+          <AppHeader
+            title="Riwayat Presensi"
+            subtitle="Riwayat absensi karyawan"
+            rightLabel={`${currentMonthLabel} ${year}`}
+            variant="employee"
+          />
+        </div>
+
+        <main className="min-h-dvh bg-gradient-to-br from-[#f6f8ff] via-white to-[#eef4ff] dark:from-[#0d1117] dark:via-[#161b22] dark:to-[#0d1117] pb-28 text-slate-950 dark:text-white">
+          <MobileHeader />
+
+          <DesktopHero
+            monthLabel={currentMonthLabel}
+            year={year}
+            total={records.length}
+            sort={sort}
+          />
+
+          <section className="history-enter mx-auto max-w-7xl rounded-t-[2.5rem] bg-white dark:bg-[#161b22] px-5 pb-10 pt-8 mt-3 md:mt-8 md:rounded-[2.5rem] md:px-8 lg:px-10">
+            <FilterCard
+              month={month}
+              year={year}
+              sort={sort}
+              monthLabel={currentMonthLabel}
+              isLoading={isLoading}
+              onMonthChange={setMonth}
+              onYearChange={setYear}
+              onSortChange={setSort}
+              onApply={getHistory}
+            />
+
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl border border-emerald-100 dark:border-emerald-950/20 bg-emerald-50 dark:bg-emerald-950/10 p-4 text-center">
+                <p className="text-xs font-black text-emerald-800 dark:text-emerald-400">
+                  Hadir
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-450">
+                  {countStats.hadir}
+                </h4>
+              </div>
+              <div className="rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50 dark:bg-amber-950/10 p-4 text-center">
+                <p className="text-xs font-black text-amber-800 dark:text-amber-400">
+                  Telat
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-450">
+                  {countStats.telat}
+                </h4>
+              </div>
+              <div className="rounded-2xl border border-blue-100 dark:border-blue-950/20 bg-blue-50 dark:bg-blue-950/10 p-4 text-center">
+                <p className="text-xs font-black text-blue-800 dark:text-blue-400">
+                  Cuti
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-450">
+                  {countStats.cuti}
+                </h4>
+              </div>
+              <div className="rounded-2xl border border-yellow-100 dark:border-yellow-950/20 bg-yellow-50 dark:bg-yellow-950/10 p-4 text-center">
+                <p className="text-xs font-black text-yellow-800 dark:text-yellow-400">
+                  Izin / Sakit
+                </p>
+                <h4 className="mt-2 text-2xl font-black text-yellow-600 dark:text-yellow-450">
+                  {countStats.izinSakit}
+                </h4>
+              </div>
+            </div>
+
+            {/* Toggle View Mode */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
+                  viewMode === "list"
+                    ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                    : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-350 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
+                }`}
+              >
+                Tampilan Daftar
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`rounded-2xl px-4 py-2.5 text-xs font-black transition-all ${
+                  viewMode === "calendar"
+                    ? "bg-[#123c8c] text-white shadow-md shadow-blue-900/10"
+                    : "bg-[#f8fbff] dark:bg-slate-900 text-slate-600 dark:text-slate-350 border border-blue-50 dark:border-slate-800 hover:bg-blue-50/50"
+                }`}
+              >
+                Tampilan Kalender
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="rounded-2xl px-4 py-2.5 text-xs font-black bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-850 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/15"
+              >
+                <Printer size={13} strokeWidth={2.5} />
+                Cetak Laporan PDF
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {viewMode === "list" ? (
+                <HistoryContent
+                  isLoading={isLoading}
+                  records={records}
+                  monthLabel={currentMonthLabel}
+                  year={year}
+                />
+              ) : (
+                <CalendarView records={records} month={month} year={year} />
+              )}
+            </div>
+          </section>
+
+          <BottomNav />
+        </main>
+      </div>
+
+      {/* DEDICATED EXCEL/CORPORATE STYLE PRINT TEMPLATE */}
+      <div id="print-area-history" className="hidden print:block p-8 bg-white text-black font-sans text-sm">
+        <style jsx global>{`
+          @media print {
+            body {
+              visibility: hidden !important;
+              background: #ffffff !important;
+            }
+            #print-area-history,
+            #print-area-history * {
+              visibility: visible !important;
+            }
+            #print-area-history {
+              display: block !important;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              z-index: 999999 !important;
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 20px !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+          }
+        `}</style>
+        {/* KOP SURAT PERUSAHAAN */}
+        <div className="border-b-4 border-[#123c8c] pb-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-[#123c8c] text-white flex items-center justify-center font-black text-xl">
+                FA
+              </div>
+              <div>
+                <h1 className="text-lg font-black text-[#123c8c] uppercase tracking-wide">
+                  PT CREATIVEMU INDONESIA
+                </h1>
+                <p className="text-[11px] font-semibold text-slate-600">
+                  Sistem Informasi SDM & Presensi Digital FaceAttend
+                </p>
+                <p className="text-[9px] text-slate-500">
+                  Jl. Raya Utama No. 88, Jakarta | Email: hr@creativemu.co.id | Telp: (021) 555-0199
+                </p>
+              </div>
+            </div>
+            <div className="text-right border-l-2 border-slate-200 pl-4">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-[#123c8c] text-[10px] font-black rounded-full uppercase tracking-wider mb-1">
+                Laporan Kehadiran
+              </span>
+              <p className="text-[10px] font-bold text-slate-500">
+                Dokumen Resmi Presensi
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-black uppercase tracking-wide">
+            LAPORAN KEHADIRAN RESMI KARYAWAN
+          </h2>
+          <p className="text-xs font-bold text-slate-600 mt-0.5">
+            Periode: {currentMonthLabel} {year}
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {histories.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#123c8c]">
-                    {item.status}
-                  </p>
+        <table className="w-full mb-6 text-xs">
+          <tbody>
+            <tr>
+              <td className="py-1 font-bold w-1/3">Nama Lengkap Karyawan</td>
+              <td className="py-1">: {profile?.name || "-"}</td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Nomor Induk Kependudukan (NIK)</td>
+              <td className="py-1">: {profile?.nik || "-"}</td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Jabatan / Divisi / Unit</td>
+              <td className="py-1">
+                : {profile?.position?.name || "-"} /{" "}
+                {profile?.department?.name || "-"} /{" "}
+                {profile?.unit?.name || "-"}
+              </td>
+            </tr>
+            <tr>
+              <td className="py-1 font-bold">Status Keanggotaan</td>
+              <td className="py-1">
+                : {profile?.employment_status?.toUpperCase() || "-"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-                  <h3 className="mt-2 font-black text-slate-950">
-                    {item.date}
-                  </h3>
-                </div>
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">
+          I. Ringkasan Presensi Bulanan
+        </h3>
+        <table className="w-full border-collapse border border-slate-400 mb-6 text-center text-xs">
+          <thead>
+            <tr className="bg-slate-100 font-bold">
+              <th className="border border-slate-400 py-1.5">Hadir Kerja</th>
+              <th className="border border-slate-400 py-1.5">Terlambat</th>
+              <th className="border border-slate-400 py-1.5">Cuti Berbayar</th>
+              <th className="border border-slate-400 py-1.5">
+                Izin / Sakit Resmi
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="font-bold">
+              <td className="border border-slate-400 py-2">
+                {countStats.hadir}
+              </td>
+              <td className="border border-slate-400 py-2 text-amber-600">
+                {countStats.telat}
+              </td>
+              <td className="border border-slate-400 py-2 text-blue-600">
+                {countStats.cuti}
+              </td>
+              <td className="border border-slate-400 py-2 text-yellow-600">
+                {countStats.izinSakit}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-black ${
-                    item.status === "Present"
-                      ? "bg-[#eaf1ff] text-[#123c8c]"
-                      : item.status === "WFH"
-                        ? "bg-amber-50 text-amber-700"
-                        : item.status === "Cuti"
-                          ? "bg-violet-50 text-violet-700"
-                          : "bg-slate-100 text-slate-600"
-                  }`}
-                >
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 border-b border-slate-350 pb-1">
+          II. Rincian Harian Kehadiran
+        </h3>
+        <table className="w-full border-collapse border border-slate-400 text-[10px]">
+          <thead>
+            <tr className="bg-slate-100 font-bold">
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Tanggal
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Jam Check-In
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Jam Check-Out
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Terlambat (Menit)
+              </th>
+              <th className="border border-slate-400 px-3 py-1.5 text-left">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((item) => (
+              <tr key={item.id}>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.date}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.checkIn}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.checkOut}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5">
+                  {item.lateMinutes ? `${item.lateMinutes} m` : "-"}
+                </td>
+                <td className="border border-slate-400 px-3 py-1.5 font-bold">
                   {item.status}
-                </span>
-              </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
-                  Mode: {item.workMode || "onsite"}
-                </span>
-                {item.leaveType && (
-                  <span className="rounded-full bg-[#eaf1ff] px-3 py-1 text-[11px] font-black text-[#123c8c]">
-                    Surat: {item.leaveType}
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-5 grid gap-3">
-                <div className="flex items-center gap-3 rounded-2xl bg-[#f6f8ff] p-4">
-                  <Clock3 size={21} className="text-[#123c8c]" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-500">Check-in</p>
-                    <p className="text-sm font-black text-slate-950">
-                      {item.checkIn || "-"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 rounded-2xl bg-[#f6f8ff] p-4">
-                  <Clock3 size={21} className="text-[#123c8c]" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-500">
-                      Check-out
-                    </p>
-                    <p className="text-sm font-black text-slate-950">
-                      {item.checkOut || "-"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-[#f6f8ff] p-4">
-                  <div className="mb-2 flex items-center gap-2 text-[#123c8c]">
-                    <MapPin size={18} />
-                    <p className="text-xs font-black uppercase tracking-[0.18em]">
-                      GPS
-                    </p>
-                  </div>
-
-                  <p className="text-xs font-semibold text-slate-600">
-                    Check-in: {item.checkInLatitude ?? "-"},{" "}
-                    {item.checkInLongitude ?? "-"}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-slate-600">
-                    Check-out: {item.checkOutLatitude ?? "-"},{" "}
-                    {item.checkOutLongitude ?? "-"}
-                  </p>
-                </div>
-
-                {(item.checkInPhotoUrl || item.checkOutPhotoUrl) && (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl bg-[#f6f8ff] p-3">
-                      <p className="mb-2 text-xs font-bold text-slate-500">
-                        Foto Check-in
-                      </p>
-                      {item.checkInPhotoUrl ? (
-                        <img
-                          src={item.checkInPhotoUrl}
-                          alt="Foto check-in"
-                          className="h-28 w-full rounded-xl object-cover"
-                        />
-                      ) : (
-                        <p className="text-xs font-semibold text-slate-500">
-                          Belum ada foto
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="rounded-2xl bg-[#f6f8ff] p-3">
-                      <p className="mb-2 text-xs font-bold text-slate-500">
-                        Foto Check-out
-                      </p>
-                      {item.checkOutPhotoUrl ? (
-                        <img
-                          src={item.checkOutPhotoUrl}
-                          alt="Foto check-out"
-                          className="h-28 w-full rounded-xl object-cover"
-                        />
-                      ) : (
-                        <p className="text-xs font-semibold text-slate-500">
-                          Belum ada foto
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {item.leaveLetterUrl && (
-                  <div className="rounded-2xl border border-blue-100 bg-white p-4">
-                    <p className="text-xs font-bold text-slate-500">
-                      Surat Cuti/Sakit
-                    </p>
-                    <a
-                      href={item.leaveLetterUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex rounded-xl bg-[#123c8c] px-3 py-1.5 text-xs font-black text-white"
-                    >
-                      Lihat Surat
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {histories.length === 0 && (
-            <div className="rounded-3xl border border-white/70 bg-white/90 p-6 text-sm font-semibold text-slate-500 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
-              Belum ada riwayat absensi.
-            </div>
-          )}
+        <div className="grid grid-cols-2 gap-12 text-center text-xs pt-12 mt-8">
+          <div>
+            <p>Hormat Kami (Karyawan),</p>
+            <div className="h-16" />
+            <p className="font-bold underline">
+              {profile?.name || "........................"}
+            </p>
+          </div>
+          <div>
+            <p>HRD / Verifikator Kantor,</p>
+            <div className="h-16" />
+            <p className="font-bold underline">
+              ......................................
+            </p>
+          </div>
         </div>
-      </section>
-
-      <BottomNav />
+      </div>
     </MobileShell>
   );
 }

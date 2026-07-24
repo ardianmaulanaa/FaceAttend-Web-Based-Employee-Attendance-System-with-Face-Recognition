@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
+@import "leaflet/dist/leaflet.css";
+
 
 :root {
   --background: #f6f8ff;
@@ -7,6 +10,13 @@
   --primary-dark: #0b2358;
   --accent: #ff8a00;
   --muted: #64748b;
+  --pie-filled: #123c8c;
+  --pie-remaining: #dbeafe;
+}
+
+.dark {
+  --pie-filled: #388bfd !important;
+  --pie-remaining: #21262d !important;
 }
 
 * {
@@ -21,7 +31,11 @@
 html {
   width: 100%;
   max-width: 100%;
-  min-height: 100%;
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: none;
+  background-color: #eef3ff !important;
   background:
     radial-gradient(
       circle at top left,
@@ -33,33 +47,20 @@ html {
       rgba(18, 60, 140, 0.2),
       transparent 32%
     ),
-    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
+    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%) !important;
   scroll-behavior: smooth;
-  overscroll-behavior-y: none;
-  overflow-x: auto;
 }
 
 body {
   width: 100%;
   max-width: 100%;
-  min-height: 100%;
-  min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(255, 138, 0, 0.18),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at top right,
-      rgba(18, 60, 140, 0.2),
-      transparent 32%
-    ),
-    linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%);
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow: visible !important;
+  background: transparent !important;
+  background-color: transparent !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overscroll-behavior-y: none;
-  overflow-x: auto;
 }
 
 main,
@@ -94,9 +95,11 @@ input {
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-8px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -106,9 +109,11 @@ input {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -134,11 +139,11 @@ input {
   }
 
   45% {
-    width: 16ch;
+    width: 19ch;
   }
 
   70% {
-    width: 16ch;
+    width: 19ch;
   }
 
   100% {
@@ -157,18 +162,24 @@ input {
   }
 }
 
-@keyframes gradientMove {
-  0% {
-    background-position: 0% 50%;
-  }
+/* Animasi khusus heading Smart Attendance */
+.animated-title {
+  animation: floatText 3.5s ease-in-out infinite;
+}
 
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+.gradient-title {
+  background: linear-gradient(
+    90deg,
+    #0f172a,
+    #123c8c,
+    #ff8a00,
+    #0f172a
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 5s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .typewriter-title {
@@ -186,7 +197,864 @@ input {
   color: transparent;
 
   animation:
-    typingTitle 5s steps(16, end) infinite,
+    typingTitle 5s steps(19, end) infinite,
     blinkCursor 0.8s step-end infinite,
     gradientMove 5s ease infinite;
 }
+
+/* Force smooth sliding transition for the sidebar drawer (supports modern translate and legacy transform properties) */
+aside {
+  transition: 
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    translate 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ==========================================================
+   PREMIUM DARK MODE DESIGN SYSTEM & CONFIGURATION
+   ========================================================== */
+
+.dark, :root.dark {
+  --background: #0d1117;
+  --foreground: #c9d1d9;
+  --primary: #1f6feb;
+  --primary-dark: #0b2358;
+  --accent: #f0883e;
+  --muted: #8b949e;
+  --border-color: #30363d;
+  --card-bg: #161b22;
+  --bg-slate-50: #161b22;
+
+  --bg-gradient: radial-gradient(
+      circle at top left,
+      rgba(240, 136, 62, 0.08),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(88, 166, 255, 0.09),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(99, 102, 241, 0.04),
+      transparent 50%
+    ),
+    linear-gradient(180deg, #0d1117 0%, #090c10 100%);
+}
+
+html.dark {
+  background: var(--bg-gradient) !important;
+  background-color: var(--background) !important;
+}
+.dark body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+
+.dark ::selection {
+  background: #1f6feb;
+  color: white;
+}
+
+.dark .typewriter-title {
+  background: linear-gradient(90deg, #ffffff, #58a6ff, #f0883e, #ffffff) !important;
+  background-size: 300% 300% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  border-right: 4px solid var(--accent) !important;
+}
+
+/* ==========================================================
+   SIDEBAR DRAWER ANIMATION (Custom CSS classes for guaranteed smooth slide)
+   ========================================================== */
+
+.sidebar-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  background-color: rgba(2, 6, 23, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.sidebar-backdrop.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.sidebar-drawer {
+  transform: translateX(-100%) !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform !important;
+}
+
+.sidebar-drawer.open {
+  transform: translateX(0%) !important;
+}
+
+
+/* ==========================================================
+   HIGH-CONTRAST & PREMIUM DARK MODE SELECTOR OVERRIDES
+   ========================================================== */
+
+/* Make outer page wrappers transparent to let MobileShell watermark show through in card paddings/gaps */
+[class*="bg-[#f6f8ff]"]:not(.app-card):not(button),
+[class*="bg-[#f8fbff]"]:not(.app-card):not(button),
+main:not(.app-card) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.dark [class*="bg-[#f6f8ff]"]:not(.app-card):not(button),
+.dark [class*="bg-[#f8fbff]"]:not(.app-card):not(button),
+.dark main {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+
+/* Glassmorphism Cards & Panels (Restored to Clean, Low-Contrast Muted Borders) */
+.dark .bg-white:not(aside):not(header):not(button):not(.keep-white),
+.dark [class*="bg-white"]:not(button):not(header):not(aside):not(.keep-white):not([class*="keep-white"]) {
+  background-color: #161b22 !important;
+  border: 1px solid #21262d !important;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Premium low-glare hover state with subtle modern glow */
+.dark .bg-white:not(aside):not(header):not(button):hover,
+.dark [class*="bg-white"]:not(button):not(aside):not(header):hover {
+  border-color: rgba(56, 139, 253, 0.3) !important;
+  box-shadow: 
+    0 12px 35px -8px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(56, 139, 253, 0.08) !important;
+  transform: translateY(-2px);
+}
+
+/* Explicit keep-white containers for specific logos (e.g. login/splash pages) */
+.dark .keep-white,
+.dark [class*="keep-white"] {
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Force slate backgrounds to be dark in dark mode */
+.dark .bg-slate-50, .dark [class*="bg-slate-50"]:not(.keep-white) {
+  background-color: #161b22 !important;
+}
+.dark .bg-slate-100, .dark [class*="bg-slate-100"]:not(.keep-white) {
+  background-color: #21262d !important;
+}
+.dark .bg-slate-200, .dark [class*="bg-slate-200"]:not(.keep-white) {
+  background-color: #30363d !important;
+}
+
+/* Force slate borders to be dark in dark mode */
+.dark .border-slate-50, .dark [class*="border-slate-50"] {
+  border-color: #21262d !important;
+}
+.dark .border-slate-100, .dark [class*="border-slate-100"] {
+  border-color: #21262d !important;
+}
+.dark .border-slate-200, .dark [class*="border-slate-200"] {
+  border-color: #30363d !important;
+}
+
+/* Ensure text on slate-colored buttons changes to light in dark mode */
+.dark button[class*="bg-slate-"],
+.dark [type="button"][class*="bg-slate-"],
+.dark button[class*="bg-gray-"],
+.dark [type="button"][class*="bg-gray-"] {
+  color: #c9d1d9 !important;
+}
+
+/* Disabled buttons premium dark mode styling */
+.dark button:disabled,
+.dark [type="button"]:disabled {
+  opacity: 0.55 !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #c9d1d9 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
+/* Muted primary text colors (No glows or high-contrast gradients) */
+.dark [class*="text-[#123c8c]"]:not(h1):not(h2):not(h3):not(button):not(a):not([type="button"]):not(.app-button) {
+  color: #58a6ff !important;
+}
+
+.dark h1:not(.typewriter-title),
+.dark h2:not(.typewriter-title):not(.gradient-title),
+.dark h3:not(.typewriter-title) {
+  color: #f0f6fc !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+.dark [class*="bg-[#123c8c]"]:not(button):not(a):not([type="button"]):not(.app-button) {
+  background-color: #1f6feb !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.dark [class*="bg-[#123c8c]"]:not(button):not(a):not(span) {
+  background: linear-gradient(135deg, #102a6b 0%, #08163e 100%) !important;
+  border: 1px solid #1a3a8a !important;
+  box-shadow: 0 10px 30px -10px rgba(18, 60, 140, 0.4) !important;
+}
+
+.dark [class*="hover:bg-[#0f347a]"]:hover {
+  background-color: #388bfd !important;
+}
+
+/* Secondary/Soft Badges and Links */
+.dark [class*="bg-[#eaf1ff]"] {
+  background-color: #21262d !important;
+  color: #58a6ff !important;
+}
+
+.dark [class*="hover:bg-blue-50"]:hover {
+  background-color: #30363d !important;
+  color: #58a6ff !important;
+}
+
+/* Interactive hover color response for dashboard metric cards */
+.dark [class*="hover:bg-white"]:hover,
+.dark .hover\:bg-white:hover {
+  background-color: #161b22 !important;
+  border-color: rgba(56, 139, 253, 0.3) !important;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Forms & Fields — enhanced contrast and hover glow for dark mode */
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #0d1117 !important;
+  color: #e6edf3 !important;
+  border: 1.5px solid #30363d !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #6e7681 !important;
+}
+
+.dark input:hover, 
+.dark select:hover, 
+.dark textarea:hover {
+  border-color: #58a6ff !important;
+  box-shadow: 0 0 12px rgba(56, 139, 253, 0.15), 0 0 4px rgba(56, 139, 253, 0.1) !important;
+  background-color: #0d1117 !important;
+}
+
+.dark input:focus, 
+.dark select:focus, 
+.dark textarea:focus,
+.dark .login-field-smooth input:focus {
+  border-color: #58a6ff !important;
+  background-color: #090c10 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.2), 0 0 15px rgba(56, 139, 253, 0.1) !important;
+  outline: none !important;
+}
+
+
+/* Fix login-field-smooth interactive highlights */
+.dark .login-field-smooth label:has(input:focus) span {
+  color: #58a6ff !important;
+}
+
+/* Admin Demo button custom styling (Orange branding) */
+.dark [class*="bg-[#fff4e6]"] {
+  background-color: rgba(240, 136, 62, 0.06) !important;
+  color: #f0883e !important;
+  border-color: rgba(240, 136, 62, 0.15) !important;
+}
+
+.dark [class*="bg-[#fff4e6]"]:hover {
+  background-color: rgba(240, 136, 62, 0.12) !important;
+}
+
+/* Aside / Sidebar Panel elements in dark mode */
+.dark aside {
+  background-color: #0d1117 !important;
+  border-right-color: #21262d !important;
+}
+
+.dark aside button[class*="bg-[#123c8c]"] {
+  background-color: #1f6feb !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(31, 111, 235, 0.3) !important;
+}
+
+/* Sidebar menu hover: neon glow effect so user can clearly see which item is hovered */
+.dark aside button:not([class*="bg-[#123c8c]"]):hover {
+  background-color: rgba(56, 139, 253, 0.12) !important;
+  color: #58a6ff !important;
+  box-shadow: 0 0 15px rgba(56, 139, 253, 0.15), inset 0 0 0 1px rgba(56, 139, 253, 0.2) !important;
+  border-radius: 16px;
+}
+
+.dark aside button:not([class*="bg-[#123c8c]"]) {
+  color: #8b949e !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Login right column: remove white dividing background in dark mode */
+.dark div[class*="lg:bg-white/35"],
+.dark div[class*="lg:bg-white"],
+.dark .grid > div:last-child[class*="backdrop-blur"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+}
+
+/* Login card: dark mode styling */
+.dark .login-card-enter {
+  border-color: #21262d !important;
+  background-color: #161b22 !important;
+  background: #161b22 !important;
+}
+
+/* Login card border override — catches border-white/70 from Tailwind v4 */
+.dark .login-card-enter[class*="border"] {
+  border-color: #30363d !important;
+}
+
+
+.dark aside [class*="bg-[#f6f8ff]"] {
+  background-color: #161b22 !important;
+  color: #58a6ff !important;
+}
+
+.dark aside [class*="border-blue-50"] {
+  border-color: #21262d !important;
+}
+
+/* Borders & Shadows */
+.dark .border-blue-100,
+.dark [class*="border-blue-100"],
+.dark .border-slate-200,
+.dark [class*="border-slate-200"],
+.dark .border-white,
+.dark [class*="border-white"] {
+  border-color: #21262d !important;
+}
+
+
+.dark .shadow-slate-200,
+.dark [class*="shadow-slate-200"],
+.dark .shadow-slate-300,
+.dark [class*="shadow-slate-300"] {
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Header dynamic glassmorphic backgrounds */
+header {
+  z-index: 40 !important;
+}
+
+.dark header {
+  background-color: rgba(13, 17, 23, 0.85) !important;
+  border-bottom-color: #21262d !important;
+}
+
+/* Soft translucent status badge mappings (Success/Warning/Danger/Alerts) */
+.dark [class*="bg-red-50"] {
+  background-color: rgba(248, 81, 73, 0.08) !important;
+  color: #ff7b72 !important;
+  border-color: rgba(248, 81, 73, 0.15) !important;
+}
+
+.dark [class*="hover:bg-red-100"]:hover {
+  background-color: rgba(248, 81, 73, 0.12) !important;
+}
+
+.dark [class*="bg-red-100"] {
+  background-color: rgba(248, 81, 73, 0.1) !important;
+}
+
+.dark [class*="text-red-600"] {
+  color: #ff7b72 !important;
+}
+
+.dark [class*="bg-emerald-50"],
+.dark [class*="bg-green-50"] {
+  background-color: rgba(56, 139, 253, 0.08) !important;
+  color: #58a6ff !important;
+  border-color: rgba(56, 139, 253, 0.15) !important;
+}
+
+/* Direct raw CSS overrides for the Login page (completely bypasses Tailwind compiler caching) */
+.dark section.relative.min-h-dvh {
+  background-color: transparent !important;
+  background-image: radial-gradient(
+      circle at top left,
+      rgba(240, 136, 62, 0.04),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(88, 166, 255, 0.05),
+      transparent 40%
+    ) !important;
+}
+
+.dark section.relative.min-h-dvh .login-enter {
+  background-color: transparent !important;
+}
+
+.dark section.relative.min-h-dvh div[class*="lg:bg-white/35"] {
+  background-color: rgba(22, 27, 34, 0.2) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* ==========================================================
+   COMPREHENSIVE TEXT VISIBILITY FOR DARK MODE
+   ========================================================== */
+
+/* Global Text: All dark slate text → light in dark mode */
+.dark .text-slate-950, .dark [class*="text-slate-950"],
+.dark .text-slate-900, .dark [class*="text-slate-900"],
+.dark .text-slate-800, .dark [class*="text-slate-800"],
+.dark .text-slate-700, .dark [class*="text-slate-700"],
+.dark .text-slate-600:not(button):not(a), .dark [class*="text-slate-600"]:not(button):not(a) {
+  color: #e6edf3 !important;
+}
+
+.dark .text-slate-500, .dark [class*="text-slate-500"],
+.dark .text-slate-400, .dark [class*="text-slate-400"] {
+  color: #8b949e !important;
+}
+
+/* Form Labels: Ensure ALL labels & label spans are visible */
+.dark label {
+  color: #c9d1d9 !important;
+}
+
+.dark label span {
+  color: #c9d1d9 !important;
+}
+
+.dark label span[class*="text-red"] {
+  color: #ff7b72 !important;
+}
+
+/* ==========================================================
+   COLORED STAT CARDS — Subtle tinted dark backgrounds
+   ========================================================== */
+
+/* Emerald/Green stat cards (e.g. Published, Disetujui) */
+.dark [class*="bg-emerald-50"],
+.dark [class*="bg-green-50"],
+.dark [class*="bg-[#f0fdf4]"],
+.dark [class*="bg-[#ecfdf5]"] {
+  background-color: rgba(63, 185, 80, 0.1) !important;
+  border-color: rgba(63, 185, 80, 0.2) !important;
+}
+
+.dark [class*="text-emerald-700"],
+.dark [class*="text-emerald-600"],
+.dark [class*="text-green-700"],
+.dark [class*="text-green-600"] {
+  color: #3fb950 !important;
+}
+
+.dark [class*="text-emerald-500"],
+.dark [class*="text-green-500"] {
+  color: #56d364 !important;
+}
+
+/* Red stat cards (e.g. Ditolak, Danger) */
+.dark [class*="bg-red-50"],
+.dark [class*="bg-[#fef2f2]"] {
+  background-color: rgba(248, 81, 73, 0.1) !important;
+  border-color: rgba(248, 81, 73, 0.2) !important;
+}
+
+.dark [class*="bg-red-100"] {
+  background-color: rgba(248, 81, 73, 0.12) !important;
+}
+
+.dark [class*="hover:bg-red-100"]:hover {
+  background-color: rgba(248, 81, 73, 0.18) !important;
+}
+
+.dark [class*="text-red-600"],
+.dark [class*="text-red-700"],
+.dark [class*="text-red-500"] {
+  color: #ff7b72 !important;
+}
+
+/* Amber/Orange/Yellow stat cards (e.g. Menunggu, Warning) */
+.dark [class*="bg-amber-50"],
+.dark [class*="bg-yellow-50"],
+.dark [class*="bg-orange-50"],
+.dark [class*="bg-[#fff4e6]"],
+.dark [class*="bg-[#fffbeb]"],
+.dark [class*="bg-[#fefce8]"] {
+  background-color: rgba(240, 136, 62, 0.1) !important;
+  border-color: rgba(240, 136, 62, 0.2) !important;
+  color: #f0883e !important;
+}
+
+.dark [class*="text-amber-700"],
+.dark [class*="text-amber-600"],
+.dark [class*="text-yellow-700"],
+.dark [class*="text-yellow-600"],
+.dark [class*="text-orange-700"],
+.dark [class*="text-orange-600"] {
+  color: #f0883e !important;
+}
+
+.dark [class*="bg-[#fff4e6]"]:hover {
+  background-color: rgba(240, 136, 62, 0.15) !important;
+}
+
+/* Blue stat cards */
+.dark [class*="bg-blue-50"],
+.dark [class*="bg-[#eff6ff]"] {
+  background-color: rgba(56, 139, 253, 0.1) !important;
+  border-color: rgba(56, 139, 253, 0.2) !important;
+}
+
+.dark [class*="text-blue-700"],
+.dark [class*="text-blue-600"] {
+  color: #58a6ff !important;
+}
+
+/* Purple/Indigo stat cards */
+.dark [class*="bg-purple-50"],
+.dark [class*="bg-indigo-50"] {
+  background-color: rgba(163, 113, 247, 0.1) !important;
+  border-color: rgba(163, 113, 247, 0.2) !important;
+}
+
+.dark [class*="text-purple-700"],
+.dark [class*="text-purple-600"],
+.dark [class*="text-indigo-700"],
+.dark [class*="text-indigo-600"] {
+  color: #a371f7 !important;
+}
+
+/* ==========================================================
+   LARGE NUMBERS / STATS in dark mode — ensure visible
+   ========================================================== */
+.dark p[class*="text-3xl"],
+.dark p[class*="text-4xl"],
+.dark span[class*="text-3xl"],
+.dark span[class*="text-4xl"],
+.dark div[class*="text-3xl"] {
+  color: #f0f6fc !important;
+}
+
+/* Colored large numbers should keep their color */
+.dark p[class*="text-emerald"],
+.dark span[class*="text-emerald"] {
+  color: #3fb950 !important;
+}
+
+.dark p[class*="text-red"],
+.dark span[class*="text-red"] {
+  color: #ff7b72 !important;
+}
+
+.dark p[class*="text-amber"],
+.dark p[class*="text-orange"],
+.dark span[class*="text-amber"],
+.dark span[class*="text-orange"] {
+  color: #f0883e !important;
+}
+
+.dark p[class*="text-blue"],
+.dark span[class*="text-blue"] {
+  color: #58a6ff !important;
+}
+
+/* ==========================================================
+   PIE CHART & PROGRESS ELEMENTS
+   ========================================================== */
+.dark [class*="bg-white/90"],
+.dark [class*="bg-white/80"],
+.dark [class*="bg-white/70"] {
+  background-color: #21262d !important;
+}
+
+/* Pie chart text */
+.dark text {
+  fill: #c9d1d9 !important;
+}
+
+/* ==========================================================
+   TOGGLE / SWITCH COMPONENTS
+   ========================================================== */
+.dark [role="switch"],
+.dark button[class*="bg-slate-200"],
+.dark button[class*="bg-gray-200"] {
+  background-color: #30363d !important;
+}
+
+.dark [role="switch"][data-state="checked"],
+.dark [role="switch"][aria-checked="true"],
+.dark button[class*="bg-blue-600"],
+.dark button[class*="bg-[#123c8c]"]:not(aside button):not([class*="bg-white"]):not([class*="bg-transparent"]) {
+  background-color: #1f6feb !important;
+}
+
+/* ==========================================================
+   COLORED BORDER ON STAT CARDS — visible in dark mode
+   ========================================================== */
+.dark [class*="border-emerald"] {
+  border-color: rgba(63, 185, 80, 0.3) !important;
+}
+
+.dark [class*="border-red"] {
+  border-color: rgba(248, 81, 73, 0.3) !important;
+}
+
+.dark [class*="border-amber"],
+.dark [class*="border-orange"],
+.dark [class*="border-yellow"] {
+  border-color: rgba(240, 136, 62, 0.3) !important;
+}
+
+/* ==========================================================
+   GENERAL VISIBILITY SAFETY NET
+   ========================================================== */
+
+/* Ensure all paragraph text is readable */
+.dark p {
+  color: inherit;
+}
+
+/* Black text → light */
+.dark .text-black,
+.dark [class*="text-black"] {
+  color: #f0f6fc !important;
+}
+
+/* Gray text → readable */
+.dark .text-gray-700, .dark [class*="text-gray-700"],
+.dark .text-gray-800, .dark [class*="text-gray-800"],
+.dark .text-gray-900, .dark [class*="text-gray-900"] {
+  color: #e6edf3 !important;
+}
+
+.dark .text-gray-500, .dark [class*="text-gray-500"],
+.dark .text-gray-600, .dark [class*="text-gray-600"],
+.dark .text-gray-400, .dark [class*="text-gray-400"] {
+  color: #8b949e !important;
+}
+
+/* Ensure table header and cell text is visible */
+.dark th {
+  color: #8b949e !important;
+}
+
+.dark td {
+  color: #c9d1d9 !important;
+  border-color: #21262d !important;
+}
+
+.dark tr {
+  border-color: #21262d !important;
+}
+
+.dark thead {
+  border-color: #21262d !important;
+}
+
+.dark tbody tr:hover {
+  background-color: #161b22 !important;
+}
+
+/* White text on colored section headers should stay white */
+.dark section[class*="bg-[#123c8c]"] h1,
+.dark section[class*="bg-[#123c8c]"] p,
+.dark section[class*="bg-[#123c8c]"] span,
+.dark section[class*="bg-[#123c8c]"] div {
+  color: inherit;
+}
+
+/* ==========================================================
+   ADDITIONAL UI/UX ADJUSTMENTS FOR DARK MODE
+   ========================================================== */
+
+/* Universal layout watermark logo styling in light and dark mode */
+.universal-watermark {
+  opacity: 0.16 !important;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.dark .universal-watermark {
+  opacity: 0.22 !important;
+  filter: brightness(1.3) contrast(1.1) !important;
+}
+
+/* Make input field icons and select chevrons always visible above background and don't block clicks */
+.app-field-smooth select,
+.app-field-smooth input {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.app-field-smooth svg {
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.dark .app-field-smooth svg {
+  color: #ffffff !important;
+}
+
+/* Dark mode styling for PieProgressCard progress graph & capsules */
+.dark .monitor-row-enter {
+  background-color: #161b22 !important;
+  color: #ffffff !important;
+  border: 1px solid #21262d !important;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .monitor-row-enter p {
+  color: #8b949e !important;
+}
+
+.dark .monitor-row-enter p.text-slate-950,
+.dark .monitor-row-enter p[class*="text-slate-950"] {
+  color: #ffffff !important;
+}
+
+.dark .pie-progress-circle {
+  background-color: #161b22 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dark .pie-progress-circle p:first-child {
+  color: #ffffff !important;
+}
+
+.dark .pie-progress-circle p:last-child {
+  color: #8b949e !important;
+}
+
+.dark .pie-capsule-terpakai {
+  background-color: rgba(56, 139, 253, 0.1) !important;
+  color: #8b949e !important;
+  border: 1px solid rgba(56, 139, 253, 0.2) !important;
+  box-shadow: none !important;
+}
+
+.dark .pie-capsule-terpakai span:last-child {
+  color: #58a6ff !important;
+}
+
+.dark .pie-capsule-sisa {
+  background-color: #0d1117 !important;
+  color: #8b949e !important;
+  border: 1px solid #21262d !important;
+  box-shadow: none !important;
+}
+
+.dark .pie-capsule-sisa span:last-child {
+  color: #c9d1d9 !important;
+}
+
+/* Explicitly force thin padding on header cards in dark mode matching light mode exactly */
+.dark .admin-announcement-enter,
+.dark .employee-enter {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+/* Force elements with keep-white to stay clean white in dark mode (useful for logos designed for light backgrounds) */
+.dark .keep-white,
+.dark [class*="keep-white"] {
+  background-color: #ffffff !important;
+  color: inherit !important;
+  border-color: rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Clear light rings in dark mode for soft variant buttons and boxes */
+.dark [class*="ring-blue-100"],
+.dark .ring-blue-100,
+.dark [class*="ring-orange-100"],
+.dark .ring-orange-100,
+.dark [class*="ring-emerald-100"],
+.dark .ring-emerald-100,
+.dark [class*="ring-red-100"],
+.dark .ring-red-100,
+.dark [class*="ring-slate-100"],
+.dark .ring-slate-100 {
+  --tw-ring-color: transparent !important;
+  border-color: #21262d !important;
+  box-shadow: none !important;
+}
+
+/* Fix native calendar and clock picker indicators in dark mode inputs */
+.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) !important;
+}
+
+/* Fix checked state of custom peer-checked switches in dark mode */
+.dark .peer:checked + div[class*="peer-checked:bg-"],
+.dark .peer:checked + [class*="peer-checked:bg-"] {
+  background: #1f6feb !important;
+  background-color: #1f6feb !important;
+  background-image: none !important;
+  border-color: transparent !important;
+}
+
+/* Inherit button and link text colors for children spans and paragraphs */
+.dark button span,
+.dark button p,
+.dark a span,
+.dark a p {
+  color: inherit !important;
+}
+
+/* Explicitly style native selects and options for dark mode readability */
+.dark select {
+  background-color: #161b22 !important;
+  color: #c9d1d9 !important;
+  border-color: #21262d !important;
+}
+
+.dark select option {
+  background-color: #161b22 !important;
+  color: #c9d1d9 !important;
+}
+
+/* Force white text for red gradient buttons inside modals in dark mode */
+.dark button[class*="from-red-600"] span,
+.dark button[class*="from-red-"] span {
+  color: #ffffff !important;
+}
+
+.dark button[class*="from-red-600"]:disabled span,
+.dark button[class*="from-red-"]:disabled span {
+  color: #94a3b8 !important;
+}
+
+
+
+
