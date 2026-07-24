@@ -11,6 +11,15 @@ const MANAGE_ROLES: AllowedRole[] = ["admin", "owner"];
 
 const defaultStatuses = ["Tetap", "Kontrak", "Magang", "Freelance"];
 
+function createStatusCode(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 50);
+}
+
 function getCurrentUser(req: NextRequest) {
   return requireOwner(req);
 }
@@ -44,7 +53,7 @@ async function ensureDefaultStatuses() {
         prisma.employmentStatus.upsert({
           where: { name },
           update: {},
-          create: { name, status: "active" },
+          create: { name, code: createStatusCode(name), status: "active" },
         })
       )
     );
@@ -96,6 +105,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const name = String(body.name || "").trim();
+    const requestedCode = String(body.code || "").trim();
     const status = String(body.status || "active").trim();
 
     if (!name) {
@@ -109,6 +119,7 @@ export async function POST(req: NextRequest) {
     const newStatus = await prisma.employmentStatus.create({
       data: {
         name,
+        code: createStatusCode(requestedCode || name),
         status,
       },
     });

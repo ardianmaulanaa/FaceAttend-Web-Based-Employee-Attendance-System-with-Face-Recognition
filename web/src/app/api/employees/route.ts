@@ -16,6 +16,15 @@ type AccountRole = "admin" | "employee";
 const VIEW_ROLES: AllowedRole[] = ["admin", "owner"];
 const MANAGE_ROLES: AllowedRole[] = ["admin", "owner"];
 
+function createStatusCode(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 50);
+}
+
 const officeSelect = {
   id: true,
   name: true,
@@ -380,7 +389,7 @@ export async function GET(req: NextRequest) {
           prisma.employmentStatus.upsert({
             where: { name },
             update: {},
-            create: { name, status: "active" },
+            create: { name, code: createStatusCode(name), status: "active" },
           })
         )
       );

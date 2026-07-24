@@ -8,7 +8,6 @@ import {
   Plus,
   Search,
   Trash2,
-  UserRound,
   X,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -16,7 +15,6 @@ import BottomNav from "@/components/BottomNav";
 import MobileShell from "@/components/MobileShell";
 import {
   AppButton,
-  AppCard,
   AppEmptyState,
   AppInput,
   AppSelect,
